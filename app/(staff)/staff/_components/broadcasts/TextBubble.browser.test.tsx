@@ -72,37 +72,64 @@ describe("TextBubble's card and fold", () => {
     expect(page.getByText(exampleLinkCard.title).query()).toBeNull();
   });
 
-  it("shows a picture at its top, above its words, in place of a place's map or its link's card", async () => {
-    await render(
+  it("shows a picture at its top, above its words, in place of a place's map, its link's small card under it", async () => {
+    const withPicture = (card: LinkCard | null) => (
       <TextBubble
         words={paragraphs("Details: https://pauseai.uk/march")}
-        card={exampleLinkCard}
+        card={card}
         place={examplePlace}
         picture="/public/images/logos/Pause-Symbol.svg"
         footer={TEMPLATE_FOOTER}
         time="07:18"
-      />,
+      />
     );
+    const { rerender } = await render(withPicture(exampleLinkCard));
     const bubble = page.getByText("07:18").element().parentElement!;
     const picture = bubble.querySelector("img")!;
     expect(picture.getAttribute("src")).toBe("/public/images/logos/Pause-Symbol.svg");
     expect(picture.alt).toBe("");
-    expect(bubble.firstElementChild).toBe(picture);
+    expect(bubble.firstElementChild!.firstElementChild).toBe(picture);
     expect(page.getByText(examplePlace.name, { exact: true }).query()).toBeNull();
+    // The small card: the site's name and its site, under the picture; not the page's title or description.
+    const name = page.getByText(exampleLinkCard.name, { exact: true }).element();
+    expect(bubble.firstElementChild!.contains(name)).toBe(true);
+    expect(picture.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expect.element(page.getByText(exampleLinkCard.site, { exact: true })).toBeVisible();
     expect(page.getByText(exampleLinkCard.title).query()).toBeNull();
+    expect(page.getByText(exampleLinkCard.description).query()).toBeNull();
     await expect.element(page.getByText(/^Details:/)).toBeVisible();
+    // With no card, the picture alone.
+    await rerender(withPicture(null));
+    expect(page.getByText(exampleLinkCard.name, { exact: true }).query()).toBeNull();
+    expect(bubble.firstElementChild!.children).toHaveLength(1);
   });
 
-  it("has its reply buttons under it, each a line, and none when it has none", async () => {
+  it("has its buttons at its foot, in it, each with a reply's icon or a link's, and none when it has none", async () => {
     const { rerender } = await render(
-      <TextBubble words={paragraphs("Coming?")} buttons={["Yes", "No"]} footer={TEMPLATE_FOOTER} time="07:18" />,
+      <TextBubble
+        words={paragraphs("Coming?")}
+        buttons={[{ text: "Yes" }, { text: "No" }, { text: "Sign up", url: "https://pauseai.uk/march" }]}
+        footer={TEMPLATE_FOOTER}
+        time="07:18"
+      />,
     );
     const list = page.getByRole("list");
-    expect([...list.element().querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Yes", "No"]);
-    // Under the bubble, not in it.
-    expect(page.getByText("07:18").element().parentElement!.contains(list.element())).toBe(false);
+    const items = [...list.element().querySelectorAll("li")];
+    expect(items.map((li) => li.textContent)).toEqual(["Yes", "No", "Sign up"]);
+    // In the bubble, after its time.
+    const time = page.getByText("07:18").element();
+    expect(time.parentElement!.contains(list.element())).toBe(true);
+    expect(time.compareDocumentPosition(list.element()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const icon = (li: Element) => li.querySelector("svg")!.innerHTML;
+    expect(icon(items[1])).toBe(icon(items[0]));
+    expect(icon(items[2])).not.toBe(icon(items[0]));
     await rerender(<TextBubble words={paragraphs("Coming?")} footer={TEMPLATE_FOOTER} time="07:18" />);
     expect(page.getByRole("list").query()).toBeNull();
+  });
+
+  it("has no footer where it isn't known", async () => {
+    await render(<TextBubble words={paragraphs("Coming?")} footer={null} time="07:18" />);
+    expect(page.getByText(TEMPLATE_FOOTER).query()).toBeNull();
   });
 
   it("shows words that fit whole, with no card and no Read more", async () => {
@@ -185,10 +212,10 @@ describe("ChatBubble", () => {
   });
 });
 
-describe("BubbleTop's examples, and a bubble's with buttons, in the gallery", () => {
-  it("draws a map and a picture at a bubble's top, and buttons under one", async () => {
+describe("A text's examples in the gallery", () => {
+  it("draws its top, the card WhatsApp shows with it, and its buttons, in a phone's bubble and one of our own", async () => {
     const variants = textBubbleGallery
-      .filter((example) => ["BubbleTop", "TextWords"].includes(example.name))
+      .filter((example) => ["TextBubble", "TextMessage", "TextWords"].includes(example.name))
       .flatMap((example) => example.variants);
     await render(
       <>
@@ -197,12 +224,15 @@ describe("BubbleTop's examples, and a bubble's with buttons, in the gallery", ()
         ))}
       </>,
     );
+    // The map's, with no card; the whole card with no header; the small one under each picture.
     await expect.element(page.getByText(examplePlace.address)).toBeVisible();
-    expect(document.querySelector("img")!.getAttribute("src")).toBe(examplePictureId);
-    expect(
-      [...page.getByRole("list").filter({ hasText: "I'm coming" }).element().querySelectorAll("li")].map(
-        (li) => li.textContent,
-      ),
-    ).toEqual(["I'm coming", "Can't make it"]);
+    expect(page.getByText(exampleLinkCard.title).elements()).toHaveLength(1);
+    expect(page.getByText(exampleLinkCard.site, { exact: true }).elements()).toHaveLength(3);
+    expect([...document.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual([
+      examplePictureId,
+      examplePictureId,
+    ]);
+    expect(page.getByText("I'm coming").elements()).toHaveLength(2);
+    expect(page.getByText("Sign up").elements()).toHaveLength(3);
   });
 });

@@ -668,7 +668,8 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await addFollower("usr-3", "nameless@example.com", "");
     const id = await scheduled(EMAIL_FILTER, { subject: "Soon", body: EVENT_WORDS });
     const data = await broadcastPageData(id, {}, JO);
-    expect(data).toMatchObject({ kind: "written", recipientsTotal: 3, pages: 1, summary: { to: 3 } });
+    // An email has no link cards.
+    expect(data).toMatchObject({ kind: "written", recipientsTotal: 3, pages: 1, summary: { to: 3 }, cards: {} });
     expect(data!.kind === "written" && data!.recipients.map((r) => [r.name, r.status])).toEqual([
       ["Jane Smith", "scheduled"],
       ["Sam", "scheduled"],
@@ -709,6 +710,26 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       merge: null,
       supporterId: null,
     });
+  });
+
+  it("gives a text's link cards, for each version's link, on its page and its copy's", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith", { phone: "07700 900001" });
+    const words = (text: string) => ({
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    });
+    const template = await addTemplate("March day", {
+      buttons: [{ text: "Sign up", url: "https://pauseai.uk/march" }],
+      condition: registeredFor("evt-1"),
+      conditional: { body: words("See https://pauseai.uk/route") },
+    });
+    const id = await scheduled(TEXT_FILTER, { templateId: template });
+    // Our own site's pages, as the fixtures serve them, each with its card.
+    const card = { title: expect.any(String), description: expect.any(String), name: "PauseAI UK", site: "pauseai.uk" };
+    const cards = { "https://pauseai.uk/march": card, "https://pauseai.uk/route": card };
+    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ kind: "written", cards });
+    const [copy] = await sent(id, [["delivered", null]]);
+    expect((await messageCopy(id, copy))!.cards).toEqual(cards);
   });
 
   it("gives an email's copy no text as written, nor a text's whose broadcast has no words kept", async () => {

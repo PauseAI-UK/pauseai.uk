@@ -1,8 +1,12 @@
 // TextBubble in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { exampleLinkCard, examplePictureId, examplePlace, exampleWhatsAppWords } from "./BroadcastWriter.examples";
-import TextBubble, { BubbleTop, ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
+import TextBubble, { ChatBubble, ChatWall, LinkedText, TextMessage, TextWords } from "./TextBubble";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
+
+/** Two reply buttons, and a link button. */
+const replies = [{ text: "I'm coming" }, { text: "Can't make it" }];
+const signUp = [{ text: "Sign up", url: "https://pauseai.uk/march" }];
 
 export const textBubbleGallery: Example[] = [
   {
@@ -14,28 +18,60 @@ export const textBubbleGallery: Example[] = [
         render: () => <TextBubble words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />,
       },
       {
-        label: "With the card for its link",
+        label: "With no header, the whole card for its link, and its link button",
         render: () => (
-          <TextBubble words={exampleWhatsAppWords} card={exampleLinkCard} footer={TEMPLATE_FOOTER} time="07:18" />
+          <TextBubble
+            words={exampleWhatsAppWords}
+            card={exampleLinkCard}
+            buttons={signUp}
+            footer={TEMPLATE_FOOTER}
+            time="07:18"
+          />
+        ),
+      },
+      {
+        label: "With a picture, its link's small card under it",
+        render: () => (
+          <TextBubble
+            words={exampleWhatsAppWords}
+            picture={examplePictureId}
+            card={exampleLinkCard}
+            buttons={signUp}
+            footer={TEMPLATE_FOOTER}
+            time="07:18"
+          />
+        ),
+      },
+      {
+        label: "With a map, which has no card, and reply buttons",
+        render: () => (
+          <TextBubble
+            words={exampleWhatsAppWords}
+            place={examplePlace}
+            card={exampleLinkCard}
+            buttons={replies}
+            footer={TEMPLATE_FOOTER}
+            time="07:18"
+          />
         ),
       },
     ],
   },
   {
-    name: "BubbleTop",
+    name: "TextMessage",
     file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
     variants: [
       {
-        label: "A text's top in a bubble of our own: its map, then its picture",
+        label: "A text as it went, in a bubble of our own, with its picture, card and buttons",
         render: () => (
           <ChatWall>
-            <ChatBubble who="PauseAI UK" when="07:18" ours>
-              <BubbleTop place={examplePlace} />
-              <TextWords words={exampleWhatsAppWords} />
-            </ChatBubble>
-            <ChatBubble who="PauseAI UK" when="07:19" ours>
-              <BubbleTop picture={examplePictureId} />
-              <TextWords words={exampleWhatsAppWords} />
+            <ChatBubble who="PauseAI UK" when="07:18" ours receipt={{ kind: "read" }} buttons={[...replies, ...signUp]}>
+              <TextMessage
+                words={exampleWhatsAppWords}
+                picture={examplePictureId}
+                card={exampleLinkCard}
+                footer={TEMPLATE_FOOTER}
+              />
             </ChatBubble>
           </ChatWall>
         ),
@@ -51,16 +87,6 @@ export const textBubbleGallery: Example[] = [
         render: () => (
           <ChatWall>
             <ChatBubble who="PauseAI UK" when="07:18" ours>
-              <TextWords words={exampleWhatsAppWords} />
-            </ChatBubble>
-          </ChatWall>
-        ),
-      },
-      {
-        label: "With its buttons under it, as wide",
-        render: () => (
-          <ChatWall>
-            <ChatBubble who="PauseAI UK" when="07:18" ours buttons={["I'm coming", "Can't make it"]}>
               <TextWords words={exampleWhatsAppWords} />
             </ChatBubble>
           </ChatWall>

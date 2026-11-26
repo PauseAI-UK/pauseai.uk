@@ -103,6 +103,7 @@ export const examplePlace: TextPlace = {
 export const exampleLinkCard: LinkCard = {
   title: "March Against AI Extinction",
   description: "Join thousands in London to call for a pause on the race to superintelligence.",
+  name: "PauseAI UK",
   site: "pauseai.uk",
 };
 
@@ -399,6 +400,7 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
   kind: "written",
   written: { ...exampleBroadcastEmail, id: 5, title: summary.title, subject: summary.title, state: "sent" },
   realMaps: false,
+  cards: {},
   summary,
   choices: exampleSupporterChoices,
   parts: Object.fromEntries(exampleParts.map((part) => [part.id, part.label])),
@@ -510,6 +512,7 @@ export const exampleMessageCopy: MessageCopy = {
   answers: [],
   reactions: [],
   realMaps: false,
+  cards: {},
   // Its broadcast as written: a map of where to meet, and a reply button.
   written: {
     ...exampleBroadcastText,

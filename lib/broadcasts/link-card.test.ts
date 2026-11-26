@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MailingBlock, OnlyForNode } from "@/lib/mailings/doc";
-import { firstLink, mapsLink } from "./link-card";
+import { cardLink, firstLink, mapsLink } from "./link-card";
 
 const paragraph = (text: string): MailingBlock => ({ type: "paragraph", content: [{ type: "text", text }] });
 
@@ -47,6 +47,23 @@ describe("firstLink", () => {
 
   it("finds none in words without one, nor an address WhatsApp makes no card for, such as www.", () => {
     expect(firstLink([paragraph("Meet at 11:00 at www.example.org")])).toBeUndefined();
+  });
+});
+
+describe("cardLink", () => {
+  const signUp = { text: "Sign up", url: " https://lu.ma/march " };
+
+  it("is the first address in the words, before any button's", () => {
+    expect(cardLink([paragraph("See https://pauseai.uk/march")], [signUp])).toBe("https://pauseai.uk/march");
+  });
+
+  it("is the first link button's, trimmed, with none in the words, past reply buttons and one not yet a web address", () => {
+    const buttons = [{ text: "I'm coming" }, { text: "Half typed", url: "https://lu" }, signUp];
+    expect(cardLink([paragraph("Meet at 11:00")], buttons)).toBe("https://lu.ma/march");
+  });
+
+  it("is none with no address in the words and no link button", () => {
+    expect(cardLink([paragraph("Meet at 11:00")], [{ text: "I'm coming" }])).toBeUndefined();
   });
 });
 

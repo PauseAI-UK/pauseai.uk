@@ -762,7 +762,7 @@ test("A text with a picture at its top", async ({ page, request, flowDatabase })
   await startFromList(page, TEXT, TEXTABLE);
   await chooseTemplate(page, copy.newTemplate);
   await page.getByRole("textbox", { name: copy.templateWords }).click();
-  await page.keyboard.type("The march is on Saturday. See you there!");
+  await page.keyboard.type("The march is on Saturday. Details at https://pauseai.uk/march");
   await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March banner"));
   await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.picture }).click());
   const add = page.getByRole("button", { name: copy.pictureChooser.choose });
@@ -777,11 +777,14 @@ test("A text with a picture at its top", async ({ page, request, flowDatabase })
   const shown = page.getByRole("img", { name: copy.pictureChooser.shown });
   await expect(shown).toBeVisible();
   await frame(page, "The picture chosen, with its × to take it off", { window: true });
-  story("The preview shows the picture over the words.");
+  story(
+    "The preview shows the picture over the words, and under it the small card WhatsApp makes for the link: the site's name and its address.",
+  );
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await preview.scrollIntoViewIfNeeded();
   await expect(preview.locator('img[src^="/api/text-pictures/"]')).toBeVisible();
-  await frame(page, "The preview, with the picture at its top", { window: true });
+  await expect(preview.getByText("PauseAI UK", { exact: true })).toBeVisible();
+  await frame(page, "The preview, with the picture at its top and the link's small card", { window: true });
   story("Sent for approval, WhatsApp gets the picture as the template's example, uploaded to the site's Meta app.");
   await preview.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();

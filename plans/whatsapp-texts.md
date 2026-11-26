@@ -21,8 +21,12 @@ The preview folds at 5 lines whatever the text has (`TextFold`). It could
 take the number from the variant's header and buttons, once a real send shows
 Meta's page, written for its Marketing Messages API, holds for ours: the 5
 matched a phone, but a picture with a link is untested, and so is a map.
-Whether the small card still shows for a link in the words once there's a
-picture isn't in Meta's docs either.
+Meta's docs don't say what card a link gets once there's a picture. On an
+Android phone, a picture with a link button showed a small card under the
+picture: the site's name and its address. The preview takes it that a
+link in the words does the same, and that a link button with no header
+gets the whole card at the top, as a link in the words does
+(`lib/broadcasts/link-card.ts`). A real send of each would settle it.
 
 ## Later stages
 

@@ -11,12 +11,11 @@ import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyStatus } from "../letters/CopyStatus";
-import { BubbleTop, ChatBubble, ChatWall, TextWords } from "./TextBubble";
+import { ChatBubble, ChatWall, TextMessage } from "./TextBubble";
 import { textShown } from "@/lib/broadcasts/text-shown";
 import { LetterHistory, type HistoryEntry } from "../letters/LetterHistory";
 import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
-import bubble from "./Broadcasts.module.css";
 import own from "./MessageCopyView.module.css";
 import GmailLink from "../ui/OpenInGmail";
 import Grid, { Card, Column } from "../ui/Grid";
@@ -59,8 +58,9 @@ function NotReached({ one }: { one: MessageCopy }) {
 
 /**
  * The message as they got it: a text as a conversation, its own or its second
- * version as they meet its condition, with its top and buttons (from the
- * broadcast as written); an email as a mail app shows it.
+ * version as they meet its condition, with its top, its link's card and its
+ * buttons (from the broadcast as written), as the writer's preview shows it
+ * (TextMessage); an email as a mail app shows it.
  */
 function Message({ one, name }: { one: MessageCopy; name: string }) {
   const written = one.written;
@@ -78,10 +78,15 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
           badge={theirReaction(one, null)}
           buttons={shown?.buttons}
         >
-          <BubbleTop place={shown?.place} picture={shown?.picture} realMap={one.realMaps} />
-          <TextWords words={letterFor(shown ? { type: "doc", content: shown.blocks } : one.body, merge)} />
-          {/* Its footer, as they got it, where we know it. */}
-          {one.footer && <span className={bubble.footer}>{one.footer}</span>}
+          <TextMessage
+            words={letterFor(shown ? { type: "doc", content: shown.blocks } : one.body, merge)}
+            card={shown?.link ? one.cards[shown.link] : null}
+            place={shown?.place}
+            picture={shown?.picture}
+            // Its footer, as they got it, where we know it.
+            footer={one.footer}
+            realMap={one.realMaps}
+          />
         </ChatBubble>
       </ChatWall>
     );

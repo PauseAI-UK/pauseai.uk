@@ -1,3 +1,4 @@
+import type { LinkCard } from "@/lib/broadcasts/link-card";
 import { textShown, type WrittenText as Written } from "@/lib/broadcasts/text-shown";
 import NotIcon from "../ui/NotIcon";
 import { partButton, partButtonWords } from "../mailings/PartBox";
@@ -19,12 +20,15 @@ export default function WrittenText({
   labels,
   time,
   realMaps,
+  cards = {},
 }: {
   written: Written;
   labels: Record<string, string>;
   time: string;
   /** Whether a map is OpenStreetMap's, or a drawing. */
   realMaps?: boolean;
+  /** Its link cards, by the address each is for (cardLink). */
+  cards?: Record<string, LinkCard | null>;
 }) {
   const condition = written.textVersion?.condition;
   const bubble = (met: boolean) => {
@@ -32,6 +36,7 @@ export default function WrittenText({
     return (
       <TextBubble
         words={{ content: shown.blocks }}
+        card={shown.link ? cards[shown.link] : null}
         footer={shown.footer}
         time={time}
         place={shown.place}

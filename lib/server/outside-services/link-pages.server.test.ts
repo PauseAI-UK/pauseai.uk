@@ -20,14 +20,21 @@ const at = new URL(PAGE);
 const head = (tags: string) => `<!doctype html><html><head>${tags}</head><body>Hello</body></html>`;
 
 describe("cardFrom", () => {
-  it("makes a card of a page's og:title and og:description, with the link's site", () => {
+  it("makes a card of a page's og:title and og:description, its title for the site's name, with the link's site", () => {
     const html = head(`<meta property="og:title" content="The march">
       <meta property="og:description" content="Saturday in London">`);
     expect(cardFrom(html, at)).toEqual({
       title: "The march",
       description: "Saturday in London",
+      name: "The march",
       site: "www.example.org",
     });
+  });
+
+  it("names the site by its og:site_name where it has one, and not where it's empty", () => {
+    const tags = `<meta property="og:title" content="The march"><meta property="og:description" content="Saturday">`;
+    expect(cardFrom(head(`${tags}<meta property="og:site_name" content="Luma">`), at)?.name).toBe("Luma");
+    expect(cardFrom(head(`${tags}<meta property="og:site_name" content=" ">`), at)?.name).toBe("The march");
   });
 
   it("reads tags by name too, quoted either way or bare, in any case, the first of each", () => {
@@ -67,7 +74,12 @@ describe("linkCard", () => {
         );
       }),
     );
-    expect(await linkCard(PAGE)).toEqual({ title: "The march", description: "Saturday", site: "www.example.org" });
+    expect(await linkCard(PAGE)).toEqual({
+      title: "The march",
+      description: "Saturday",
+      name: "The march",
+      site: "www.example.org",
+    });
     expect(agent).toMatch(/^WhatsApp\/2\.[\d.]+ A$/);
   });
 
@@ -119,6 +131,7 @@ describe("linkCard", () => {
     expect(await linkCard("https://short.example.org/m")).toEqual({
       title: "T",
       description: "D",
+      name: "T",
       site: "short.example.org",
     });
   });

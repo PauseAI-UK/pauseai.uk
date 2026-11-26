@@ -45,7 +45,11 @@ function attributes(tag: string): Record<string, string> {
   return found;
 }
 
-/** The card a page's HTML makes for a link to `url`: its first og:title and og:description, and the link's site; none without both. */
+/**
+ * The card a page's HTML makes for a link to `url`: its first og:title and
+ * og:description, its og:site_name or else the title, and the link's site;
+ * none without a title and a description.
+ */
 export function cardFrom(html: string, url: URL): LinkCard | null {
   const tags: Record<string, string> = {};
   for (const [tag] of html.slice(0, HEAD_LENGTH).matchAll(/<meta\b[^>]*>/gi)) {
@@ -55,7 +59,8 @@ export function cardFrom(html: string, url: URL): LinkCard | null {
   }
   const title = tags["og:title"];
   const description = tags["og:description"];
-  return title && description ? { title, description, site: url.hostname } : null;
+  if (!title || !description) return null;
+  return { title, description, name: tags["og:site_name"] || title, site: url.hostname };
 }
 
 /**

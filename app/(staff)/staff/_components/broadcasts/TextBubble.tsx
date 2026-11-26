@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts/broadcasts";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
-import type { TextPlace } from "@/lib/broadcasts/text-parts";
+import type { TextButton, TextPlace } from "@/lib/broadcasts/text-parts";
 import type { Receipt } from "@/lib/broadcasts/receipts";
 import type { MailingBlock, MailingInline } from "@/lib/mailings/doc";
 import IconText from "../ui/IconText";
@@ -36,11 +36,12 @@ function Ticks({ receipt }: { receipt: "sent" | "delivered" | "read" }) {
 
 /**
  * A bubble in a text conversation: theirs at the left in white, ours at the
- * right in green, each with who and when; ours with its ticks, or, under its
+ * right in green, each with when, and who where it's `who` (WhatsApp names
+ * no one in a chat with one business); ours with its ticks, or, under its
  * words, that WhatsApp couldn't deliver it. Theirs can have something
  * `beside` it, in the space to its right, and our emoji on it (`badge`), at
- * its foot, as WhatsApp shows a reaction. Ours can have its text's buttons
- * (`buttons`), under it and as wide, as WhatsApp shows them.
+ * its foot, as WhatsApp shows a reaction. A text's buttons are in it, at its
+ * foot (BubbleButtons). One as a phone shows it (`phone`) is a phone's width.
  */
 export function ChatBubble({
   who,
@@ -50,19 +51,23 @@ export function ChatBubble({
   beside,
   badge,
   buttons = [],
+  phone = false,
   children,
 }: {
-  who: string;
+  who?: string;
   when: ReactNode;
   ours?: boolean;
   receipt?: Receipt;
   beside?: ReactNode;
   badge?: string;
-  buttons?: string[];
+  buttons?: TextButton[];
+  phone?: boolean;
   children: ReactNode;
 }) {
-  const classes = [styles.bubble, ours && styles.ours, badge && styles.badged].filter(Boolean).join(" ");
-  const bubble = (
+  const classes = [styles.bubble, ours && styles.ours, badge && styles.badged, phone && styles.phoneBubble]
+    .filter(Boolean)
+    .join(" ");
+  return (
     <div className={classes}>
       {beside && <span className={styles.beside}>{beside}</span>}
       {badge && (
@@ -70,7 +75,7 @@ export function ChatBubble({
           {badge}
         </span>
       )}
-      <span className={ours ? `${styles.name} ${styles.ourName}` : styles.name}>{who}</span>
+      {who && <span className={ours ? `${styles.name} ${styles.ourName}` : styles.name}>{who}</span>}
       {children}
       {receipt?.kind === "failed" && <p className={styles.undelivered}>{words.replies.undelivered(receipt.why)}</p>}
       <span className={styles.time}>
@@ -82,12 +87,6 @@ export function ChatBubble({
           when
         )}
       </span>
-    </div>
-  );
-  if (!buttons.length) return bubble;
-  return (
-    <div className={styles.withButtons}>
-      {bubble}
       <BubbleButtons buttons={buttons} />
     </div>
   );
@@ -176,13 +175,29 @@ function Blocks({ blocks }: { blocks: MailingBlock[] }) {
   );
 }
 
-/** The card WhatsApp shows at the top of a text for its link: the page's title, a line of its description, its site. */
+/** The card WhatsApp shows at the top of a text with no header for its link: the page's title, a line of its description, its site. */
 function LinkCardView({ card }: { card: LinkCard }) {
   return (
     <div className={styles.linkCard}>
       <strong className={styles.cardTitle}>{card.title}</strong>
       <span className={styles.cardLine}>{card.description}</span>
       <span className={styles.cardLine}>{card.site}</span>
+    </div>
+  );
+}
+
+/** A text's picture, and under it, as an Android phone shows it, its link's small card: the site's name, and its site. */
+function PictureTop({ picture, card }: { picture: string; card?: LinkCard | null }) {
+  return (
+    <div className={styles.pictureTop}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent */}
+      <img src={picture} alt="" />
+      {card && (
+        <span className={styles.smallCard}>
+          <strong className={styles.cardLine}>{card.name}</strong>
+          <span className={styles.cardLine}>{card.site}</span>
+        </span>
+      )}
     </div>
   );
 }
@@ -205,8 +220,12 @@ function MapTop({ place, realMap }: { place: TextPlace; realMap?: boolean }) {
   );
 }
 
-/** A text's top: its picture, or its map, OpenStreetMap's where `realMap` says (PlaceMap), or else its link's card. */
-export function BubbleTop({
+/**
+ * A text's top, with its link's card where WhatsApp shows one (link-card.ts):
+ * its picture, the small card under it; its map, OpenStreetMap's where
+ * `realMap` says (PlaceMap), and no card; or with neither, the whole card.
+ */
+function BubbleTop({
   place,
   picture,
   card,
@@ -217,68 +236,120 @@ export function BubbleTop({
   card?: LinkCard | null;
   realMap?: boolean;
 }) {
-  // eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent
-  if (picture) return <img className={styles.pictureTop} src={picture} alt="" />;
+  if (picture) return <PictureTop picture={picture} card={card} />;
   if (place) return <MapTop place={place} realMap={realMap} />;
   return card ? <LinkCardView card={card} /> : null;
 }
 
-/** A text's buttons, each its words, under its bubble, as WhatsApp shows them. */
-function BubbleButtons({ buttons }: { buttons: string[] }) {
+/** A reply button's icon: an arrow curving back, as WhatsApp draws it. */
+function ReplyArrow() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M6.5 3.5L2.5 7.5l4 4M2.5 7.5h6.5a4.5 4.5 0 0 1 4.5 4.5v.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** A link button's icon: a box with an arrow out of its corner, as WhatsApp draws it. */
+function OpenArrow() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9M9.5 2.5h4v4M13.5 2.5L7.5 8.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * A text's buttons at the foot of its bubble, as an Android phone shows
+ * them: each across it, under a line, its words in WhatsApp's green after
+ * its icon, a reply's arrow or a link's.
+ */
+function BubbleButtons({ buttons }: { buttons: TextButton[] }) {
   if (!buttons.length) return null;
   return (
-    <ul className={styles.replyButtons}>
-      {buttons.map((words, i) => (
-        <li key={i}>{words}</li>
+    <ul className={styles.bubbleButtons}>
+      {buttons.map((button, i) => (
+        <li key={i}>
+          <IconText icon={button.url === undefined ? <ReplyArrow /> : <OpenArrow />}>{button.text}</IconText>
+        </li>
       ))}
     </ul>
   );
 }
 
 /**
- * A text as a messaging app shows it, a phone's width: the words in a bubble
- * from us, on the left as it is on their phone, formatted as WhatsApp does,
- * under its picture or map, if it has one, or the card for their link if there is
- * one, folded at five lines, with its footer, the grey line saying how to
- * stop, and the time; under it, its reply buttons. No name on it,
- * as WhatsApp puts none on a bubble in a chat with one business.
+ * A text's own part of its bubble, as WhatsApp shows it: its top, with its
+ * link's card where it has one (BubbleTop); its words, formatted as
+ * WhatsApp does and folded at five lines; and its footer, the grey line
+ * saying how to stop.
  */
-export default function TextBubble({
+export function TextMessage({
   words,
   card,
   place,
   picture,
-  buttons = [],
   footer,
-  time,
   realMap,
 }: {
   words: TextDoc;
+  /** Its link's card (cardLink), shown as WhatsApp shows it under its top. */
   card?: LinkCard | null;
-  /** The place its map shows, at its top in place of a link's card. */
+  /** The place its map shows. */
   place?: TextPlace | null;
-  /** Where the picture at its top is, in place of a link's card. */
+  /** Where the picture at its top is. */
   picture?: string | null;
-  /** Its reply buttons' words, each a button under it, as WhatsApp shows them. */
-  buttons?: string[];
-  footer: string;
-  time: string;
+  /** Its footer, as its template went to WhatsApp; none where that isn't known. */
+  footer: string | null;
   /** Whether its map is OpenStreetMap's, for a page drawn on the server (PlaceMap); else as the writer says. */
   realMap?: boolean;
 }) {
   return (
+    <>
+      <BubbleTop place={place} picture={picture} card={card} realMap={realMap} />
+      {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
+      <TextFold key={JSON.stringify(words.content)}>
+        <Blocks blocks={words.content} />
+      </TextFold>
+      {footer && <span className={styles.footer}>{footer}</span>}
+    </>
+  );
+}
+
+/**
+ * A text as a phone shows it, a phone's width: its bubble from us on the
+ * left, as it is on their phone, with its message (TextMessage), the time
+ * and its buttons. No name on it, as WhatsApp puts none on a bubble in a
+ * chat with one business.
+ */
+export default function TextBubble({
+  buttons = [],
+  time,
+  ...message
+}: Parameters<typeof TextMessage>[0] & {
+  /** Its buttons, in WhatsApp's order (inOrder). */
+  buttons?: TextButton[];
+  time: string;
+}) {
+  return (
     <div className={styles.phone}>
       <ChatWall>
-        <div className={`${styles.bubble} ${styles.phoneBubble}`}>
-          <BubbleTop place={place} picture={picture} card={card} realMap={realMap} />
-          {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
-          <TextFold key={JSON.stringify(words.content)}>
-            <Blocks blocks={words.content} />
-          </TextFold>
-          <span className={styles.footer}>{footer}</span>
-          <span className={styles.time}>{time}</span>
-        </div>
-        <BubbleButtons buttons={buttons} />
+        <ChatBubble when={time} buttons={buttons} phone>
+          <TextMessage {...message} />
+        </ChatBubble>
       </ChatWall>
     </div>
   );

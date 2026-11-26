@@ -23,7 +23,9 @@ import type { Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, reactionsTo, type BroadcastAnswer, type BroadcastReaction } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
 import { config } from "@/lib/server/config.server";
-import type { WrittenText } from "./text-shown";
+import { cardLinks, type WrittenText } from "./text-shown";
+import type { LinkCard } from "./link-card";
+import { linkCard } from "@/lib/server/outside-services/link-pages.server";
 import { query } from "@/lib/server/db.server";
 import { channelSends, textSenderNumber } from "./channels.server";
 import {
@@ -261,6 +263,16 @@ export type BroadcastWriterData = {
  */
 const realMaps = () => !config.fixtures || config.realServices.includes("map-tiles");
 
+/**
+ * The cards WhatsApp shows for a written text's links, by address, as its
+ * pages read them now: each version's (cardLinks), none for one whose page
+ * has none or can't be reached; none for an email.
+ */
+async function cardsFor(written: WrittenText | null): Promise<Record<string, LinkCard | null>> {
+  const links = written ? cardLinks(written) : [];
+  return Object.fromEntries(await Promise.all(links.map(async (link) => [link, await linkCard(link)] as const)));
+}
+
 export type BroadcastPageData =
   | ({ kind: "draft"; draft: WrittenBroadcast } & BroadcastWriterData)
   | {
@@ -268,6 +280,8 @@ export type BroadcastPageData =
       written: WrittenBroadcast;
       /** Whether a text's map is OpenStreetMap's, or a drawing (realMaps). */
       realMaps: boolean;
+      /** A text's link cards, by the address each is for (cardsFor). */
+      cards: Record<string, LinkCard | null>;
       summary: BroadcastSummary;
       choices: SupporterChoices;
       /** What each part its words can be only for says, as its box shows it. */
@@ -414,12 +428,16 @@ export async function broadcastPageData(
   ]);
   // One scheduled has no messages yet: it goes to whoever its filters find when it's sent, so for now, who they
   // find, a page at a time, each yet to be sent.
-  const found = written.state === "scheduled" ? await scheduledRecipients(written, page) : undefined;
+  const [found, cards] = await Promise.all([
+    written.state === "scheduled" ? scheduledRecipients(written, page) : undefined,
+    cardsFor(written.channel === "text" ? written : null),
+  ]);
   const listed = found?.total ?? total;
   return {
     kind: "written",
     written,
     realMaps: realMaps(),
+    cards,
     summary: { ...summary, to: found?.total ?? summary.to, variantFor: conditionWords(parts, summary.variantFor) },
     choices,
     parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
@@ -518,6 +536,8 @@ export type MessageCopy = {
   written: WrittenText | null;
   /** Whether its map is OpenStreetMap's, or a drawing (realMaps). */
   realMaps: boolean;
+  /** Its text's link cards, by the address each is for (cardsFor). */
+  cards: Record<string, LinkCard | null>;
   /** The replies to it, oldest first. */
   replies: BroadcastReply[];
   /** Staff's answers to those replies, oldest first. */
@@ -531,7 +551,9 @@ export type BroadcastEvent = { at: Date; kind: string; details: Record<string, u
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers" | "reactions" | "written" | "realMaps">>(
+  const [row] = await query<
+    Omit<MessageCopy, "events" | "replies" | "answers" | "reactions" | "written" | "realMaps" | "cards">
+  >(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
        m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
@@ -564,5 +586,6 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
     reactions,
     written,
     realMaps: realMaps(),
+    cards: await cardsFor(written),
   };
 }
