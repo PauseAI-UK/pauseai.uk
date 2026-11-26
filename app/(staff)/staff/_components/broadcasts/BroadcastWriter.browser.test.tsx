@@ -996,6 +996,16 @@ describe("BroadcastWriter, by text", () => {
     expect(actions.linkCard).toHaveBeenCalledTimes(2);
   });
 
+  it("shows the card for its link button's page when its words have no link, and the words' link's when they do", async () => {
+    const buttons = [{ text: "Sign up", url: "https://pauseai.uk/march" }];
+    const actions = await renderWriter({ draft: { ...newWords, buttons } });
+    await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
+    expect(actions.linkCard).toHaveBeenCalledWith("https://pauseai.uk/march");
+    await page.getByRole("textbox", { name: copy.templateWords }).fill("See https://example.org/none");
+    await vi.waitFor(() => expect(actions.linkCard).toHaveBeenCalledWith("https://example.org/none"), WAIT);
+    await expect.element(page.getByText(exampleLinkCard.title)).not.toBeInTheDocument();
+  });
+
   it("warns when the words' first link is to Google Maps, and not when another link comes first", async () => {
     await renderWriter({ draft: exampleBroadcastText });
     await pick(copy.newTemplate);
@@ -1845,7 +1855,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     expect(moved()).toBeLessThan(4);
   });
 
-  // The bubble's buttons, in the list under it that has the link button.
+  // The bubble's buttons, in the list at its foot that has the link button.
   const details = () => preview().getByRole("listitem").filter({ hasText: "Details" });
   const underBubble = () => [...details().element().parentElement!.children].map((item) => item.textContent);
 

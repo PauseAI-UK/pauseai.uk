@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MailingDoc } from "@/lib/mailings/doc";
-import { pictureSource, textShown, type WrittenText } from "./text-shown";
+import { cardLinks, pictureSource, textShown, type WrittenText } from "./text-shown";
 import type { WhatsAppVariant } from "./drafts.server";
 import { TEMPLATE_FOOTER } from "./whatsapp-template";
 
@@ -47,8 +47,15 @@ describe("textShown", () => {
       footer: TEMPLATE_FOOTER,
       place: PLACE,
       picture: null,
-      buttons: ["I'm coming", "Details"],
+      buttons: [{ text: "I'm coming" }, { text: "Details", url: "https://pauseai.uk/march" }],
+      link: "https://pauseai.uk/march",
     });
+  });
+
+  it("has its card for the first address in its words, or else its link button's", () => {
+    const linked = { ...written, body: words("See https://example.org/page") };
+    expect(textShown(linked, false).link).toBe("https://example.org/page");
+    expect(textShown({ ...written, buttons: [{ text: "I'm coming" }] }, false).link).toBeUndefined();
   });
 
   it("shows its own parts to one who meets a condition when it has no second version", () => {
@@ -93,8 +100,31 @@ describe("textShown", () => {
       footer: TEMPLATE_FOOTER,
       place: null,
       picture: `/api/text-pictures/${PICTURE}`,
-      buttons: ["Thanks"],
+      buttons: [{ text: "Thanks" }],
+      link: undefined,
     });
     expect(textShown(both, false).blocks).toEqual(words("Everyone").content);
+  });
+});
+
+describe("cardLinks", () => {
+  it("has each version's link, once, and none for a version without one", () => {
+    expect(cardLinks(written)).toEqual(["https://pauseai.uk/march"]);
+    const version = {
+      condition: "wrote:regulate-ai",
+      header: null,
+      place: null,
+      pictureId: null,
+      variant: variant(null),
+    };
+    const other = { ...version, body: words("See https://example.org/page"), buttons: [] };
+    expect(cardLinks({ ...written, textVersion: other })).toEqual([
+      "https://pauseai.uk/march",
+      "https://example.org/page",
+    ]);
+    expect(cardLinks({ ...written, textVersion: { ...other, body: words("Same https://pauseai.uk/march") } })).toEqual([
+      "https://pauseai.uk/march",
+    ]);
+    expect(cardLinks({ ...written, buttons: [] })).toEqual([]);
   });
 });

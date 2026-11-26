@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
+import type { LinkCard } from "@/lib/broadcasts/link-card";
 import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/broadcasts/pages.server";
 import { filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { londonWhen, londonWhenShort, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
@@ -263,15 +264,24 @@ function BroadcastWords({
   written,
   parts,
   realMaps,
+  cards,
 }: {
   written: WrittenBroadcast;
   parts: Record<string, string>;
   realMaps: boolean;
+  /** A text's link cards, by the address each is for. */
+  cards: Record<string, LinkCard | null>;
 }) {
   if (written.channel === "text") {
     return (
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
-        <WrittenText written={written} labels={parts} time={staffClock(sendsAt(written.dueAt!))} realMaps={realMaps} />
+        <WrittenText
+          written={written}
+          labels={parts}
+          time={staffClock(sendsAt(written.dueAt!))}
+          realMaps={realMaps}
+          cards={cards}
+        />
       </Card>
     );
   }
@@ -421,7 +431,7 @@ export default function BroadcastView({
         resume={<ResumeBroadcast id={written.id} action={resume} says={copy.refusals.resume} atTop={["gone"]} />}
       />
       <Grid>
-        <BroadcastWords written={written} parts={data.parts} realMaps={data.realMaps} />
+        <BroadcastWords written={written} parts={data.parts} realMaps={data.realMaps} cards={data.cards} />
         <Card span={3} as="div">
           <div className={view.recipientsHead}>
             <h2>{tab === "all" ? copy.recipientsTitle : lettersCopy.copyStates.tabs[tab]}</h2>

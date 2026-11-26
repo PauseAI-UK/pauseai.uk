@@ -110,7 +110,7 @@ import BroadcastConsent from "./BroadcastConsent";
 import { othersThanConsent } from "../supporters/SupporterFilters";
 import { MailingLetter } from "../mailings/MailingLetter";
 import TextBubble, { type TextDoc } from "./TextBubble";
-import { firstLink, mapsLink, type LinkCard } from "@/lib/broadcasts/link-card";
+import { cardLink, firstLink, mapsLink, type LinkCard } from "@/lib/broadcasts/link-card";
 import { BandFact, Facts } from "../ui/Band";
 import Grid, { Card } from "../ui/Grid";
 import NotIcon from "../ui/NotIcon";
@@ -346,9 +346,10 @@ const footerOf = (stand: VersionStanding<WhatsAppVariant>): string =>
 const CARD_PAUSE_MS = 600;
 
 /**
- * A text's bubble, with the card WhatsApp shows for its first link once its
- * page has said what goes on it; each link asked about once. Under it, a
- * warning when that link is to Google Maps, whose card WhatsApp breaks (mapsLink).
+ * A text's bubble, with the card WhatsApp shows for its link (cardLink) once
+ * its page has said what goes on it; each link asked about once. Under it, a
+ * warning when the first link in its words is to Google Maps, whose card
+ * WhatsApp breaks (mapsLink).
  */
 function TextPreview({
   words,
@@ -366,9 +367,11 @@ function TextPreview({
   /** The place its map shows, or where its picture is, in place of its link's card. */
   place: TextPlace | null;
   picture: string | null;
-  buttons: string[];
+  /** Its buttons, in WhatsApp's order (inOrder). */
+  buttons: TextButton[];
 }) {
-  const link = firstLink(words.content);
+  const link = cardLink(words.content, buttons);
+  const wordsLink = firstLink(words.content);
   const [cards, setCards] = useState<Record<string, LinkCard | null>>({});
   // A link whose page couldn't be asked has no card, as one whose page has nothing to show.
   const [ask] = useSave(linkCard, { done: ({ card }, url) => setCards((known) => ({ ...known, [url]: card })) });
@@ -389,7 +392,7 @@ function TextPreview({
         footer={footer}
         time={time}
       />
-      {link && !place && mapsLink(link) && <Alert tone="amber">{copy.mapsFirst}</Alert>}
+      {wordsLink && !place && mapsLink(wordsLink) && <Alert tone="amber">{copy.mapsFirst}</Alert>}
     </>
   );
 }
@@ -424,8 +427,8 @@ function BroadcastPreview({
   draft: WrittenBroadcast;
   body: MailingDoc;
   words: Words;
-  /** A text's place, if its top is a map, or where its picture is, if it's a picture; and its buttons' words. */
-  top: { place: TextPlace | null; picture: string | null; buttons: string[] };
+  /** A text's place, if its top is a map, or where its picture is, if it's a picture; and its buttons, in WhatsApp's order. */
+  top: { place: TextPlace | null; picture: string | null; buttons: TextButton[] };
   /**
    * A text's second version, with the same, for those who meet its
    * condition; and whether the made-up recipient does (`met`), as the
@@ -438,7 +441,7 @@ function BroadcastPreview({
     footer: string;
     place: TextPlace | null;
     picture: string | null;
-    buttons: string[];
+    buttons: TextButton[];
     met: boolean;
     onMet: (met: boolean) => void;
   } | null;
@@ -1483,7 +1486,7 @@ export default function BroadcastWriter({
                 top={{
                   place: values.header === "location" ? values.place : null,
                   picture: values.header === "image" && values.pictureId ? pictureSource(values.pictureId) : null,
-                  buttons: inOrder(values.buttons).map((button) => button.text),
+                  buttons: inOrder(values.buttons),
                 }}
                 textVersion={
                   textVersion && {
@@ -1497,7 +1500,7 @@ export default function BroadcastWriter({
                       textVersion.header === "image" && textVersion.pictureId
                         ? pictureSource(textVersion.pictureId)
                         : null,
-                    buttons: inOrder(textVersion.buttons).map((button) => button.text),
+                    buttons: inOrder(textVersion.buttons),
                     met: side === "only",
                     onMet: (met) => {
                       keepInPlace();
