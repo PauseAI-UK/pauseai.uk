@@ -92,8 +92,7 @@ export const broadcastsCopy = {
     // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
     // found; then the place's name and address under the map, its map's link to check its pin, and taking it off.
     placeChooser: {
-      find: "Search for a place",
-      findHint: "⁂ Type a place's name or address, or paste a Google Maps link.",
+      find: "Search for a place, or paste a Google Maps link",
       findButton: "Find",
       none: "No place found. Try different terms, or paste a Google Maps link.",
       name: "Name",
@@ -130,16 +129,16 @@ export const broadcastsCopy = {
     // their tabs, and on the button that sends them.
     textVersions: {
       templates: (n: number) =>
-        n === 1 ? "⁂ 1 variant goes to WhatsApp for approval" : `⁂ ${n} variants go to WhatsApp for approval`,
-      submit: (n: number) => (n === 1 ? "Send for approval" : `⁂ Send ${n} variants for approval`),
+        n === 1 ? "1 variant goes to WhatsApp for approval" : `${n} variants go to WhatsApp for approval`,
+      submit: (n: number) => (n === 1 ? "Send for approval" : `Send ${n} variants for approval`),
     },
     // A second version's template, as it's named for its list: the text's name, then who it's for.
     versionTemplateName: (name: string, who: string) => `${name}, for those who ${who}`,
     othersTemplateName: (name: string, who: string) => `${name}, for all but those who ${who}`,
     // Beside the name of a template with two variants, in the dropdown and on the list of broadcasts; and, under
     // the mouse, who each is for.
-    twoVariants: "⁂ 2 variants",
-    twoVariantsFor: (who: string) => `⁂ One variant for those who ${who}, and one for everyone else`,
+    twoVariants: "2 variants",
+    twoVariantsFor: (who: string) => `One variant for those who ${who}, and one for everyone else`,
     // A template in the dropdown, and under the one chosen: a tag by its name when nothing has ever had it; on a line,
     // who made it; when it was last sent and to how many, or else when it's first scheduled for, or else when it was
     // approved; and how many other drafts have it, if any do.
@@ -261,7 +260,7 @@ export const broadcastsCopy = {
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words":
-        "⁂ An approved template already has these words, with a different header or buttons. WhatsApp won't approve the same words twice, so change the words.",
+        "An approved WhatsApp template already has this exact message, with a different header or buttons. WhatsApp won't approve the same copy twice, so make a change to it.",
       "versions-same-words":
         "Both template variants have the same text, which WhatsApp won't approve twice. Change the copy in one of them.",
       "no-place": "Choose where the map header shows.",
@@ -334,7 +333,7 @@ export const broadcastsCopy = {
     schedulesForApproval: (templates: number) =>
       templates === 1
         ? "Scheduling also sends the template to WhatsApp for approval."
-        : `⁂ Scheduling also sends the ${templates} variants of the template to WhatsApp for approval.`,
+        : `Scheduling also sends the ${templates} variants of the template to WhatsApp for approval.`,
     // Under its time, for a text whose template WhatsApp hasn't approved, due in less than a day.
     approvalSoon:
       "WhatsApp can take 24 hours to approve a template, but you've scheduled the broadcast to start sooner than that. It will still be sent, but late, if approval is slow.",

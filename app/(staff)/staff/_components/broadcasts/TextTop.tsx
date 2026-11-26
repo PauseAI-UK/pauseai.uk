@@ -4,7 +4,6 @@ import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "re
 import { Button } from "@/components/ui/Button";
 import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
-import { Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { placeWords, type TextHeader, type TextPlace } from "@/lib/broadcasts/text-parts";
@@ -180,8 +179,6 @@ function PlaceChooser({
           {words.findButton}
         </Button>
       </div>
-      {/* Before a search, what the box takes. */}
-      {!found && <Hint>{words.findHint}</Hint>}
       {found && found.length === 0 && <Muted>{words.none}</Muted>}
       {found && found.length > 0 && (
         <div

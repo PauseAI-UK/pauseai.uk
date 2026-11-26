@@ -26,8 +26,9 @@
   gap: var(--space-2);
 }
 
+/* Wide enough for the box's words, where there's room. */
 .findRow > :first-child {
-  flex: 0 1 20rem;
+  flex: 0 1 24rem;
 }
 
 /* A place chosen, as WhatsApp shows it: its map, then its name and address, which are boxes that look like words. */

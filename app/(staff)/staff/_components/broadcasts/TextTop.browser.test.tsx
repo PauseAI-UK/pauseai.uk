@@ -169,12 +169,9 @@ describe("TextTop", () => {
 
   it("says when no place is found", async () => {
     await renderTop({ found: [] });
-    // Before a search, what the box takes.
-    await expect.element(page.getByText(words.findHint)).toBeVisible();
     await box().fill("nowhere at all");
     await find().click();
     await expect.element(page.getByText(words.none)).toBeVisible();
-    expect(page.getByText(words.findHint).query()).toBeNull();
   });
 
   it("shows the search till a place is chosen, then the place as WhatsApp shows it, in its place", async () => {
