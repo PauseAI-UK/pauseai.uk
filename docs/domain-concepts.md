@@ -655,7 +655,7 @@ job all leave broadcasts out.
   half an hour is failed, not sent again, if it had been handed to its
   channel, as it may have gone; one the run had only taken never went, so
   it's put back to go. While copies
-  are left, the run starts the background function as letters do ("Mailings
+  are left, the background function calls again as it does for letters ("Mailings
   to politicians"). Each channel has a sender, and one loop sends by either.
 - **What sends a text**: WhatsApp's Cloud API
   (`lib/server/outside-services/whatsapp.server.ts`), from our number, read from
@@ -877,9 +877,9 @@ logged-in staff member's own address. The refresh token is kept encrypted
   the next run.
 
   Then the job sends the mailings' letters at Gmail's pace, 46 a minute (`GMAIL_SEND_GAP_MS`),
-  marking each as it goes. A scheduled function has 30 seconds, so while
-  letters are left it starts a background function, which calls the site
-  again and again for up to 12 minutes. The next run takes up the rest.
+  marking each as it goes. A call to the site has 30 seconds, so while
+  letters are left the background function that runs the job calls the
+  site again and again, for up to 12 minutes. The next run takes up the rest.
 
   Each letter is checked just before it goes. One to a politician who is
   out of office, or whose address has been blocked since, is skipped, and
@@ -1937,6 +1937,12 @@ member's press (`runJob()` in `lib/jobs/jobs.server.ts`). A run marks the job
 running (`job_presses`) until it ends, or for 5 minutes if it dies, and the
 job's page says so. A run started meanwhile doesn't go, and keeps no run, as
 it did nothing.
+
+A press doesn't wait for the run: the job is marked running as the staff
+member's, and the run goes on in the background, as a scheduled one does
+(`lib/jobs/start-job.server.ts`). The page comes back at once saying it's
+running, asks again every few seconds while it is, and shows the run in
+the log once it has ended.
 
 Each run is a request to the site, which Netlify stops at 30 seconds. So a
 job with more to do than that, as the Luma import has, works for its budget

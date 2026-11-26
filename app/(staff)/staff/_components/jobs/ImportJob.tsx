@@ -29,7 +29,7 @@ import Run, { type Decide } from "./Run";
 import { RunState } from "./RunBox";
 import boxes from "./RunBox.module.css";
 import RunList from "./RunList";
-import Strip from "../ui/Strip";
+import RunningNow from "./RunningNow";
 import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
 import Band, { BandFact } from "../ui/Band";
@@ -283,15 +283,11 @@ export function ImportJobPage({
         <BandFact label={words.facts.runs}>{words[jobSchedule(job)]}</BandFact>
       </Band>
       {running && (
-        <div className={styles.running}>
-          <Strip tone="blue">
-            <span>
-              {running.startedBy === NIGHTLY
-                ? words.runningScheduled(staffTime(running.startedAt))
-                : words.running(staffMemberText(running.startedBy), staffTime(running.startedAt))}
-            </span>
-          </Strip>
-        </div>
+        <RunningNow>
+          {running.startedBy === NIGHTLY
+            ? words.runningScheduled(staffTime(running.startedAt))
+            : words.running(staffMemberText(running.startedBy), staffTime(running.startedAt))}
+        </RunningNow>
       )}
       <RunList runs={runs} none={words.never} decide={decide} running={running} />
     </>

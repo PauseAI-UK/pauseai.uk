@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
+import { useReadAgain } from "@/components/ui/useReadAgain";
 import { useSave } from "@/components/ui/useSave";
 import { reportBrowserError, thrownByServer } from "@/lib/browser-errors";
 import type { FormResult } from "@/lib/form-result";
@@ -189,11 +190,7 @@ const READ_AGAIN_MS = 5000;
  * which leaves this out once they're read.
  */
 export function LumaReading() {
-  const router = useRouter();
-  useEffect(() => {
-    const timer = setInterval(() => router.refresh(), READ_AGAIN_MS);
-    return () => clearInterval(timer);
-  }, [router]);
+  useReadAgain(READ_AGAIN_MS);
   return <Working>{copy.result.lumaReading}</Working>;
 }
 

@@ -6,6 +6,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { FIXTURE_NOW, LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
+import { holdService, releaseService } from "@/lib/server/fixtures/held-services";
 import { connectPolicyMailboxes } from "./gmail-steps";
 import { addStaffAccount, logIn, logInAsStaff, staffEmail } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
@@ -37,11 +38,18 @@ const notified = (subject: string) =>
 
 test("The Luma import", async ({ page, flowDatabase }) => {
   story(
-    "Staff run the Luma import by hand. The first run copies every event on our Luma calendar, who registered for each, the hosts and the calendar's contacts, and adds them as supporters.",
+    "Staff run the Luma import by hand. It runs in the background, so the page comes back at once, saying it's running. The first run copies every event on our Luma calendar, who registered for each, the hosts and the calendar's contacts, and adds them as supporters.",
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
+  // Luma slow to answer, so the import is still going when the page comes back.
+  holdService(flowDatabase, "public-api.luma.com", FAILING_DIR);
   await press(page.getByRole("button", { name: jobsCopy.luma.importNow }));
+  await expect(page.getByText(jobsCopy.runs.status.running).first()).toBeVisible();
+  await frame(page, "The import, running");
+
+  story("The page shows the run in its log once it has ended, without being reloaded.");
+  releaseService(flowDatabase, FAILING_DIR);
   // The fixture calendar: nine public events and a private one, five guests each over two pages, each event's hosts,
   // one of them no guest, three contacts.
   const first = {

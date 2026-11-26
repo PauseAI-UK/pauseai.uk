@@ -1,5 +1,5 @@
 // For Vitest: a scheduled job run several times at once on one database, as
-// when its run, its background twin and a press on its page overlap.
+// when its scheduled run and a press on its page overlap.
 
 /**
  * Starts `copies` runs of `job` together, each before any has finished, and

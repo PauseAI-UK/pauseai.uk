@@ -4,7 +4,7 @@ import { server } from "@/tests/fixtures/msw";
 import { startLumaImport } from "./netlify-functions.server";
 import { serverProblems } from "@/lib/server/copy";
 
-const BACKGROUND = "https://pauseai.uk/.netlify/functions/import-luma-background";
+const BACKGROUND = "https://pauseai.uk/.netlify/functions/run-job-background";
 
 describe("startLumaImport", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -15,10 +15,10 @@ describe("startLumaImport", () => {
     vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     vi.stubEnv("CRON_SECRET", "secret");
     for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
-    const calls: (string | null)[] = [];
+    const calls: unknown[] = [];
     server.use(
-      http.post(BACKGROUND, ({ request }) => {
-        calls.push(request.headers.get("authorization"));
+      http.post(BACKGROUND, async ({ request }) => {
+        calls.push([request.headers.get("authorization"), await request.json()]);
         return new HttpResponse(null, { status: 202 });
       }),
     );
@@ -26,8 +26,8 @@ describe("startLumaImport", () => {
     return calls;
   }
 
-  it("starts the background function on Netlify, with our secret", async () => {
-    expect(await start()).toEqual(["Bearer secret"]);
+  it("starts the background function on Netlify, with our secret, to import as the schedule would", async () => {
+    expect(await start()).toEqual([["Bearer secret", { job: "import-luma", startedBy: "nightly" }]]);
   });
 
   it("does nothing in a local build, without the secret, or without the site's address", async () => {

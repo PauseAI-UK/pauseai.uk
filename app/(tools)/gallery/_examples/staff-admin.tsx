@@ -31,6 +31,7 @@ import { importJobGallery } from "@/app/(staff)/staff/_components/jobs/ImportJob
 import { jobActionsGallery } from "@/app/(staff)/staff/_components/jobs/JobActions.gallery";
 import { runGallery } from "@/app/(staff)/staff/_components/jobs/Run.gallery";
 import { runBoxGallery } from "@/app/(staff)/staff/_components/jobs/RunBox.gallery";
+import { runningNowGallery } from "@/app/(staff)/staff/_components/jobs/RunningNow.gallery";
 import { runListGallery } from "@/app/(staff)/staff/_components/jobs/RunList.gallery";
 
 export const staffAdmin: Group = {
@@ -65,6 +66,7 @@ export const staffAdmin: Group = {
     ...changesTableGallery,
     ...runGallery,
     ...runBoxGallery,
+    ...runningNowGallery,
     ...runListGallery,
   ],
 };

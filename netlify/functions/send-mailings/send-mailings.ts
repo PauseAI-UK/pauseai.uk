@@ -1,14 +1,9 @@
-// Every 15 minutes, asks the site to start the mailings that are due and send for a
-// few seconds (netlify/scheduled.ts). If letters are left it starts the
-// background function, which goes on for up to 15 minutes.
-import { callSite, startBackground } from "../../scheduled";
-import { moreToSend } from "./more-to-send";
+// Every 15 minutes, starts the sending: the mailings that are due, and what
+// the letters inbox has queued, call after call while there's more to send,
+// for up to 12 minutes (netlify/scheduled.ts).
+import { startsJob } from "../../scheduled";
 
-export default async function sendMailings(): Promise<Response> {
-  const body = await callSite("send-mailings");
-  if (moreToSend(JSON.parse(body))) await startBackground("send-mailings-background");
-  return new Response(body);
-}
+export default startsJob("send-mailings");
 
 // At 3, 18, 33 and 48 minutes past every hour, overnight too, for the letters
 // inbox's queue and for broadcasts still going. The staff pages offer these

@@ -48,7 +48,7 @@ import { hostOf, urlKey } from "./urls";
 //    finds now waiting that it hasn't been told of.
 //
 // A call does as much as its budget allows (JOBS), and the background
-// function (netlify/functions/import-press-background) calls again while
+// function that runs every job (netlify/functions/run-job-background) calls again while
 // finds are left unread and the last call read some.
 
 const JOB = "import-press";

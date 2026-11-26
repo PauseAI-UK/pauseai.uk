@@ -22,7 +22,7 @@ const JOB = "send-mailings";
  * replies to texts left waiting (lib/broadcasts/text-alerts.server.ts),
  * for its budget (JOBS) in all, short of what Netlify
  * gives a function, so a slow last send still finishes. The background
- * function (netlify/functions/send-mailings-background) runs it again until
+ * function that runs every job (netlify/functions/run-job-background) runs it again until
  * it's done. `request` is the job's call, for links in alerts; a staff
  * member's run has none.
  */
