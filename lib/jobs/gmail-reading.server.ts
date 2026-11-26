@@ -349,6 +349,13 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
       });
     }
   }
+  // The two inboxes the site depends on, tried every run whether connected or not, so that one Google
+  // disconnected, which is no longer among the accounts read, goes on being a problem of each run.
+  for (const inbox of [lettersInbox(), config.policyInbox]) {
+    if (inbox && !accounts.some((read) => read.account === inbox)) {
+      problem(jobProblems.notConnected({ account: staffAccount(inbox) }));
+    }
+  }
   const found = accounts.some(
     (a) =>
       a.replies + a.autoReplies + a.bounces > 0 ||

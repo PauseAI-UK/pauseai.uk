@@ -1784,6 +1784,8 @@ each time it happens, with a link to where to deal with it:
   `lib/server/import-runs.server.ts`; "Imports", below);
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
   (`lib/jobs/gmail-reading.server.ts`); one Google disconnected has its own;
+- the letters inbox or the policy inbox having no Gmail connected, which each read of
+  Gmail says, after a run that didn't;
 - a body's import held, when none was (`lib/politicians/imports.server.ts`);
 - Google disconnecting a Gmail account (`lib/email/gmail-accounts.server.ts`);
 - letters to MPs waiting over three hours to go, until those it named
