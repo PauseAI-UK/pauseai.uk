@@ -35,8 +35,10 @@ import { hostOf, urlKey } from "./urls";
 // The nightly press survey (import-press), a run of the import log:
 //
 // 1. Search Google News, a week at a time, from where the last search
-//    reached (press_search) to today, keeping each piece found as an unread
-//    find. Once a day: a later call the same day goes straight to reading.
+//    reached (press_search) to today, and the week before that again, as
+//    Google adds some pieces to its search late, keeping each piece found as
+//    an unread find. Once a day: a later call the same day goes straight to
+//    reading.
 // 2. Read the unread finds, oldest first, while the call's budget lasts:
 //    decode each Google link to the article's own address, set aside one
 //    already in the coverage or found before, read the page, and note what
@@ -59,7 +61,10 @@ export const GAP_MS = 4_000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const dayOf = (date: Date) => date.toISOString().slice(0, 10);
-const dayBefore = (day: string) => dayOf(new Date(Date.parse(`${day}T00:00:00Z`) - DAY_MS));
+const dayBefore = (day: string, days = 1) => dayOf(new Date(Date.parse(`${day}T00:00:00Z`) - days * DAY_MS));
+
+/** How far back each night's search goes again, for the pieces Google adds to its search late, or now and then. */
+const SEARCH_AGAIN_DAYS = 7;
 
 /** Searches the days since the last search, `gapMs` between searches, keeping what it finds; how many windows it searched and found new. */
 async function search(until: number, gapMs: number): Promise<{ searched: number; found: number }> {
@@ -73,7 +78,9 @@ async function search(until: number, gapMs: number): Promise<{ searched: number;
   let found = 0;
   // Searched already today, by an earlier call.
   if (searchedTo >= yesterday) return { searched, found };
-  for (const window of windows(searchedTo, today)) {
+  // The last week again, as well as the days since; a piece found before is skipped by its link.
+  const again = dayBefore(today, SEARCH_AGAIN_DAYS);
+  for (const window of windows(searchedTo < again ? searchedTo : again, today)) {
     if (Date.now() > until) break;
     let failed = false;
     for (const q of QUERIES) {

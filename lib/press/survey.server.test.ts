@@ -304,6 +304,28 @@ describeWithDatabase("runPressSurvey", () => {
     },
   );
 
+  it("searches the last week again each night, for a piece Google returns late, but each day once", async () => {
+    await query("UPDATE press_search SET searched_to = '2026-10-15'");
+    const searched: string[] = [];
+    server.use(
+      http.get("https://news.google.com/rss/search", ({ request }) => {
+        searched.push(new URL(request.url).searchParams.get("q") ?? "");
+        return new HttpResponse('<rss version="2.0"><channel></channel></rss>');
+      }),
+    );
+    // The night of the 16th has searched up to the 15th already.
+    expect(await runPressSurvey("nightly", undefined, 0)).toMatchObject({ searched: 0 });
+    // The next night searches the week before it again, not just the day since.
+    vi.setSystemTime(new Date("2026-10-17T06:29:00Z"));
+    expect(await runPressSurvey("nightly", undefined, 0)).toMatchObject({ searched: 1 });
+    expect(searched.map((q) => /after:\S+ before:\S+/.exec(q)?.[0])).toEqual([
+      "after:2026-10-10 before:2026-10-18",
+      "after:2026-10-10 before:2026-10-18",
+      "after:2026-10-10 before:2026-10-18",
+    ]);
+    expect(await searchedTo()).toBe("2026-10-16");
+  });
+
   it("searches a week again tomorrow when Google refuses it, or answers with something that isn't its feed", async () => {
     server.use(http.get("https://news.google.com/rss/search", () => new HttpResponse(null, { status: 503 })));
     expect(await runPressSurvey("nightly", undefined, 0)).toMatchObject({ searched: 0, found: 0 });
