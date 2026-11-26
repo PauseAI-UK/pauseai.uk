@@ -129,13 +129,14 @@ describeWithDatabase("POST /api/march/register", () => {
     expect(await registerForMarch({ ...person, website: "  " })).toEqual({ ok: true });
   });
 
-  it("fails when Luma skips the guest, and logs it without their email, keeping what they gave", async () => {
+  it("fails when Luma skips the guest, keeping what they gave, and logs it as the person's choice rather than an error", async () => {
     expect(await registerForMarch({ ...person, email: "luma-skips@example.org" })).toEqual({
       ok: false,
       reason: "luma-failed",
     });
     expect(await entries()).toEqual([expect.objectContaining({ email: "luma-skips@example.org", status: "skipped" })]);
-    expect(console.error).toHaveBeenCalledWith(serverProblems.lumaSkippedGuest().what);
+    expect(console.info).toHaveBeenCalledWith(expect.stringMatching(/^\[march\] Kept sign-up \d+: Luma skipped\.$/));
+    expect(console.error).not.toHaveBeenCalled();
   });
 
   it("fails when Luma does", async () => {

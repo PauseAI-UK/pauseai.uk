@@ -28,8 +28,6 @@ export const serverProblems = defineProblems("server", {
   turnstileTestKey: "TURNSTILE_SECRET_KEY is a Cloudflare test key, refused outside development",
   // A march sign-up that couldn't be saved here. The visitor gets Luma's answer, worked or failed.
   signUpNotKept: "A march sign-up couldn't be kept",
-  // A march sign-up Luma wouldn't take. The visitor is told it failed, and their details are kept.
-  lumaSkippedGuest: "Luma skipped a march sign-up: unsubscribed, removed or blocked on the calendar",
   // A march sign-up with no Luma key set. The visitor is told it failed, and their details are kept.
   lumaNotConfigured: "A march sign-up couldn't go to Luma, as LUMA_API_KEY isn't set",
   // A march sign-up Luma errored on. The visitor is told it failed, and their details are kept.

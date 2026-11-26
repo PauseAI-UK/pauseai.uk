@@ -55,7 +55,9 @@ async function register(input: unknown, request: Request): Promise<MarchRegister
     case "added":
       return { ok: true };
     case "skipped":
-      problem(serverProblems.lumaSkippedGuest());
+      // The person's own doing, or an admin's, on Luma's calendar, so not an
+      // error: the note above logs it. Luma's own page, which the form
+      // offers, still takes most of them.
       break;
     case "not-configured":
       problem(serverProblems.lumaNotConfigured());
