@@ -80,7 +80,7 @@ export const config = {
   get lambdaRuntimeApi(): boolean {
     return Boolean(process.env.AWS_LAMBDA_RUNTIME_API);
   },
-  /** Next's runtime for this code (NEXT_RUNTIME): "nodejs" or "edge". */
+  /** Next's runtime for this code (NEXT_RUNTIME): "nodejs" or "edge", which Next writes in as it builds. */
   get nextRuntime(): string | undefined {
     return value(process.env.NEXT_RUNTIME);
   },
