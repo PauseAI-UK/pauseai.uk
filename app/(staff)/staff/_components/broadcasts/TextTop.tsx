@@ -1,10 +1,13 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffectEvent, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/Button";
 import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { Muted } from "@/components/ui/Text";
+import { FieldError } from "@/components/ui/Field";
+import { useSave } from "@/components/ui/useSave";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { placeWords, type TextHeader, type TextPlace } from "@/lib/broadcasts/text-parts";
 import DropArea from "../ui/DropArea";
@@ -96,7 +99,6 @@ function PlaceChooser({
   const menu = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [found, setFound] = useState<TextPlace[] | null>(null);
-  const [finding, setFinding] = useState(false);
   const choose = (chosen: TextPlace) => {
     onChange(chosen);
     setFound(null);
@@ -106,14 +108,14 @@ function PlaceChooser({
   useLayoutEffect(() => {
     if (found?.length) menu.current!.showPopover();
   }, [found]);
-  const find = async () => {
-    setFinding(true);
-    const places = await findPlaces(input.trim());
-    setFinding(false);
-    // One place, as a link gives, is chosen at once; more are offered.
-    if (places.length === 1) choose(places[0]);
-    else setFound(places);
-  };
+  // One place, as a link gives, is chosen at once; more are offered. A search that broke says so under the box.
+  const [ask, finding, broke] = useSave(findPlaces, {
+    done: (places) => {
+      if (places.length === 1) choose(places[0]);
+      else setFound(places);
+    },
+  });
+  const find = () => ask(input.trim());
   if (place) {
     return (
       <div className={styles.form}>
@@ -179,6 +181,7 @@ function PlaceChooser({
           {words.findButton}
         </Button>
       </div>
+      {broke && <FieldError announce="alert">{staffVocabulary.notDone}</FieldError>}
       {found && found.length === 0 && <Muted>{words.none}</Muted>}
       {found && found.length > 0 && (
         <div
@@ -223,11 +226,16 @@ function PictureChooser({
   onChange,
   uploadPicture,
   disabled,
+  pasted,
+  onPastedTaken,
 }: {
   pictureId: string | null;
   onChange: (pictureId: string | null) => void;
   uploadPicture: UploadPicture;
   disabled: boolean;
+  /** A picture pasted elsewhere in Write, to upload as if it were chosen here; and that it's been taken. */
+  pasted?: File | null;
+  onPastedTaken?: () => void;
 }) {
   const words = copy.pictureChooser;
   const [uploading, setUploading] = useState(false);
@@ -242,6 +250,15 @@ function PictureChooser({
     if ("refused" in kept) return setRefusal(kept.refused);
     onChange(kept.pictureId);
   };
+  // A pasted picture is uploaded once, as one chosen here is, so what's wrong with it is said here too.
+  const took = useRef<File | null>(null);
+  const uploadPasted = useEffectEvent((file: File) => void upload([file]));
+  useEffect(() => {
+    if (!pasted || took.current === pasted) return;
+    took.current = pasted;
+    onPastedTaken?.();
+    uploadPasted(pasted);
+  }, [pasted, onPastedTaken]);
   return (
     <div className={styles.form}>
       {pictureId ? (
@@ -292,6 +309,8 @@ export default function TextTop({
   uploadPicture,
   fixed = false,
   disabled = false,
+  pasted,
+  onPastedTaken,
 }: {
   header: TextHeader | null;
   place: TextPlace | null;
@@ -302,6 +321,9 @@ export default function TextTop({
   uploadPicture: UploadPicture;
   fixed?: boolean;
   disabled?: boolean;
+  /** A picture pasted elsewhere in Write, for its picture (PictureChooser). */
+  pasted?: File | null;
+  onPastedTaken?: () => void;
 }) {
   const words = copy.textTop;
   return (
@@ -332,6 +354,8 @@ export default function TextTop({
           onChange={(chosen) => onChange({ pictureId: chosen })}
           uploadPicture={uploadPicture}
           disabled={disabled}
+          pasted={pasted}
+          onPastedTaken={onPastedTaken}
         />
       )}
     </div>

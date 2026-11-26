@@ -1,7 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { keepPicture, MOST_PICTURE_BYTES, pictureAddress, pictureOf } from "./text-pictures.server";
+import { keepPicture, pictureAddress, pictureOf } from "./text-pictures.server";
+import { MOST_PICTURE_BYTES } from "./text-parts";
 
 const JO = "jo@pauseai.uk";
 const PNG = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);

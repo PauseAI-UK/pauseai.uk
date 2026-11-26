@@ -422,11 +422,15 @@ export async function deleteDraft(id: number, by: string): Promise<boolean> {
   });
 }
 
-/** Deletes the drafts with no subject, letter or file that nobody has opened for a day. Returns how many. */
+/**
+ * Deletes the drafts with no subject, letter, file or template that nobody has opened for a day: a WhatsApp
+ * broadcast's words are its template's, not its own. Returns how many.
+ */
 export async function deleteForgottenDrafts(): Promise<number> {
   const drafts = await query<{ id: number; body: unknown }>(
     `SELECT m.id::int AS id, m.body FROM mailings m
-     WHERE m.state = 'draft' AND m.body IS NOT NULL AND m.subject = '' AND m.opened_at < now() - interval '1 day'
+     WHERE m.state = 'draft' AND m.body IS NOT NULL AND m.subject = '' AND m.template_id IS NULL
+       AND m.opened_at < now() - interval '1 day'
        AND NOT EXISTS (SELECT 1 FROM mailing_attachments a WHERE a.mailing_id = m.id)`,
   );
   const blank = drafts.filter((draft) => isBlankMailing(checkMailingDoc(draft.body)!)).map((draft) => draft.id);

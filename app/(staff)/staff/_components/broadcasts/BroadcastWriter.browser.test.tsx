@@ -11,6 +11,7 @@ import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
+import { MOST_PICTURE_BYTES } from "@/lib/broadcasts/text-parts";
 import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 import BroadcastWriter, { templateOption, type BroadcastWriterActions } from "./BroadcastWriter";
 import ChannelWriter from "./ChannelWriter";
@@ -1964,6 +1965,16 @@ describe("BroadcastWriter, a text's picture", () => {
     expect(page.getByText(pictures.refusals["too-big"]).query()).toBeNull();
   });
 
+  it("says a picture is too big before sending it, as more than a form can send never reaches the site", async () => {
+    const actions = await renderWriter({ draft: { ...newWords, header: "image" } });
+    choose(new File([new Uint8Array(MOST_PICTURE_BYTES + 1)], "phone.jpg", { type: "image/jpeg" }));
+    await expect.element(page.getByText(pictures.refusals["too-big"])).toBeVisible();
+    expect(actions.uploadPicture).not.toHaveBeenCalled();
+    // One just small enough goes.
+    choose(new File([new Uint8Array(MOST_PICTURE_BYTES)], "phone.jpg", { type: "image/jpeg" }));
+    await vi.waitFor(() => expect(actions.uploadPicture).toHaveBeenCalledTimes(1), WAIT);
+  });
+
   it("makes a picture pasted anywhere in Write the text's top, but leaves words and other files pasted alone", async () => {
     const actions = await renderWriter({ draft: newWords });
     const name = page.getByLabelText(copy.templateName).element();
@@ -1978,16 +1989,21 @@ describe("BroadcastWriter, a text's picture", () => {
     await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
   });
 
-  it("keeps no picture pasted that WhatsApp won't take, or on a page the site has changed under", async () => {
+  it("says why a picture pasted won't do, as for one chosen, and keeps none on a page the site has changed under", async () => {
     const actions = await renderWriter({ draft: newWords });
     const name = page.getByLabelText(copy.templateName).element();
     actions.uploadPicture.mockResolvedValueOnce({ ok: false, reason: "not-picture" });
     paste(name, png());
-    await vi.waitFor(() => expect(actions.uploadPicture).toHaveBeenCalledTimes(1), WAIT);
+    // The header is a picture, and its box says why this one isn't.
+    await expect.element(page.getByText(pictures.refusals["not-picture"])).toBeVisible();
+    await expect.element(kind(top.picture)).toHaveAttribute("aria-checked", "true");
+    // One too big is refused before it's sent.
+    paste(name, new File([new Uint8Array(MOST_PICTURE_BYTES + 1)], "phone.png", { type: "image/png" }));
+    await expect.element(page.getByText(pictures.refusals["too-big"])).toBeVisible();
+    expect(actions.uploadPicture).toHaveBeenCalledTimes(1);
     actions.uploadPicture.mockRejectedValueOnce(gone());
     paste(name, png());
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
-    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
     expect(previewPicture()).toBeNull();
   });
 
@@ -2002,7 +2018,7 @@ describe("BroadcastWriter, a text's picture", () => {
     const actions = await renderWriter({ draft: onPictured, data: withPictured });
     await expect.element(kind(top.picture)).toBeDisabled();
     paste(kind(top.picture).element(), png());
-    await saved(actions, { header: "image", pictureId: examplePictureId });
+    await saved(actions, { pictureId: examplePictureId });
     await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
   });
 

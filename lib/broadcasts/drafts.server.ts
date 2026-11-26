@@ -455,15 +455,17 @@ async function addDraftVariant(parts: TextTemplateParts, by: string | null, db: 
 /**
  * The template another broadcast takes from one with template `id`: the
  * template itself once WhatsApp has approved every variant, as it no longer
- * changes; else a copy of it, with its draft variants copied and the rest
- * shared, so each broadcast's words are its own to change.
+ * changes; else a copy of it, sharing its approved variants, which never
+ * change, and with each other variant copied as a draft of its own, so
+ * neither broadcast's words, nor taking them back from WhatsApp, touch the
+ * other's.
  */
 async function copyOfTemplate(id: number, by: string, db: Queryable): Promise<number> {
   const template = (await getTemplate(id, db))!;
   if (isListed(template)) return id;
   const copied = new Map<number, number>();
   const copyOf = async (variant: WhatsAppVariant): Promise<number> => {
-    if (variant.status !== "draft") return variant.id;
+    if (variant.status === "approved") return variant.id;
     if (!copied.has(variant.id)) copied.set(variant.id, await addDraftVariant(variant, by, db));
     return copied.get(variant.id)!;
   };
@@ -529,7 +531,10 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
   const terms = choiceTerms(value);
   if (broadcast?.state !== "draft" || !terms) return false;
   const moving = terms.channel !== broadcast.channel;
-  if (moving && hasWords({ ...broadcast, templateId: broadcast.template?.id ?? null })) return false;
+  // Words, as its writer counts them: an approved template chosen, or its own template's words. A template still
+  // being written that has only a name isn't words yet.
+  const chosen = broadcast.template?.listed ? broadcast.template.id : null;
+  if (moving && hasWords({ ...broadcast, templateId: chosen })) return false;
   const filter = storedFilter("supporters", {
     ...broadcast.filter.params,
     contact: [...termsValues(terms), ...consentLeftOut(broadcast.filter.params.contact)],
@@ -1360,22 +1365,29 @@ export async function deleteApprovedTemplate(id: number, by: string): Promise<Te
     // With no keys, as on a deploy preview, nothing can reach WhatsApp.
     const backend = await textBackend();
     if (!backend) return "failed";
+    // Each in turn, stopping at one WhatsApp refuses. What it deleted before then is gone there, so it's deleted
+    // here too, and the template with it, as it can't go out whole; what it refused stays as it is there.
+    const gone: number[] = [];
     for (const variant of variants) {
       const deleted = await orFallback(
         broadcastProblems.approvedNotDeleted({ template: publicText(variant.name) }),
         "failed" as const,
         () => deleteTemplate(backend.keys, variant.name),
       );
-      if (deleted === "failed") return "failed";
+      if (deleted === "failed") break;
+      gone.push(variant.id);
     }
+    // Refused before anything went: nothing changes here. (A template whose variants others have too deletes none.)
+    const whole = gone.length === variants.length;
+    if (!whole && !gone.length) return "failed";
     await query("DELETE FROM whatsapp_templates WHERE id = $1", [id], db);
     await query(
       "UPDATE whatsapp_template_variants SET status = 'deleted', deleted_at = now(), deleted_by = $2 WHERE id = ANY($1)",
-      [variants.map((variant) => variant.id), by],
+      [gone, by],
       db,
     );
     await logChange(by, "delete broadcast template", { id, name: template.name }, db);
-    return "deleted";
+    return whole ? "deleted" : "failed";
   });
 }
 

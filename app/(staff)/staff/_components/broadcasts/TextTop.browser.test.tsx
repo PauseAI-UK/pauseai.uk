@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
 import TextTop, { pictureSource, type FindPlaces, type UploadPicture } from "./TextTop";
 import { examplePictureId, examplePlace } from "./BroadcastWriter.examples";
@@ -165,6 +166,19 @@ describe("TextTop", () => {
     await userEvent.keyboard("x");
     await expect.element(box()).toHaveValue("x");
     expect(findPlaces).not.toHaveBeenCalled();
+  });
+
+  it("says when the search broke, Find no longer pending, to try again", async () => {
+    const { findPlaces } = await renderTop({ found: [examplePlace] });
+    findPlaces.mockRejectedValueOnce(Object.assign(new Error("An error occurred."), { digest: "1" }));
+    await box().fill("parliament square");
+    await find().click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(find()).not.toHaveAttribute("aria-busy", "true");
+    // Tried again, it finds, and says so no longer.
+    await find().click();
+    await vi.waitFor(() => expect(findPlaces).toHaveBeenCalledTimes(2));
+    await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
   });
 
   it("says when no place is found", async () => {

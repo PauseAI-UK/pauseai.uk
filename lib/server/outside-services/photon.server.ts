@@ -57,10 +57,16 @@ function addressOf(p: Properties): string {
 /**
  * Photon's features, from its answer, or a failure for one that isn't ok.
  * Its public server is often busy for a moment, so a 503 is asked again,
- * twice, a little later each time.
+ * twice, a little later each time; but not when it asks for longer than a
+ * few seconds, as someone is waiting on the page, and Netlify cuts a request
+ * off at 30, so the caller carries on without it.
  */
 async function features(url: string): Promise<Feature[]> {
-  const res = await outsideFetch(PHOTON, url, { headers: { accept: "application/json" }, retries: 2 });
+  const res = await outsideFetch(PHOTON, url, {
+    headers: { accept: "application/json" },
+    retries: 2,
+    mostWait: 4,
+  });
   if (!res.ok) throw refusal("photon", res, { asked: new URL(url).pathname });
   return ((await outsideJson("photon", res))?.features ?? []) as Feature[];
 }

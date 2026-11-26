@@ -1,6 +1,7 @@
 import "server-only";
 import { query } from "@/lib/server/db.server";
 import { siteUrl } from "@/lib/site-url.server";
+import { MOST_PICTURE_BYTES } from "./text-parts";
 
 // The pictures staff upload for the top of a text (text_pictures): kept
 // here, and served from the site at an address no one can guess, which
@@ -8,9 +9,6 @@ import { siteUrl } from "@/lib/site-url.server";
 
 /** The kinds of picture WhatsApp takes for a template's top. */
 export const PICTURE_TYPES = ["image/jpeg", "image/png"] as const;
-
-/** The most bytes a picture can have: WhatsApp takes 5 MB, and the upload has to fit in a Server Action's 5 MB too. */
-export const MOST_PICTURE_BYTES = 4 * 1024 * 1024;
 
 /** Why a file isn't kept as a text's picture: not a JPEG or PNG, or too big. */
 export type PictureRefusal = "not-picture" | "too-big";

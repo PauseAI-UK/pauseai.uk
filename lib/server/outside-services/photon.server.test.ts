@@ -104,6 +104,23 @@ describe("searchPhoton", () => {
   });
 });
 
+describe("Photon busy", () => {
+  it("doesn't wait longer than a page can for Photon to be less busy, so the search can carry on without it", async () => {
+    let asked = 0;
+    server.use(
+      http.get(SEARCH, () => {
+        asked++;
+        return new HttpResponse(null, { status: 503, headers: { "retry-after": "30" } });
+      }),
+    );
+    const started = Date.now();
+    const failure = await searchPhoton("x").catch((error: unknown) => error);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(asked).toBe(1);
+    expect(failure).toMatchObject({ service: "photon", status: 503 });
+  });
+});
+
 describe("photonAt", () => {
   it("gives the name of what's at a point and its address", async () => {
     expect(await photonAt(51.5005, -0.1268)).toEqual({

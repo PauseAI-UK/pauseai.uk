@@ -22,6 +22,12 @@ export type TextPlace = { name: string; address: string; latitude: number; longi
  */
 export type TextButton = { text: string; url?: string };
 
+/**
+ * The most bytes a text's picture can have: WhatsApp takes 5 MB, and the upload has to fit in a Server Action's
+ * 5 MB too, so the writer checks it before sending, as a bigger one never reaches the site.
+ */
+export const MOST_PICTURE_BYTES = 4 * 1024 * 1024;
+
 /** The most buttons a template can have, and of them the most link buttons. */
 export const MOST_BUTTONS = 10;
 export const MOST_LINK_BUTTONS = 2;

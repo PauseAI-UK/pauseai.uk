@@ -4,7 +4,17 @@ import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { useSave, useSavedChoice } from "@/components/ui/useSave";
@@ -83,6 +93,7 @@ import ConditionMenu from "../mailings/ConditionMenu";
 import {
   BUTTON_PROBLEMS,
   inOrder,
+  MOST_PICTURE_BYTES,
   type TextButton,
   type TextHeader,
   type TextPlace,
@@ -668,8 +679,10 @@ export default function BroadcastWriter({
     });
   // The places a link or words point at, for a text's map: none on a page gone out of date, which says so over the draft.
   const findPlaces = async (input: string) => (await unlessStale(actions.findPlaces(input)))?.places ?? [];
-  // A picture kept for a text's top: its ID, or why it can't be one; nothing on a page gone out of date.
+  // A picture kept for a text's top: its ID, or why it can't be one; nothing on a page gone out of date. One too big
+  // isn't sent, as more than a form can send never reaches the site to be refused.
   const uploadPicture = async (file: File) => {
+    if (file.size > MOST_PICTURE_BYTES) return { refused: "too-big" as const };
     const form = new FormData();
     form.set("file", file);
     const kept = await unlessStale(actions.uploadPicture(form));
@@ -889,6 +902,9 @@ export default function BroadcastWriter({
     write({ body: kept, header, place, pictureId, buttons, textVersion: null });
     setOwnKey((n) => n + 1);
   };
+  // A picture pasted in Write, for the picture box of the variant it's for to upload.
+  const [pasted, setPasted] = useState<{ side: VersionSide; file: File } | null>(null);
+  const pastedTaken = useCallback(() => setPasted(null), []);
   // A picture pasted anywhere in Write, words and all, is the open variant's header, as words can't hold one; but
   // not where its header is fixed as another kind, or WhatsApp is reviewing it.
   const pastePicture = (event: React.ClipboardEvent) => {
@@ -899,12 +915,12 @@ export default function BroadcastWriter({
     const fixedTop = open === "only" ? stands.only.fixed : stands.except.fixed || !writingNew;
     const topHeader = open === "only" ? textVersion!.header : values.header;
     if (stands[open].waiting || (fixedTop && topHeader !== "image")) return;
-    void uploadPicture(file).then((kept) => {
-      if (!kept || "refused" in kept) return;
-      const top = { header: "image" as const, pictureId: kept.pictureId };
-      if (open === "only") changeVersion(top);
-      else changeOwn(top);
-    });
+    // Its header a picture, whose box uploads it as one chosen there, saying there what's wrong with it.
+    if (topHeader !== "image") {
+      if (open === "only") changeVersion({ header: "image" });
+      else changeOwn({ header: "image" });
+    }
+    setPasted({ side: open, file });
   };
   // Beside the words, where an email has its parts: a second version for some, and nothing once it has one, as a
   // text has one at most.
@@ -1130,6 +1146,8 @@ export default function BroadcastWriter({
             findPlaces={findPlaces}
             uploadPicture={uploadPicture}
             fixed={fixed}
+            pasted={pasted?.side === "only" ? pasted.file : null}
+            onPastedTaken={pastedTaken}
           />
           <div className={styles.letter}>
             <p id={versionLabel} className={styles.label}>
@@ -1171,6 +1189,8 @@ export default function BroadcastWriter({
           findPlaces={findPlaces}
           uploadPicture={uploadPicture}
           fixed={fixed}
+          pasted={pasted?.side === "except" ? pasted.file : null}
+          onPastedTaken={pastedTaken}
         />
         {writingNew && !stands.except.fixed && (
           <div className={styles.letter}>

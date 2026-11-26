@@ -28,6 +28,8 @@ import {
   stopMailing,
 } from "./drafts.server";
 import { politicianAudience } from "./recipients.server";
+import { addTemplate } from "@/tests/broadcast-fixtures";
+import { createBroadcastDraft } from "@/lib/broadcasts/drafts.server";
 import { mailingsCopy } from "./copy";
 
 const STAFF = "jo@pauseai.uk";
@@ -282,11 +284,14 @@ describeWithDatabase("mailing drafts", () => {
     const attached = (await createDraft(STAFF, POLITICIANS, {})).id;
     await addAttachment(attached, 1, { filename: "a.pdf", contentType: "application/pdf", content: Buffer.from("x") });
     const opened = (await createDraft(STAFF, POLITICIANS, {})).id;
+    // A WhatsApp broadcast's words are its template's, so its own body is blank: one on a template has words.
+    const onTemplate = (await createBroadcastDraft(STAFF, { contact: "text:events:yes" }))!;
+    await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [onTemplate, await addTemplate("March day")]);
     await query("UPDATE mailings SET opened_at = now() - interval '25 hours' WHERE body IS NOT NULL");
     await openWrittenMailing(opened);
     expect(await deleteForgottenDrafts()).toBe(1);
     const left = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE body IS NOT NULL ORDER BY id");
-    expect(left.map((row) => row.id)).toEqual([written, titled, attached, opened]);
+    expect(left.map((row) => row.id)).toEqual([written, titled, attached, opened, onTemplate]);
     expect(blank).toBeLessThan(written);
   });
 
