@@ -10,6 +10,7 @@ import { importCivicrm } from "./civicrm-import.server";
 import { importControlAiStatement } from "./controlai-statement-import.server";
 import { importEdm } from "./edm-import.server";
 import { importPoliticians } from "@/lib/politicians/imports.server";
+import { runPressSurvey } from "@/lib/press/survey.server";
 import { runSending } from "./sending.server";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
@@ -39,8 +40,7 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-controlai": (by) => importControlAiLetter(by),
   "import-controlai-statement": (by) => importControlAiStatement(by),
   "import-edm": (by) => importEdm(by),
-  // Loaded when it runs, with the packages it reads pages with, so one the server can't load fails this job alone.
-  "import-press": async (by, request) => (await import("@/lib/press/survey.server")).runPressSurvey(by, request),
+  "import-press": (by, request) => runPressSurvey(by, request),
   "tidy-logs": (by) => runTidying(by),
 };
 
