@@ -108,6 +108,9 @@ const OWN_CATCHES = [
   "lib/events/luma-import.server.ts",
   // Reads the next mailbox after any failure in one, and reports a mailbox's name that can't be read or kept.
   "lib/jobs/gmail-reading.server.ts",
+  // A job's button frees the job if the background function won't start, and throws on; a run it does itself,
+  // after answering, keeps what it throws with keepCaught(), as no page is waiting to show it.
+  "lib/jobs/start-job.server.ts",
   // Text the URL parser refuses is no link: the catch is the question.
   "lib/letters/format.ts",
   // Passes over a message deleted since it was listed (unlessGone), and throws any other failure on.

@@ -159,6 +159,8 @@ describeWithDatabase("POST /api/cron/<job>", () => {
 
   it("refuses a call whose body isn't a job's start, running nothing", async () => {
     expect((await tidy("not json")).status).toBe(400);
+    expect((await tidy("null")).status).toBe(400);
+    expect((await tidy("7")).status).toBe(400);
     expect((await tidy(JSON.stringify({ startedBy: 7 }))).status).toBe(400);
     expect((await tidy(JSON.stringify({ marked: "yes" }))).status).toBe(400);
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);

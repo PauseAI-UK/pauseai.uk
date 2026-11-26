@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isCronRequest } from "@/lib/jobs/cron.server";
 import { isImportJob, NIGHTLY } from "@/lib/import-runs";
 import { runJob } from "@/lib/jobs/jobs.server";
+import { parseJsonIfAny } from "@/lib/server/json.server";
 
 /** Who the call says started the run, and whether it's marked running already; a call with no body is the schedule's. */
 type Start = { startedBy: string; marked: boolean };
@@ -10,12 +11,10 @@ type Start = { startedBy: string; marked: boolean };
 async function startOf(request: Request): Promise<Start | undefined> {
   const text = await request.text();
   if (!text) return { startedBy: NIGHTLY, marked: false };
-  try {
-    const { startedBy = NIGHTLY, marked = false } = JSON.parse(text) as Partial<Start>;
-    return typeof startedBy === "string" && typeof marked === "boolean" ? { startedBy, marked } : undefined;
-  } catch {
-    return undefined;
-  }
+  const said = parseJsonIfAny(text);
+  if (typeof said !== "object" || said === null) return undefined;
+  const { startedBy = NIGHTLY, marked = false } = said as Partial<Record<keyof Start, unknown>>;
+  return typeof startedBy === "string" && typeof marked === "boolean" ? { startedBy, marked } : undefined;
 }
 
 /**
