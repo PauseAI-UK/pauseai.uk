@@ -2,7 +2,7 @@
 // group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import PartBox from "./PartBox";
+import PartBox, { PartMark } from "./PartBox";
 import { ClosablePartExample } from "./PartBox.gallery.client";
 
 export const partBoxGallery: Example[] = [
@@ -35,6 +35,28 @@ export const partBoxGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <ClosablePartExample />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "PartMark",
+    file: "app/(staff)/staff/_components/mailings/PartBox.tsx",
+    variants: [
+      {
+        label: "A small mark in a part's look, after a name: hover for who the part is for",
+        render: () => (
+          <StaffPage as="div">
+            <p>
+              Thank you for marching{" "}
+              <PartMark
+                icon={<span aria-hidden="true">●</span>}
+                title="Only for those who signed the Frontier AI letter"
+              >
+                Has a part
+              </PartMark>
+            </p>
           </StaffPage>
         ),
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Label } from "@/components/ui/Field";
 import Tag from "@/components/ui/Tag";
 import type { FilterOption } from "@/lib/staff-list-filters";
@@ -12,7 +12,7 @@ import styles from "./MenuSelect.module.css";
  * A choice, and what the menu shows with it: a tag beside its name, a line
  * of its words under it, cut off at the menu's edge, and facts under those.
  */
-export type MenuOption = FilterOption & { tag?: string; words?: string; facts?: string[] };
+export type MenuOption = FilterOption & { tag?: string; mark?: ReactNode; words?: string; facts?: string[] };
 
 /** A row's parts, as MenuSelect draws a choice with facts, for a list of Choices drawn elsewhere (TextTop's places found). */
 export const menuRow = { row: styles.rich, head: styles.head, name: styles.name, facts: styles.facts };
@@ -70,9 +70,11 @@ export default function MenuSelect({
   );
   const rich = options.some((option) => option.facts);
   // Choices draws a filter's choices, which have none of these.
-  const row = ({ tag, words, facts, ...option }: FilterOption & Omit<MenuOption, keyof FilterOption>) => {
-    // The tag, the words and each fact by its id, so they're read as separate words.
-    const said = [...(tag ? ["tag"] : []), ...(words ? ["words"] : []), ...(facts ?? []).map((_, n) => n)].map(
+  const row = ({ tag, mark, words, facts, ...option }: FilterOption & Omit<MenuOption, keyof FilterOption>) => {
+    // What's beside its name: a mark of its own, or else its tag.
+    const beside = mark ?? (tag && <Tag>{tag}</Tag>);
+    // That, the words and each fact by its id, so they're read as separate words.
+    const said = [...(beside ? ["tag"] : []), ...(words ? ["words"] : []), ...(facts ?? []).map((_, n) => n)].map(
       (one) => `${id}-${option.value}-${one}`,
     );
     return (
@@ -92,11 +94,7 @@ export default function MenuSelect({
         {rich ? (
           <span className={styles.head}>
             <span className={styles.name}>{option.label}</span>
-            {tag && (
-              <span id={`${id}-${option.value}-tag`}>
-                <Tag>{tag}</Tag>
-              </span>
-            )}
+            {beside && <span id={`${id}-${option.value}-tag`}>{beside}</span>}
           </span>
         ) : (
           option.label

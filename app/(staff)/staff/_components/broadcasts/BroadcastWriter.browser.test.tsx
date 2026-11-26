@@ -1418,13 +1418,22 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
   };
 
   it("marks a template with two variants in the dropdown with who its conditional one is for", async () => {
-    await renderWriter({ draft: newWords, data: withFlyering });
+    await renderWriter({
+      draft: newWords,
+      data: { ...withFlyering, templates: [...withFlyering.templates, seeYou] },
+    });
     await words().click();
-    await expect.element(page.getByRole("button", { name: flyering.name, exact: true }).getByText(wrote)).toBeVisible();
+    const choice = (name: string) => page.getByRole("button", { name, exact: true });
+    // A mark saying it has two, read out after its name, with who the conditional one is for under the mouse.
+    const mark = choice(flyering.name).getByTitle(copy.twoVariantsFor(wrote));
+    await expect.element(mark).toHaveTextContent(copy.twoVariants);
+    expect(choice(flyering.name).element().getAttribute("aria-describedby")!.split(" ")[0]).toBe(
+      mark.element().parentElement!.id,
+    );
     // Its condition as it's stored, where the site has no words for it.
-    await expect
-      .element(page.getByRole("button", { name: flyeringGone.name, exact: true }).getByText("event:gone"))
-      .toBeVisible();
+    await expect.element(choice(flyeringGone.name).getByTitle(copy.twoVariantsFor("event:gone"))).toBeVisible();
+    // One with a single variant has no mark.
+    expect(choice(seeYou.name).getByText(copy.twoVariants).query()).toBeNull();
   });
 
   it("takes a template with two variants whole, each fixed, and one with a single variant as the whole text", async () => {
@@ -1619,7 +1628,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(page.getByRole("tab").first()).toBeVisible();
     await saved(actions, { title: marchTemplate.name, textVersion: expect.objectContaining({ condition: WROTE }) });
     expect(editor().query()).toBeNull();
-    expect(page.getByText(/^Goes to WhatsApp/).query()).toBeNull();
+    expect(page.getByText(copy.textVersions.templates(1)).query()).toBeNull();
     expect(button(copy.submitTemplate).query()).toBeNull();
     await expect.element(button(copy.schedule(412, "text"))).toBeEnabled();
     await expect.element(page.getByText(copy.testVia.text("07700 900000"))).toBeVisible();

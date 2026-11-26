@@ -34,7 +34,13 @@ import {
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./drafts.server";
-import { audienceSizes, broadcastChoices, broadcastParts, supporterAudience } from "./recipients.server";
+import {
+  audienceSizes,
+  broadcastChoices,
+  broadcastParts,
+  supporterAudience,
+  type BroadcastPart,
+} from "./recipients.server";
 import type { MailingBase } from "@/lib/mailings/records.server";
 import { checkStoredFilter, filterProblems } from "@/lib/server/stored-filters.server";
 import { supporterChoices, type SupporterChoices } from "@/lib/supporters/records.server";
@@ -53,6 +59,11 @@ export type BroadcastSummary = MailingBase & {
   sendBy: BroadcastSendBy;
   /** When it stops trying, in minutes after its time; none for the most (sendingStopsAt). */
   finishMinutes: number | null;
+  /**
+   * Who the conditional variant is for, in words, for a WhatsApp broadcast on a template with two variants; the
+   * condition as it's stored where the site has no words for it; none otherwise.
+   */
+  variantFor: string | null;
   /** A draft or one scheduled whose template WhatsApp is reviewing. */
   waiting: boolean;
   /** A draft on words WhatsApp has approved, so it can be scheduled. */
@@ -81,6 +92,7 @@ const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
     m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy", m.finish_minutes AS "finishMinutes",
+    (SELECT t.condition FROM whatsapp_templates t WHERE t.id = m.template_id) AS "variantFor",
     EXISTS (SELECT 1 FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id) WHERE t.id = m.template_id AND v.status = 'pending') AS waiting,
     (m.template_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id) WHERE t.id = m.template_id AND v.status <> 'approved')) AS approved,
     EXISTS (SELECT 1 FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id) WHERE t.id = m.template_id AND v.status = 'rejected') AS rejected,
@@ -127,6 +139,10 @@ async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
   return { ...summary, pause: sendingPause({ ...facts, atLimit }) };
 }
 
+/** Who a condition is for, in the words of the part that has it; the condition as stored where none has; none for none. */
+const conditionWords = (parts: BroadcastPart[], condition: string | null): string | null =>
+  condition && (parts.find((part) => part.id === condition)?.label ?? condition);
+
 /**
  * The page of broadcasts, in its groups (mailingGroups): those scheduled;
  * those sending, or waiting; the drafts; and those done with;
@@ -150,12 +166,20 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
     broadcast,
     audience: { filter: checkStoredFilter(filter)!, terms: { channel: broadcast.channel, topics } },
   }));
-  const [sizes, paused, all] = await Promise.all([
+  // The parts' words, read only where a broadcast is on a template with two variants.
+  const twoVariants = [...unsent, ...rows].some((row) => row.variantFor);
+  const [sizes, paused, sent, parts] = await Promise.all([
     audienceSizes(drafts.map(({ audience }) => audience)),
     Promise.all(drafts.map(({ broadcast }) => withPause(broadcast))),
     Promise.all(rows.map(withPause)),
+    twoVariants ? broadcastParts() : [],
   ]);
-  const counted = paused.map((broadcast, i) => ({ ...broadcast, to: sizes[i] }));
+  const named = (broadcast: BroadcastSummary) => ({
+    ...broadcast,
+    variantFor: conditionWords(parts, broadcast.variantFor),
+  });
+  const counted = paused.map((broadcast, i) => named({ ...broadcast, to: sizes[i] }));
+  const all = sent.map(named);
   const at = now();
   return {
     groups: mailingGroups(
@@ -396,7 +420,7 @@ export async function broadcastPageData(
     kind: "written",
     written,
     realMaps: realMaps(),
-    summary: { ...summary, to: found?.total ?? summary.to },
+    summary: { ...summary, to: found?.total ?? summary.to, variantFor: conditionWords(parts, summary.variantFor) },
     choices,
     parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
     tab,

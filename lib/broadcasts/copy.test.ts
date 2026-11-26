@@ -54,12 +54,12 @@ describe("the words of messages to supporters", () => {
     expect(copy.willGet(2, "text")).toBe("2 supporters will be texted.");
   });
 
-  it("count a text's templates, one and many, as they go for approval", () => {
+  it("count a template's variants, one and many, as they go for approval", () => {
     const { textVersions } = copy;
-    expect(textVersions.templates(1)).toContain("1 template");
-    expect(textVersions.templates(1)).not.toContain("templates");
-    expect(textVersions.templates(2)).toContain("2 templates");
+    expect(textVersions.templates(1)).toContain("1 variant");
+    expect(textVersions.templates(1)).not.toContain("variants");
+    expect(textVersions.templates(2)).toContain("2 variants");
     expect(textVersions.submit(1)).not.toContain("1");
-    expect(textVersions.submit(2)).toContain("2 templates");
+    expect(textVersions.submit(2)).toContain("2 variants");
   });
 });

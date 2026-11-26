@@ -6,6 +6,7 @@ import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import { examplePictureId, examplePlace, exampleVariant } from "./BroadcastWriter.examples";
 import WrittenText from "./WrittenText";
 import { writtenTextGallery } from "./WrittenText.gallery";
+import { mailingsCopy } from "../mailings/copy";
 
 const words = (text: string) => ({
   type: "doc" as const,
@@ -58,6 +59,14 @@ describe("WrittenText", () => {
     expect(everyone.textContent).toContain(TEMPLATE_FOOTER);
     // A heading, not a button.
     expect(container.querySelector("button")).toBeNull();
+    // The headings' words are the same, so each version is named for who gets it, as its part's box is in the writer.
+    const parts = mailingsCopy.mailingEditor;
+    await expect
+      .element(page.getByRole("group", { name: parts.onlyForLabel("Wrote to their MP") }))
+      .toMatchTextContent(/Thanks for writing/);
+    await expect
+      .element(page.getByRole("group", { name: parts.exceptLabel("Wrote to their MP") }))
+      .toMatchTextContent(/Meet at the square/);
   });
 
   it("heads them with the condition's ID where the labels lack it", async () => {

@@ -19,7 +19,7 @@ import {
 } from "./pages.server";
 import { choosingConsent, choosingBroadcast, broadcastsToSupporter, withChoosing } from "./supporter-pages.server";
 import { broadcastsCopy } from "./copy";
-import { restsUntil, sendingStopsAt, waitEndsAt } from "./broadcasts";
+import { registeredFor, restsUntil, sendingStopsAt, waitEndsAt } from "./broadcasts";
 
 const JO = "jo@pauseai.uk";
 const HELLO = "hello@pauseai.uk";
@@ -638,6 +638,9 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     const bothReady = await on({ status: "approved" });
     const halfTurnedDown = await on({ status: "rejected" });
     const drafts = (await broadcastsPage()).groups[0].mailings;
+    // Each says who its conditional variant is for, as stored where no part has words for it; none for one variant.
+    expect(drafts.find((m) => m.id === bothReady)!.variantFor).toBe("has:firstName");
+    expect(drafts.find((m) => m.id === plain)!.variantFor).toBeNull();
     expect(drafts.map((m) => [m.id, m.waiting, m.approved, m.rejected]).sort()).toEqual([
       [plain, false, false, false],
       [id, true, false, false],
@@ -647,6 +650,16 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       [bothReady, false, true, false],
       [halfTurnedDown, false, false, true],
     ]);
+  });
+
+  it("says who a broadcast's conditional variant is for in the words of the part that has it, in the list and on its page", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const template = await addTemplate("Ice on Sunday", { condition: registeredFor("evt-1"), conditional: {} });
+    const id = await scheduled(TEXT_FILTER, { templateId: template });
+    const who = broadcastsCopy.broadcastPages.conditions.registered("evt-1");
+    const [{ mailings }] = (await broadcastsPage()).groups;
+    expect(mailings.map((m) => [m.id, m.variantFor])).toEqual([[id, who]]);
+    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ kind: "written", summary: { variantFor: who } });
   });
 
   it("lists who one scheduled would go to now, by name, a page at a time, each yet to be sent", async () => {

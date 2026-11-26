@@ -93,6 +93,7 @@ import TextTop, { pictureSource } from "./TextTop";
 import { realMapsContext } from "./PlaceMap";
 import TextButtons from "./TextButtons";
 import TextVersions, { type VersionSide } from "./TextVersions";
+import TwoVariants from "./TwoVariants";
 import MailingFiles from "../mailings/MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
 import { othersThanConsent } from "../supporters/SupporterFilters";
@@ -1326,12 +1327,12 @@ export default function BroadcastWriter({
                       placeholder={copy.pickTemplate}
                       value={template ? String(template.id) : writingNew ? "new" : ""}
                       disabled={Boolean(reviewing)}
-                      // A template with a conditional variant says who that's for.
+                      // A template with two variants is marked so, in place of a tag.
                       options={data.templates.map((one) => ({
                         value: String(one.id),
                         label: one.name,
                         ...templateOption(one, others(one)),
-                        ...(one.condition !== null && { tag: conditionWords(one.condition) }),
+                        ...(one.condition !== null && { mark: <TwoVariants who={conditionWords(one.condition)} /> }),
                       }))}
                       last={{ value: "new", label: copy.newTemplate }}
                       onChange={chooseWords}
@@ -1376,8 +1377,6 @@ export default function BroadcastWriter({
                       <TextInput value={values.title} onChange={(event) => change({ title: event.target.value })} />
                     </Field>
                   )}
-                  {/* With an approved variant's words, there's no editor to have the parts beside it. */}
-                  {stands.except.chosen && !textVersion && <div className={own.textParts}>{textParts}</div>}
                   {textVersion ? (
                     <TextVersions
                       who={versionWho}
@@ -1394,6 +1393,9 @@ export default function BroadcastWriter({
                   ) : (
                     (words !== "none" || writingNew) && versionParts("except")
                   )}
+                  {/* With an approved variant's words, there's no editor to have the parts beside it: they come
+                      after its header and buttons. */}
+                  {stands.except.chosen && !textVersion && <div className={own.textParts}>{textParts}</div>}
                 </div>
               )}
               {email && (

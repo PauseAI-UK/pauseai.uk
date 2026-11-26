@@ -43,6 +43,8 @@ export type OverviewLook<T extends MailingBase> = {
   none: string;
   /** A picture before the title: a broadcast's channel, telling emails and texts apart at a glance. */
   mark?: (mailing: T) => ReactNode;
+  /** What follows the title on its line, for one that has something to say there: a small mark. */
+  after?: (mailing: T) => ReactNode;
   lead?: (mailing: T) => ReactNode;
   from?: (mailing: T) => string | undefined;
   /** Where one stands, as a sentence after a dot in its colour, where it has more to say than a mailing does. */
@@ -188,10 +190,14 @@ function Row<T extends MailingBase>({
   look: OverviewLook<T>;
 }) {
   const href = `${look.base}/${mailing.id}`;
+  const after = look.after?.(mailing);
   const title = (
-    <StaffLink href={href} className={styles.title}>
-      {mailing.title || look.untitled}
-    </StaffLink>
+    <>
+      <StaffLink href={href} className={styles.title}>
+        {mailing.title || look.untitled}
+      </StaffLink>
+      {after && <> {after}</>}
+    </>
   );
   // Its name, as a mail app shows it, before its address; with no name of its own, the address alone.
   const from =

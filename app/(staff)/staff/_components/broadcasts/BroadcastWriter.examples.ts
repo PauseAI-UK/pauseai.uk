@@ -369,6 +369,7 @@ const summary: BroadcastSummary = {
   answered: 0,
   channel: "email",
   sendBy: "gmail",
+  variantFor: null,
   waiting: false,
   approved: false,
   rejected: false,

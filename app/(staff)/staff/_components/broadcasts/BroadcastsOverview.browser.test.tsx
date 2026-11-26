@@ -248,6 +248,20 @@ describe("BroadcastsOverview", () => {
     expect(words.gaveUp.pull!(3, 5)).toBe(words.gaveUp.civicrm!(3, 5));
   });
 
+  it("marks one on a template with two variants beside its title, with who the conditional one is for", async () => {
+    const who = copy.conditions.registered("PauseAI London March");
+    const two = { ...exampleBroadcastSummary, id: 4, channel: "text" as const, title: "Flyering", variantFor: who };
+    const one = { ...exampleBroadcastSummary, id: 6, channel: "text" as const, title: "Doors" };
+    const groups = mailingGroups<BroadcastSummary>(
+      { scheduled: [], drafts: [], sending: [], done: [two, one] },
+      new Date(now),
+    );
+    await render(<BroadcastsOverview groups={groups} now={now} />);
+    const row = (title: string) => page.getByRole("listitem").filter({ hasText: title });
+    await expect.element(row("Flyering").getByTitle(copy.twoVariantsFor(who))).toHaveTextContent(copy.twoVariants);
+    expect(row("Doors").getByText(copy.twoVariants).query()).toBeNull();
+  });
+
   it("says when there are none", async () => {
     await render(<BroadcastsOverview groups={[]} now={now} />);
     await expect.element(page.getByText(copy.none)).toBeVisible();

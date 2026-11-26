@@ -823,21 +823,27 @@ test("A template with two variants chosen", async ({ page, request, flowDatabase
   await templateBox(page).click();
   const both = page.getByRole("button", { name: "We are flyering on Saturday.", exact: true });
   await expect(both).toBeVisible();
-  await frame(page, "The template in the list, marked with who its second variant is for", { window: true });
+  await frame(page, "The template in the dropdown, marked as having two variants", { window: true });
   story("Choosing it brings both variants, a tab each, with their words as WhatsApp approved them.");
   await savedAfter(page, () => both.click());
   await expect(page.getByRole("tab").first()).toBeVisible();
   await page.getByRole("tab").first().scrollIntoViewIfNeeded();
   await frame(page, "Chosen: a tab for each variant, the London marchers' open", { window: true });
+  story("The list of broadcasts marks the draft the same way, beside its title.");
+  const draft = page.url();
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.twoVariants)).toBeVisible();
+  await frame(page, "The draft in the list, marked as having two variants");
+  await page.goto(draft);
   story("Choosing a template with one variant makes that the whole text, with no tabs.");
   await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
   await expect(page.getByRole("tab")).toHaveCount(0);
   await frame(page, "A template with one variant, no tabs", { window: true });
 });
 
-test("A text with a second version for some", async ({ page, request, flowDatabase }) => {
+test("A text with a variant for some", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff write new words for a text, then give those who registered for an event a version of their own, with the button an email's conditional parts have, beside the words.",
+    "Staff write new words for a text, then give those who registered for an event a variant of their own, with the button an email's conditional parts have, beside the words.",
   );
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
@@ -851,14 +857,14 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
   await frame(page, "Any event, searched", { window: true });
   story(
-    "Choosing one splits the text in two: a version for those who registered, and one for everyone else, a tab each, worded as the preview's toggle is, with how many each goes to. Both start as copies of what was written.",
+    "Choosing one splits the text in two: a variant for those who registered, and one for everyone else, a tab each, worded as the preview's toggle is, with how many each goes to. Both start as copies of what was written.",
   );
   await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
   const who = copy.conditions.registered("PauseAI London: Protest at Parliament");
   const tabs = page.getByRole("tab");
   await expect(tabs.first()).toContainText(who);
   await tabs.first().scrollIntoViewIfNeeded();
-  await frame(page, "Two versions, a tab each", { window: true });
+  await frame(page, "Two variants, a tab each", { window: true });
   story(
     "They give those who registered a reply button. Its words are still everyone else's, and WhatsApp rejects a second template with the same words, so the draft says to change one's before anything is sent.",
   );
@@ -866,14 +872,14 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
   await page.getByText(copy.problems["versions-same-words"]).scrollIntoViewIfNeeded();
   await frame(page, "The same words with a button of its own: stopped", { window: true });
-  story("They change the words of the version for those who registered, who know about the march already.");
+  story("They change the words of the variant for those who registered, who know about the march already.");
   const words = page.getByRole("textbox", { name: copy.templateWords });
   // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
   await words.selectText();
   await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
   await frame(page, "Their own words", { window: true });
   story(
-    "Each version is a template WhatsApp approves, so two go. WhatsApp rejects the version for those who registered. Its tab says why, and it can be changed and sent again.",
+    "WhatsApp approves each variant by itself, so two go. It rejects the variant for those who registered. Its tab says why, and it can be changed and sent again.",
   );
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
@@ -886,7 +892,7 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await reload(page);
   const why = page.getByText(broadcastsCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false });
   await why.scrollIntoViewIfNeeded();
-  await frame(page, "The version WhatsApp rejected, and why", { window: true });
+  await frame(page, "The variant WhatsApp rejected, and why", { window: true });
   await words.click();
   await page.keyboard.press("End");
   await savedAfter(page, () => page.keyboard.type(" Bring a friend."));
@@ -895,9 +901,9 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await frame(page, "Changed and sent again");
 });
 
-test("A second version on an approved template", async ({ page, request, flowDatabase }) => {
+test("A conditional variant on an approved template", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff choose a template WhatsApp has approved, then give those who registered for an event a version of their own. It starts as a copy of the text, so it's the same approved template: its words are fixed, and nothing goes for approval.",
+    "Staff choose a template WhatsApp has approved, then give those who registered for an event a variant of their own. It starts as a copy of the template's own words, so it's the same approved variant: its words are fixed, and nothing goes for approval.",
   );
   await importLuma(request, BASE);
   addTemplates(flowDatabase);
@@ -910,7 +916,7 @@ test("A second version on an approved template", async ({ page, request, flowDat
   await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
   const tabs = page.getByRole("tab");
   await tabs.first().scrollIntoViewIfNeeded();
-  await frame(page, "The version, the same template", { window: true });
+  await frame(page, "The variant, the same approved words", { window: true });
   story(
     "To say something else to those who registered, staff edit it as a new template, which frees the words. Only the ones they change go to WhatsApp, as everyone else's are approved.",
   );
@@ -921,26 +927,26 @@ test("A second version on an approved template", async ({ page, request, flowDat
   await words.selectText();
   await savedAfter(page, () => page.keyboard.type("PauseCon has moved to the Main Hall. Your seat is saved."));
   await frame(page, "Its own words, one template to approve", { window: true });
-  story("They choose the time. Schedule says it sends the version's words for approval too.");
+  story("They choose the time. Schedule says it sends the variant's words for approval too.");
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
   await expect(send.getByText(copy.schedulesForApproval(1))).toBeVisible();
-  await frame(page, "Schedule sends the version's words too", { window: true });
+  await frame(page, "Schedule sends the variant's words too", { window: true });
   story("Or they send them first, from under the preview. The top of the draft says WhatsApp has them.");
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await preview.getByRole("button", { name: copy.submitTemplate }).click();
   const withdraw = page.getByRole("button", { name: copy.withdrawTemplate });
   await expect(withdraw).toBeVisible();
-  await frame(page, "The draft, the version's words sent for approval");
-  story("The version's tab has its words as they went, locked, with the button that takes them back.");
+  await frame(page, "The draft, the variant's words sent for approval");
+  story("The variant's tab has its words as they went, locked, with the button that takes them back.");
   await withdraw.scrollIntoViewIfNeeded();
-  await frame(page, "The version's words, locked", { window: true });
+  await frame(page, "The variant's words, locked", { window: true });
   await withdraw.click();
   await page.getByRole("button", { name: copy.withdrawSure }).click();
   await expect(words).toBeVisible();
   await frame(page, "Taken back, to change", { window: true });
-  story("Scheduled as it is, the version's words go to WhatsApp again, and the text waits for its approval.");
+  story("Scheduled as it is, the variant's words go to WhatsApp again, and the text waits for its approval.");
   await send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") }).click();
   await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
   await frame(page, "The text, scheduled");
@@ -962,7 +968,7 @@ test("A reply button tapped", async ({ page, request, flowDatabase }) => {
   await frame(page, "Their tap, as a reply");
 });
 
-test("A text with two versions, written, approved and sent", async ({ page, request, flowDatabase }) => {
+test("A text with two variants, written, approved and sent", async ({ page, request, flowDatabase }) => {
   story(
     "Jane registered for the protest at Parliament. Mara, a member, didn't. Staff write one text for everyone who can be texted: a map of where it meets, and a link to sign up.",
   );
@@ -986,7 +992,7 @@ test("A text with two versions, written, approved and sent", async ({ page, requ
     page.getByLabel(copy.replyButtons.address).fill("https://luma.com/fixture-london-protest"),
   );
   story(
-    "Then a version for those who registered, which starts as a copy. They give it the march's picture in place of the map, words of its own, and a reply button in place of the link.",
+    "Then a variant for those who registered, which starts as a copy. They give it the march's picture in place of the map, words of its own, and a reply button in place of the link.",
   );
   await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
   await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
@@ -1024,7 +1030,7 @@ test("A text with two versions, written, approved and sent", async ({ page, requ
   await expect(preview.getByText(/Will you join us/)).toBeVisible();
   await frame(page, "The preview, for everyone else", { window: true });
   story(
-    "Each version is a template of its own, so two go to WhatsApp for approval. It approves both, and its webhook tells the site.",
+    "WhatsApp approves each variant by itself, so two go for approval. It approves both, and its webhook tells the site.",
   );
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
   await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
@@ -1039,13 +1045,13 @@ test("A text with two versions, written, approved and sent", async ({ page, requ
   await expect(templateBox(page)).toBeVisible();
   await tabs.first().scrollIntoViewIfNeeded();
   await frame(page, "Both approved: the template chosen, its words fixed", { window: true });
-  story("Scheduled, its page shows both versions, each under who it's for.");
+  story("Scheduled, its page shows both variants, each under who it's for.");
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.getByRole("button", { name: copy.schedule(TEXTABLE_MEMBERS, "text") }).click();
   await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
   const text = page.getByRole("region", { name: copy.textTitle });
   await text.scrollIntoViewIfNeeded();
-  await frame(page, "Scheduled: the version for those who registered, then everyone else's", { window: true });
+  await frame(page, "Scheduled: the variant for those who registered, then everyone else's", { window: true });
   story("Its time comes, and it goes. Jane registered, so she gets the picture, her words and the reply button.");
   runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '1 hour' WHERE id = ${id}`);
   await runSending(request);
@@ -1057,14 +1063,14 @@ test("A text with two versions, written, approved and sent", async ({ page, requ
   await textFrame(page, OUR_CHAT, got("+447700900001"), "Jane's text: she registered");
   story("Mara didn't, so she gets the map of where it meets, everyone else's words, and the link to sign up.");
   await textFrame(page, OUR_CHAT, got("+447700900123"), "Mara's text: she didn't register");
-  story("Each one's copy has its own page, which shows the version they got.");
+  story("Each one's copy has its own page, which shows the variant they got.");
   const [copyId] = runSql(
     flowDatabase,
     `SELECT id FROM broadcast_messages WHERE mailing_id = ${id} AND address = '+447700900123'`,
   );
   await page.goto(`${BASE}/staff/broadcasts/${id}/${copyId}`);
   await expect(page.getByText(/Will you join us/)).toBeVisible();
-  await frame(page, "Mara's copy: everyone else's version, its link under it");
+  await frame(page, "Mara's copy: everyone else's variant, its link under it");
 });
 
 test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
