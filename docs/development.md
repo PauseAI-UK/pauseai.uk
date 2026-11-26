@@ -591,7 +591,7 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   redirect; without both, no call is made. Each hourly import also asks
   Access's check whether it takes the token, and records a problem if it
   doesn't, as a wrong token isn't refused until Global switches Access on. How the token is used is in
-  `docs/api-access-tokens.md` in the same private repo.
+  [a document in the same private repo](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/api-access-tokens.md).
   Without the key, fixture builds answer from
   `lib/server/fixtures/civicrm-contacts.json`.
 - **WhatsApp.** Texts to supporters go by Meta's WhatsApp Cloud API
