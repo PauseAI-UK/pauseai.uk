@@ -2,8 +2,9 @@
 // tests/storyboard/whatsapp-steps.ts): the chat with our number, its name and
 // picture at the top, and the text in a bubble: its header, a map with its
 // place's name and address under it or a picture, then its words and footer,
-// and its buttons under it. A plain chat app, not WhatsApp's own look: it shows what the
-// supporter gets, as email-view.ts does an email.
+// and its buttons under it, each as wide as the bubble. A plain chat app, not
+// WhatsApp's own look: it shows what the supporter gets, as email-view.ts does
+// an email.
 
 const escape = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -19,7 +20,8 @@ const STYLE = `
   header small { color: #667781; }
   .note { margin: 12px 16px 0; padding: 6px 10px; border-radius: 8px; background: #fff8c5; color: #54656f; font-size: 13px; text-align: center; }
   .wall { display: grid; gap: 4px; justify-items: start; padding: 16px; }
-  .bubble { max-width: 85%; padding: 8px 10px; border-radius: 0 8px 8px 8px; background: #fff; box-shadow: 0 1px 1px rgb(0 0 0 / 0.1); }
+  .text { display: grid; gap: 4px; max-width: 85%; }
+  .bubble { padding: 8px 10px; border-radius: 0 8px 8px 8px; background: #fff; box-shadow: 0 1px 1px rgb(0 0 0 / 0.1); }
   .words { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   .footer { margin: 6px 0 0; color: #667781; font-size: 13px; }
   .top { margin: -4px -6px 8px; border-radius: 6px; overflow: hidden; background: #f0f2f5; }
@@ -27,7 +29,7 @@ const STYLE = `
   .place { padding: 6px 8px; }
   .place strong { display: block; }
   .place span { color: #667781; font-size: 13px; }
-  .button { box-sizing: border-box; width: min(85%, 100%); padding: 9px; border-radius: 8px; background: #fff; color: #027eb5; text-align: center; box-shadow: 0 1px 1px rgb(0 0 0 / 0.1); }
+  .button { padding: 9px; border-radius: 8px; background: #fff; color: #027eb5; text-align: center; box-shadow: 0 1px 1px rgb(0 0 0 / 0.1); }
 `;
 
 /**
@@ -60,7 +62,7 @@ export function textView(from: { name: string; number: string }, text: TextShown
     `<body><main class="chat"><header>${PICTURE}<div><strong>${escape(from.name)}</strong>`,
     `<small>${escape(from.number)}</small></div></header>`,
     note ? `<p class="note">${escape(note)}</p>` : "",
-    `<div class="wall"><div class="bubble">${top}<p class="words">${escape(text.words)}</p>${footer}</div>${buttons}</div>`,
+    `<div class="wall"><div class="text"><div class="bubble">${top}<p class="words">${escape(text.words)}</p>${footer}</div>${buttons}</div></div>`,
     "</main></body></html>",
   ].join("");
 }
