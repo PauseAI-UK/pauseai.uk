@@ -31,6 +31,7 @@ import boxes from "./RunBox.module.css";
 import RunList from "./RunList";
 import RunningNow from "./RunningNow";
 import ExternalLink from "../ui/ExternalLink";
+import StaffLink from "../ui/StaffLink";
 import PageHead from "../ui/PageHead";
 import Band, { BandFact } from "../ui/Band";
 import { politiciansCopy } from "../politicians/copy";
@@ -155,17 +156,26 @@ const ABOUT: Record<
   },
 };
 
+/** A link in a job's intro: to a staff page in this tab, or out of the site in a new one. */
+function IntroLink({ href, children }: { href: string; children: string }) {
+  return href.startsWith("/staff") ? (
+    <StaffLink href={href}>{children}</StaffLink>
+  ) : (
+    <ExternalLink href={href}>{children}</ExternalLink>
+  );
+}
+
 /** What the job does, with its source linked. */
 function Intro({ job }: { job: ImportJob }) {
   const { intro, href, then, also } = ABOUT[job];
   return (
     <>
       {intro.before}
-      <ExternalLink href={href}>{intro.link}</ExternalLink>
+      <IntroLink href={href}>{intro.link}</IntroLink>
       {intro.after}
       {then?.map((part) => (
         <Fragment key={part.href}>
-          <ExternalLink href={part.href}>{part.link}</ExternalLink>
+          <IntroLink href={part.href}>{part.link}</IntroLink>
           {part.after}
         </Fragment>
       ))}
@@ -274,7 +284,7 @@ export function ImportJobPage({
         lead={<ImportIcon source={SOURCES[job]} large />}
         title={importRunsCopy.jobTitles[job]}
         subtitle={<Intro job={job} />}
-        aside={<JobActions action={run} label={ABOUT[job].button} />}
+        aside={<JobActions action={run} label={ABOUT[job].button} disabled={Boolean(running)} />}
       >
         {/* One never run has neither: the list under it says so. */}
         <BandFact label={words.facts.now}>{jobState(runs[0], running)}</BandFact>

@@ -45,6 +45,10 @@ describe("ExternalLink", () => {
     expect(link.element().textContent).toBe("The letter");
     expect(getComputedStyle(link.element(), "::after").maskImage).toContain("svg");
   });
+
+  it("refuses a staff page, which StaffLink goes to", () => {
+    expect(() => renderToString(<ExternalLink href="/staff/me">My account</ExternalLink>)).toThrow(/use StaffLink/);
+  });
 });
 
 describe("FilterBarLines", () => {

@@ -13,7 +13,7 @@ import { newestEmail } from "./outbox-steps";
 import { importPoliticians } from "./politician-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { emailFrame } from "./email-frame";
-import { press } from "./settle";
+import { press, reload } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
@@ -143,16 +143,16 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   await frame(page, "Gmail, read");
 
   story(
-    "They read it again while the scheduled read is going. Only one reads at a time, so theirs doesn't go, and the page says the scheduled one is reading.",
+    "While the scheduled read is going, the page says so, and its button can't be pressed: only one reads at a time.",
   );
-  // The scheduled read, as far as the press can tell: the job marked running on its schedule's behalf.
+  // The scheduled read, as far as the page can tell: the job marked running on its schedule's behalf.
   runSql(flowDatabase, "INSERT INTO job_presses (job, started_by) VALUES ('read-gmail', 'nightly')");
-  await page.getByRole("button", { name: jobsCopy.gmailReading.readNow }).click();
+  await reload(page);
   // The words either side of the time it started.
   const [before, after] = jobsCopy.import.runningScheduled("\n").split("\n");
   await expect(page.getByText(before, { exact: false })).toContainText(after);
-  expect(runSql(flowDatabase, "SELECT count(*) FROM import_runs WHERE job = 'read-gmail'")).toEqual(["1"]);
-  await frame(page, "A read that didn't go, as the scheduled one is going");
+  await expect(page.getByRole("button", { name: jobsCopy.gmailReading.readNow })).toBeDisabled();
+  await frame(page, "The scheduled read going, and the button off");
 });
 
 /** `count` of the job's runs on its schedule, `minutes` apart, the newest `from` before now. */

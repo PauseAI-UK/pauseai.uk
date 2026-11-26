@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Controls";
@@ -50,6 +50,8 @@ export default function LetterForm({ campaign, mp, statuses, senderName, address
   const [letter, setLetter] = useState(start.letter);
   const [nickname, setNickname] = useState(draft?.nickname ?? "");
   const [error, setError] = useState("");
+  // Pending from the press until the preview arrives, as the push is a transition.
+  const [leaving, startLeaving] = useTransition();
 
   function preview() {
     if (!email.trim()) return setError(copy.form.emailRequired);
@@ -69,7 +71,7 @@ export default function LetterForm({ campaign, mp, statuses, senderName, address
     });
     if (!saved) return setError(copy.form.storageFailed);
     setError("");
-    router.push(`${campaignPath(campaign)}/preview`);
+    startLeaving(() => router.push(`${campaignPath(campaign)}/preview`));
   }
 
   return (
@@ -119,7 +121,7 @@ export default function LetterForm({ campaign, mp, statuses, senderName, address
 
       {error && <FieldError announce="alert">{error}</FieldError>}
 
-      <Button variant="primary" type="button" className={styles.next} onClick={preview}>
+      <Button variant="primary" type="button" className={styles.next} onClick={preview} pending={leaving}>
         {copy.form.preview}
       </Button>
     </FormStack>
