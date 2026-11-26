@@ -1,9 +1,9 @@
 import { expect, it, vi } from "vitest";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
-// The press survey reads pages with jsdom, which a server can fail to load
-// (Netlify's did, on its first deploy): the other jobs, and the pages that
-// list them, must not load it. It's loaded when the press survey runs.
+// The press survey reads pages with packages of its own, which a server can
+// fail to load: the other jobs, and the pages that list them, must not load
+// them. They're loaded when the press survey runs.
 vi.mock("@/lib/press/survey.server", () => {
   throw new Error("The press survey's module was loaded");
 });

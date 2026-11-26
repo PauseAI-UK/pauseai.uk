@@ -624,6 +624,19 @@ holds it.
   from its HTML when it has any (`html-text.ts`, with `htmlparser2`), as
   that's what its writer and reader saw, written out as plain text so the
   rest reads both alike; otherwise from its plain text.
+- **Never jsdom.** Netlify runs the server on AWS Lambda, whose Node starts
+  with `--no-experimental-require-module`, so it refuses `require()` of an
+  ES module
+  ([AWS's docs](https://docs.aws.amazon.com/lambda/latest/dg/lambda-nodejs.html#nodejs-experimental-features)).
+  Next keeps some packages out of the server's bundle and Node loads them
+  (`node_modules/next/dist/lib/server-external-packages.jsonc`, and
+  `serverExternalPackages` in `next.config.ts`), so one of those that
+  `require()`s an ES module fails on Netlify, though it loads on any other
+  Node. jsdom is one. To parse HTML into a document, as Readability needs,
+  use linkedom, which is bundled (`lib/press/page.ts`); to read HTML as
+  text, `htmlparser2`. ESLint fails on importing jsdom, and
+  `tests/checks/lambda-require.test.ts` loads each of our packages that
+  Next leaves out of the bundle with Lambda's flag on.
 - **The database** is reached only through `lib/server/db.server.ts`, the
   one file that imports `pg` or reads `NETLIFY_DB_URL` (ESLint). Queries
   are plain SQL. One built from parts, such as a list's filters, uses the

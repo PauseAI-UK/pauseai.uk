@@ -7,12 +7,18 @@
 // without the page's menus, tickers, sidebars and lists of other stories,
 // which on some sites name us in every page's header. A page Readability
 // doesn't take for an article, such as a photo agency's, is read whole.
-// The page is untrusted and may be anything: jsdom parses it without
+// The page is untrusted and may be anything: linkedom parses it without
 // running its scripts or loading what it links to, and only short
 // excerpts are kept.
+//
+// linkedom rather than jsdom: it is ES modules throughout, so it's bundled
+// with the server's code. jsdom is kept out of the bundle and loaded by
+// Node, and part of it is an ES module loaded with require(), which AWS
+// Lambda's Node refuses, so it can't load on Netlify
+// (tests/checks/lambda-require.test.ts).
 
 import { isProbablyReaderable, Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+import { parseHTML } from "linkedom";
 import { decodeEntities } from "./search.ts";
 
 /** Past this many elements a page is an application, not an article, and Readability would refuse it. */
@@ -59,8 +65,9 @@ function day(value: string | undefined): string | undefined {
 
 /** The article's own HTML and text in `html`, as Readability reads it; none if it isn't an article, or it found only a headline. */
 function articleIn(html: string): { content: string; text: string } | undefined {
-  const { document } = new JSDOM(html).window;
-  if (document.getElementsByTagName("*").length > MOST_ELEMENTS || !isProbablyReaderable(document)) return undefined;
+  const { document } = parseHTML(html);
+  // Counted with querySelectorAll, as linkedom's getElementsByTagName("*") finds none.
+  if (document.querySelectorAll("*").length > MOST_ELEMENTS || !isProbablyReaderable(document)) return undefined;
   const article = new Readability(document, { maxElemsToParse: MOST_ELEMENTS }).parse();
   // From its HTML, a space for each tag, as Readability's own text runs one paragraph's end into the next's start.
   const content = article?.content ?? "";
