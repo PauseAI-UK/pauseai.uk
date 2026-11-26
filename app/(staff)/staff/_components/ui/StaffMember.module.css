@@ -1,5 +1,7 @@
 /* A staff member's address that opens a bubble with their name: the words
-   around it, as they are, underlined with dots to say there's more. */
+   around it, as they are, underlined with dots to say there's more while
+   the pointer is over it or it has the focus, so a page naming many isn't
+   lined with dots. */
 .member {
   padding: 0;
   border: 0;
@@ -7,7 +9,12 @@
   color: inherit;
   font: inherit;
   text-align: inherit;
-  text-decoration: underline dotted;
+  text-decoration: none;
   text-underline-offset: 0.2em;
   cursor: pointer;
+}
+
+.member:hover,
+.member:focus-visible {
+  text-decoration: underline dotted;
 }
