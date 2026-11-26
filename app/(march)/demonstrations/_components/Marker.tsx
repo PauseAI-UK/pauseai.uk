@@ -32,7 +32,12 @@ function mark(element: HTMLElement, type: Mark): () => void {
   const style = getComputedStyle(element);
   const size = parseFloat(style.fontSize);
   const pen = Math.max(3, Math.round(size / penScale));
-  const drawIn = type !== "underline" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // A browser with IntersectionObserver turned off can't tell when the words
+  // are in view, so marks them at once.
+  const drawIn =
+    type !== "underline" &&
+    typeof IntersectionObserver !== "undefined" &&
+    !matchMedia("(prefers-reduced-motion: reduce)").matches;
   const drawn = annotate(element, {
     type,
     color: style.getPropertyValue("--march-orange").trim(),

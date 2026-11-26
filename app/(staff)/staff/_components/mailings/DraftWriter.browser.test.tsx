@@ -58,6 +58,17 @@ describe("DraftTitle", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("never shows the bar in a browser with IntersectionObserver turned off", async () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    try {
+      await render(<DraftTitle title="Our March" />);
+      await expect.element(page.getByRole("heading", { name: "Our March" })).toBeVisible();
+      expect(document.querySelector("h1")!.previousElementSibling!.hasAttribute("data-shown")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("TestSent", () => {

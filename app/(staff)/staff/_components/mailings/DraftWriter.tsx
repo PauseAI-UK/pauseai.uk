@@ -55,6 +55,8 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
     document.title = staffVocabulary.tabTitle(title);
   }, [title]);
   useEffect(() => {
+    // A browser with IntersectionObserver turned off never shows the bar.
+    if (typeof IntersectionObserver === "undefined") return;
     // Gone once half of it has scrolled off the top; one still below the
     // window, not yet reached, isn't.
     const watch = new IntersectionObserver(
