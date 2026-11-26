@@ -15,7 +15,7 @@ import { Muted } from "@/components/ui/Text";
 import { DeleteTwice } from "../ui/DeleteTwice";
 import { Refusal, ResultForm } from "../ui/ResultForm";
 import SortHeading from "../ui/SortHeading";
-import StaffMember from "../ui/StaffMember";
+import StaffMember, { StaffSentence } from "../ui/StaffMember";
 import { staffMemberText } from "@/lib/staff-member";
 import Bubble from "@/components/ui/Bubble";
 import When from "../ui/When";
@@ -224,6 +224,7 @@ export default function StaffAccountsTable({
         <thead>
           <tr>
             {heading("email", columns.email)}
+            <th>{columns.name}</th>
             <th>{columns.permissions}</th>
             {heading("added", columns.added)}
             {heading("lastLogin", columns.lastLogin)}
@@ -239,15 +240,18 @@ export default function StaffAccountsTable({
               <td>
                 <StaffMember email={account.email} />
               </td>
+              <td>{account.name ?? <Muted>–</Muted>}</td>
               <td>
                 <Permissions account={account} save={save} />
               </td>
               <td>
                 <When at={account.addedAt} />{" "}
                 <Muted>
-                  {account.addedBy === ADDED_BY_LOGIN
-                    ? copy.addedByLogin
-                    : copy.addedBy(staffMemberText(account.addedBy))}
+                  {account.addedBy === ADDED_BY_LOGIN ? (
+                    copy.addedByLogin
+                  ) : (
+                    <StaffSentence words={copy.addedBy} email={account.addedBy} />
+                  )}
                 </Muted>
               </td>
               <td>{when(account.lastLoginAt)}</td>
@@ -279,6 +283,7 @@ export default function StaffAccountsTable({
         <tfoot>
           <tr>
             <td>{copy.everyone}</td>
+            <td />
             <td>
               <Muted>–</Muted>
             </td>

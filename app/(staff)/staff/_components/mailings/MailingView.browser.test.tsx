@@ -64,7 +64,8 @@ describe("MailingView", () => {
     // The band: when, by whom, from where and by what, the ask, and who it was for.
     await expect.element(page.getByText("20 Oct 2026", { exact: true })).toBeVisible();
     await expect.element(page.getByText(copy.by(written.createdBy))).toBeVisible();
-    await expect.element(page.getByText("jo@pauseai.uk", { exact: true })).toBeVisible();
+    // Who wrote it, and the address it went from.
+    expect(page.getByText("jo@pauseai.uk", { exact: true }).all()).toHaveLength(2);
     await expect
       .element(page.getByText(`Jo Example · ${mailingsCopy.mailingPages.sendFacts.viaDetail("Gmail")}`))
       .toBeVisible();

@@ -2,7 +2,6 @@
 
 import { startTransition, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { staffMemberText } from "@/lib/staff-member";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { isSaveKey, type AddNote } from "@/lib/notes/notes";
@@ -11,6 +10,7 @@ import { Card } from "../ui/Grid";
 import { Refusal, RefusedTextArea, ResultForm } from "../ui/ResultForm";
 import styles from "./Notes.module.css";
 import { notesCopy } from "./copy";
+import StaffMember from "../ui/StaffMember";
 
 const copy = notesCopy.notes;
 
@@ -95,7 +95,9 @@ export default function NotesCard({
                   </p>
                 )}
                 <div className={styles.meta}>
-                  <Muted>{`${copy.kind} · ${staffMemberText(writer)}`}</Muted>
+                  <Muted>
+                    {copy.kind} · <StaffMember email={writer} />
+                  </Muted>
                   <div className={styles.buttons}>
                     <SubmitButton variant="primary" size="small" fit>
                       {copy.add}

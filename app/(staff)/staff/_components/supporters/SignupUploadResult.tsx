@@ -2,7 +2,6 @@ import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads.server";
 import { signupUploadPath } from "@/lib/supporters/signup-csv";
-import { staffMemberText } from "@/lib/staff-member";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { Muted } from "@/components/ui/Text";
 import { monthsAndYears } from "@/lib/dated-groups";
@@ -17,6 +16,7 @@ import StaffLink from "../ui/StaffLink";
 import styles from "./SignupUpload.module.css";
 import { phoneWords } from "@/lib/phone";
 import { supportersCopy } from "./copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = supportersCopy.signupUpload;
 const words = copy.result;
@@ -55,7 +55,11 @@ export function SignupUploadHead({ upload }: { upload: SignupUploadSummary }) {
     <PageHead
       facts={[
         words.summary(upload.imported, upload.heldBack),
-        words.by(staffMemberText(upload.uploadedBy), staffTime(upload.uploadedAt)),
+        <StaffSentence
+          key="by"
+          words={(who) => words.by(who, staffTime(upload.uploadedAt))}
+          email={upload.uploadedBy}
+        />,
         !whatsapp && words.signedOn(staffDate(new Date(upload.signedOn))),
         upload.eventName && (
           <>
@@ -171,7 +175,7 @@ export function SignupUploadsList({ uploads, now }: { uploads: SignupUploadSumma
                           </>
                         )}
                         {" · "}
-                        {heads.by(staffMemberText(upload.uploadedBy))}
+                        <StaffSentence words={heads.by} email={upload.uploadedBy} />
                       </Muted>
                     </span>
                     <Counts

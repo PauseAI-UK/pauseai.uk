@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import StaffLink from "../ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
 import { phoneWords } from "@/lib/phone";
-import { staffMemberText } from "@/lib/staff-member";
 import Tag from "@/components/ui/Tag";
 import { displayPostcode } from "@/lib/postcodes";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -27,6 +26,7 @@ import styles from "../ui/Details.module.css";
 import TestTag from "../ui/TestTag";
 import { statusOf } from "../letters/LetterStatus";
 import { supportersCopy } from "./copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = supportersCopy.supporters;
 
@@ -174,10 +174,10 @@ function Subject({ item }: { item: SupporterActivity }) {
           <Muted>
             {" · "}
             {item.how ? (
-              copy.detail.toldStaff(staffMemberText(item.recordedBy), item.how)
+              <StaffSentence words={(who) => copy.detail.toldStaff(who, item.how!)} email={item.recordedBy} />
             ) : (
               <>
-                {copy.detail.fromReply(staffMemberText(item.recordedBy))}
+                <StaffSentence words={copy.detail.fromReply} email={item.recordedBy} />
                 {reply}
               </>
             )}

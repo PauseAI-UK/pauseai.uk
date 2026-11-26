@@ -9,6 +9,7 @@ import { Muted } from "@/components/ui/Text";
 import IconText from "../ui/IconText";
 import styles from "./RunBox.module.css";
 import { jobsCopy } from "./copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 /**
  * How a run ended, or that one is going, in words after a dot of its
@@ -70,7 +71,10 @@ export default function RunBox({ run, summary, open, actions, variant = "row", c
       <span className={styles.text}>
         {said}
         {run.startedBy && run.startedBy !== NIGHTLY && (
-          <Muted> · {jobsCopy.runs.by(staffMemberText(run.startedBy))}</Muted>
+          <Muted>
+            {" "}
+            · <StaffSentence words={jobsCopy.runs.by} email={run.startedBy} />
+          </Muted>
         )}
         {run.decidedBy && (
           <Muted>

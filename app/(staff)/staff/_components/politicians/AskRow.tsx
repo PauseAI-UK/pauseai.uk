@@ -19,9 +19,9 @@ import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "../ui/Menu";
 import { Refusal, RefusedTextInput, ResultForm } from "../ui/ResultForm";
-import { staffMemberText } from "@/lib/staff-member";
 import styles from "../ui/Details.module.css";
 import { politiciansCopy } from "./copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = politiciansCopy.politician;
 
@@ -142,7 +142,7 @@ export default function AskRow({
         {status && (
           <span className={styles.askMeta}>
             {status.note && `${status.note} · `}
-            {copy.fromImport[status.updatedBy] ?? copy.answerSetBy(staffMemberText(status.updatedBy))}
+            {copy.fromImport[status.updatedBy] ?? <StaffSentence words={copy.answerSetBy} email={status.updatedBy} />}
           </span>
         )}
       </div>

@@ -1,5 +1,4 @@
 import { Fragment, type ReactNode } from "react";
-import { staffMemberText } from "@/lib/staff-member";
 import { site } from "@/lib/content/site";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK } from "@/lib/asks/asks";
 import { EDM_PAGE } from "@/lib/asks/edm";
@@ -37,6 +36,7 @@ import Band, { BandFact } from "../ui/Band";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 // Every import and check: the overview at /staff/scheduled-jobs, a card each,
 // and each job's own page, with its button and every run it has made.
@@ -294,9 +294,14 @@ export function ImportJobPage({
       </Band>
       {running && (
         <RunningNow>
-          {running.startedBy === NIGHTLY
-            ? words.runningScheduled(staffTime(running.startedAt))
-            : words.running(staffMemberText(running.startedBy), staffTime(running.startedAt))}
+          {running.startedBy === NIGHTLY ? (
+            words.runningScheduled(staffTime(running.startedAt))
+          ) : (
+            <StaffSentence
+              words={(who) => words.running(who, staffTime(running.startedAt))}
+              email={running.startedBy}
+            />
+          )}
         </RunningNow>
       )}
       <RunList runs={runs} none={words.never} decide={decide} running={running} />

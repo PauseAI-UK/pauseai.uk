@@ -124,6 +124,7 @@ import styles from "../mailings/MailingWriter.module.css";
 import own from "./Broadcasts.module.css";
 import { mailingsCopy } from "../mailings/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = broadcastsCopy.broadcastPages;
 
@@ -302,7 +303,12 @@ function TemplateWithdraw({ template, withdraw }: { template: WhatsAppVariant; w
   return (
     <>
       {/* Who asked, and when, as an approved template's line says who made it; always someone, as they're sent from here. */}
-      <Muted>{copy.templatePending(staffMemberText(template.createdBy!), staffDate(template.requestedAt))}</Muted>
+      <Muted>
+        <StaffSentence
+          words={(who) => copy.templatePending(who, staffDate(template.requestedAt))}
+          email={template.createdBy!}
+        />
+      </Muted>
       <div>
         <PressTwice
           label={copy.withdrawTemplate}
@@ -1227,7 +1233,10 @@ export default function BroadcastWriter({
       )}
       {reviewing && (
         <Strip tone="blue" waiting>
-          {copy.awaitingApproval(staffMemberText(reviewing.createdBy!), staffTime(reviewing.requestedAt))}
+          <StaffSentence
+            words={(who) => copy.awaitingApproval(who, staffTime(reviewing.requestedAt))}
+            email={reviewing.createdBy!}
+          />
         </Strip>
       )}
       {stands.except.rejected && (

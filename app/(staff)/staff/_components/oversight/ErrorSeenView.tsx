@@ -1,7 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { FormResult } from "@/lib/form-result";
 import type { ErrorSeen } from "@/lib/oversight/errors-list.server";
-import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "../ui/Band";
 import Empty from "../ui/Empty";
@@ -9,6 +8,7 @@ import Grid, { Card } from "../ui/Grid";
 import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./ErrorSeenView.module.css";
 import { oversightCopy } from "@/lib/oversight/copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = oversightCopy.errorsSeen;
 
@@ -51,7 +51,9 @@ export default function ErrorSeenView({ error, setDone }: { error: ErrorSeen; se
         <BandFact label={copy.one.count}>{error.count}</BandFact>
       </Band>
       {error.doneAt && (
-        <p className={styles.done}>{copy.one.doneBy(staffMemberText(error.doneBy!), staffTime(error.doneAt))}</p>
+        <p className={styles.done}>
+          <StaffSentence words={(who) => copy.one.doneBy(who, staffTime(error.doneAt!))} email={error.doneBy!} />
+        </p>
       )}
       <h2>{copy.one.latest}</h2>
       <Grid>

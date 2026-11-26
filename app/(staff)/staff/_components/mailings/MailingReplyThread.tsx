@@ -8,7 +8,6 @@ import { Muted } from "@/components/ui/Text";
 import { named } from "@/lib/email-parsing/addresses";
 import type { FormResult } from "@/lib/form-result";
 import type { LetterThread as Thread, ThreadMessage } from "@/lib/letters/threads.server";
-import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { ReplyButton, type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "./MailingLetter";
@@ -16,6 +15,7 @@ import LetterThread from "../letters/LetterThread";
 import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./AnswerableReply.module.css";
 import { mailingsCopy } from "./copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = mailingsCopy.answers;
 
@@ -55,10 +55,17 @@ export default function MailingReplyThread({
         <>
           {message.dealtBy && (
             <p className={styles.dealt}>
-              {copy.nothingDone(staffMemberText(message.dealtBy), staffTime(message.dealtAt!))}
+              <StaffSentence
+                words={(who) => copy.nothingDone(who, staffTime(message.dealtAt!))}
+                email={message.dealtBy}
+              />
             </p>
           )}
-          {message.sentBy && <p className={styles.dealt}>{copy.sentBy(staffMemberText(message.sentBy))}</p>}
+          {message.sentBy && (
+            <p className={styles.dealt}>
+              <StaffSentence words={copy.sentBy} email={message.sentBy} />
+            </p>
+          )}
           {message === reply && (
             <div className={`${styles.actions} ${styles.buttons}`}>
               {canAnswer ? (
