@@ -151,7 +151,9 @@ export const broadcastsCopy = {
     },
     // Under the template chosen: its words as new words, under a new name, to send for approval; and deleting it,
     // from WhatsApp too, offered only while no other broadcast has it.
-    editTemplate: "Edit as a new template",
+    editTemplate: "Edit as new template",
+    // Beside the dropdown, for a new template being written, which greys the dropdown till it's discarded.
+    discardTemplate: "Discard",
     copyName: (name: string, n: number) => `${name} (${n})`,
     deleteTemplate: "Delete template",
     deleteRefused: {

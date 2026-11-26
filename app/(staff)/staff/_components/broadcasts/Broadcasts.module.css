@@ -317,10 +317,18 @@
   justify-items: start;
 }
 
-/* Under the template chosen: its line, then its quiet buttons, close under it. */
-.templateFacts {
-  display: grid;
+/* The template dropdown, and beside it, at its foot, what can be done to the template; under it where there's no
+   room, as on a phone. */
+.templateRow {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.templateRow > :first-child {
+  flex: 0 1 22rem;
+  min-width: 0;
 }
 
 .templateActions {

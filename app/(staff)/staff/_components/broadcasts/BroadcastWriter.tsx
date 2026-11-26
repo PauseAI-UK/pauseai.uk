@@ -177,16 +177,6 @@ export type BroadcastWriterActions = DraftActions & {
 };
 
 /**
- * A template's facts as the dropdown gives them (templateOption), on a line
- * under the one chosen, a dot between each, and Unused last if nothing has
- * ever had it; `uses` are its own but for this draft's.
- */
-export function templateLine(template: WhatsAppTemplate, uses: TemplateUses = template.uses): string {
-  const { tag, facts } = templateOption(template, uses);
-  return [...facts!, ...(tag ? [tag] : [])].join(" · ");
-}
-
-/**
  * A template in the dropdown: its facts, on a line under its name: who made it; when it was last sent and to how many, or
  * else when it's first scheduled for, or else when it was approved, as being
  * sent or scheduled says it was; and how many other drafts have it (`uses`),
@@ -247,49 +237,68 @@ type Words = "email" | "chosen" | "new" | "none";
 const FIELD_WORDS: Record<string, string> = { ...copy.fieldWords };
 
 /**
- * Under words WhatsApp is reviewing: who sent them, and when, and the button
- * that takes them back to change them. Pressed a second time, the button is
- * as it was to begin with once that's done, however it went. If taking them
- * back throws, or never arrives, it says so under the button, in the kit's
- * words.
+ * A quiet button pressed twice, as a delete is: the first press turns it
+ * red, asking for the second (`sure`), which does it (`onConfirm`); it turns
+ * back unless that comes within ARMED_FOR, or focus goes elsewhere. Red and
+ * pending while what it does is under way (`pending`).
  */
-function TemplateWithdraw({ template, withdraw }: { template: WhatsAppVariant; withdraw: () => Promise<void> }) {
+function PressTwice({
+  label,
+  sure,
+  pending = false,
+  onConfirm,
+}: {
+  label: string;
+  sure: string;
+  pending?: boolean;
+  onConfirm: () => void;
+}) {
   const [armed, setArmed] = useState(false);
-  const [take, withdrawing, broke] = useSave(async () => {
-    try {
-      await withdraw();
-    } finally {
-      setArmed(false);
-    }
-  });
   useEffect(() => {
     if (!armed) return;
     const timer = setTimeout(() => setArmed(false), ARMED_FOR);
     return () => clearTimeout(timer);
   }, [armed]);
+  return armed || pending ? (
+    <Button
+      variant="danger"
+      size="small"
+      fit
+      autoFocus
+      pending={pending}
+      onBlur={() => setArmed(false)}
+      onClick={() => {
+        setArmed(false);
+        onConfirm();
+      }}
+    >
+      {sure}
+    </Button>
+  ) : (
+    <Button variant="ghost" size="small" fit onClick={() => setArmed(true)}>
+      {label}
+    </Button>
+  );
+}
+
+/**
+ * Under words WhatsApp is reviewing: who sent them, and when, and the button
+ * that takes them back to change them, pressed twice. If taking them back
+ * throws, or never arrives, it says so under the button, in the kit's words.
+ */
+function TemplateWithdraw({ template, withdraw }: { template: WhatsAppVariant; withdraw: () => Promise<void> }) {
+  const [take, withdrawing, broke] = useSave(withdraw);
   return (
     <>
       {/* Who asked, and when, as an approved template's line says who made it; always someone, as they're sent from here. */}
       <Muted>{copy.templatePending(staffMemberText(template.createdBy!), staffDate(template.requestedAt))}</Muted>
       <div>
-        {/* Pressed twice, as a delete is: the first asks, red, for the second, and turns back unless it comes. */}
-        {armed || withdrawing ? (
-          <Button
-            variant="danger"
-            size="small"
-            fit
-            autoFocus
-            pending={withdrawing}
-            onBlur={() => setArmed(false)}
-            onClick={() => take()}
-          >
-            {copy.withdrawSure}
-          </Button>
-        ) : (
-          <Button variant="ghost" size="small" fit onClick={() => setArmed(true)}>
-            {copy.withdrawTemplate}
-          </Button>
-        )}
+        <PressTwice
+          label={copy.withdrawTemplate}
+          sure={copy.withdrawSure}
+          pending={withdrawing}
+          onConfirm={() => take()}
+        />
         {broke && <FieldError announce="alert">{staffVocabulary.notDone}</FieldError>}
       </div>
     </>
@@ -738,16 +747,6 @@ export default function BroadcastWriter({
     ],
     [data.templates],
   );
-  // How each variant stands with WhatsApp, by one rule (versionStanding), from what's written: the default one,
-  // which is everyone else's once there's a conditional one (`except`), and the conditional one (`only`).
-  const stands: Record<VersionSide, VersionStanding<WhatsAppVariant>> = {
-    except: versionStanding(ownParts, draft.variant, approved, editing),
-    only: versionStanding(textVersion ?? ownParts, draft.textVersion?.variant, approved, editing),
-  };
-  // The default variant's words sent to WhatsApp, waiting for it to approve them.
-  const { waiting } = stands.except;
-  // Words WhatsApp is reviewing, either variant's, which taking back takes back together.
-  const reviewing = waiting ?? (textVersion ? stands.only.waiting : undefined);
   // The approved template what's written is, whole, which the dropdown shows as chosen. Where more than one has
   // the same words, the one chosen here, or else the draft's own.
   const whole = data.templates.filter(
@@ -764,6 +763,18 @@ export default function BroadcastWriter({
     : (whole.find((one) => one.id === values.templateId) ??
       whole.find((one) => one.id === draft.template?.id) ??
       whole[0]);
+  // How each variant stands with WhatsApp, by one rule (versionStanding), from what's written: the default one,
+  // which is everyone else's once there's a conditional one (`except`), and the conditional one (`only`). Only a
+  // whole approved template chosen has its words fixed: on a new template, words an approved variant has are free
+  // to change, and go for approval only once they do.
+  const stands: Record<VersionSide, VersionStanding<WhatsAppVariant>> = {
+    except: versionStanding(ownParts, draft.variant, approved, !template),
+    only: versionStanding(textVersion ?? ownParts, draft.textVersion?.variant, approved, !template),
+  };
+  // The default variant's words sent to WhatsApp, waiting for it to approve them.
+  const { waiting } = stands.except;
+  // Words WhatsApp is reviewing, either variant's, which taking back takes back together.
+  const reviewing = waiting ?? (textVersion ? stands.only.waiting : undefined);
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
   const withdrew = useRef(false);
   const writeCard = useRef<HTMLElement>(null);
@@ -773,11 +784,15 @@ export default function BroadcastWriter({
     writeCard.current!.scrollIntoView({ block: "start", behavior: "instant" });
   }, [reviewing]);
   // New template, chosen in the dropdown with nothing written yet. Words that aren't an approved template's are a
-  // new one's anyway. New words are kept while a template is chosen, so going back finds them.
+  // new one's anyway.
   const [newTab, setNewTab] = useState(false);
   const writingNew = !email && !template && (newTab || !isBlankMailing(body) || Boolean(textVersion));
-  const newWords = useRef<MailingDoc>(EMPTY_MAILING_DOC);
-  const newName = useRef("");
+  // A new template with anything written, which choosing another in the dropdown would lose: the dropdown is
+  // greyed till it's discarded. Not while WhatsApp reviews it, which greys the dropdown anyway.
+  const held =
+    writingNew &&
+    !reviewing &&
+    Boolean(values.title.trim() || !isBlankMailing(body) || values.header || values.buttons.length || textVersion);
   const wordsLabel = useId();
   const picker = useId();
   // Why the template chosen wasn't deleted just now: an alert under it.
@@ -966,20 +981,28 @@ export default function BroadcastWriter({
     ) : (
       children
     );
-  // Choosing in the dropdown: a new template, with the words and name last written as one; or an approved
-  // template, whole, its variants and who the conditional one is for. What's written as new is kept meanwhile.
+  // Choosing in the dropdown: a new template, empty, with no name, words, header, buttons or condition, unless it's
+  // what's being written already; or an approved template, whole, its variants and who the conditional one is for.
+  // Only Edit as a new template starts from words there are.
   const chooseWords = (value: string) => {
-    setEditing(false);
     if (value === "new") {
-      change({ title: newName.current, body: newWords.current });
+      if (writingNew) return;
+      setEditing(false);
+      change({
+        title: "",
+        body: EMPTY_MAILING_DOC,
+        header: null,
+        place: null,
+        pictureId: null,
+        buttons: [],
+        textVersion: null,
+      });
+      setOwnKey((n) => n + 1);
       setNewTab(true);
       return;
     }
+    setEditing(false);
     const one = data.templates.find((each) => String(each.id) === value)!;
-    if (writingNew) {
-      newWords.current = body;
-      newName.current = values.title;
-    }
     change({
       templateId: one.id,
       title: one.name,
@@ -998,6 +1021,21 @@ export default function BroadcastWriter({
     setNewTab(false);
     if (one.conditional) setSide("only");
   };
+  // Discards a new template being written: everything of it gone, and the dropdown free to choose again.
+  const discard = () => {
+    change({
+      title: "",
+      body: EMPTY_MAILING_DOC,
+      header: null,
+      place: null,
+      pictureId: null,
+      buttons: [],
+      textVersion: null,
+    });
+    setEditing(false);
+    setOwnKey((n) => n + 1);
+    setNewTab(false);
+  };
   // Takes the words WhatsApp is reviewing back from it, the text's own and its second version's, to change them.
   const withdraw = async () => {
     const result = await unlessStale(actions.withdrawTemplate(id));
@@ -1014,18 +1052,16 @@ export default function BroadcastWriter({
   const others = (one: WhatsAppTemplate): TemplateUses =>
     draft.template?.id === one.id ? { ...one.uses, drafts: one.uses.drafts - 1 } : one.uses;
   const unused = (one: WhatsAppTemplate) => Object.values(others(one)).every((n) => n === 0);
-  // Edit as a new template: every variant's words are free to change. A whole approved template's are a copy
-  // under a new name. Nothing is new till a variant's words, header kind or buttons change, and then only that
-  // variant goes for approval.
-  const editAsNew = () => {
-    if (template) {
-      change({
-        title: copyName(
-          template.name,
-          data.templates.map((one) => one.name),
-        ),
-      });
-    }
+  // Edit as new template, for an approved template chosen: a copy under a new name, every variant's words free to
+  // change. Nothing is new till a variant's words, header kind or buttons change, and then only that variant goes
+  // for approval.
+  const editAsNew = (chosen: WhatsAppTemplate) => {
+    change({
+      title: copyName(
+        chosen.name,
+        data.templates.map((one) => one.name),
+      ),
+    });
     setEditing(true);
   };
   // Deleting the template chosen: this draft lets it go first, so nothing has it, and chooses again after. Letting
@@ -1147,7 +1183,7 @@ export default function BroadcastWriter({
         )}
         {/* An approved variant's words, fixed, where the page shows them nowhere else: beside the other variant's
             in its tab, or in a template still being written. A whole template's alone show once, in the preview. */}
-        {stands.except.chosen && (writingNew || textVersion) && (
+        {stands.except.chosen && textVersion && (
           <div className={styles.letter}>
             <p className={styles.label}>{copy.templateWords}</p>
             <MailingLetter doc={body} fields={FIELD_WORDS} />
@@ -1320,31 +1356,30 @@ export default function BroadcastWriter({
                 <div className={own.textWords} onPasteCapture={pastePicture}>
                   {/* An approved template, or new words, the last choice; while WhatsApp reviews new words, they stay chosen. */}
                   {/* Each approved template with who made it, when, and how much it's used, then new words. */}
-                  <div className={styles.sender}>
-                    <MenuSelect
-                      id={picker}
-                      label={copy.templateLabel}
-                      placeholder={copy.pickTemplate}
-                      value={template ? String(template.id) : writingNew ? "new" : ""}
-                      disabled={Boolean(reviewing)}
-                      // A template with two variants is marked so, in place of a tag.
-                      options={data.templates.map((one) => ({
-                        value: String(one.id),
-                        label: one.name,
-                        ...templateOption(one, others(one)),
-                        ...(one.condition !== null && { mark: <TwoVariants who={conditionWords(one.condition)} /> }),
-                      }))}
-                      last={{ value: "new", label: copy.newTemplate }}
-                      onChange={chooseWords}
-                    />
-                  </div>
-                  {/* Its words show once, in the preview; here, its facts as the dropdown gives them (templateLine);
-                      then, quietly, its words as a new template, and deleting it while nothing else has it. */}
-                  {template && (
-                    <div className={own.templateFacts}>
-                      <Muted>{templateLine(template, others(template))}</Muted>
+                  {/* Beside it, what can be done to the template chosen: its words as a new template, and deleting it
+                      while nothing else has it; or for a new template being written, discarding it. */}
+                  <div className={own.templateRow}>
+                    <div className={styles.sender}>
+                      <MenuSelect
+                        id={picker}
+                        label={copy.templateLabel}
+                        placeholder={copy.pickTemplate}
+                        value={template ? String(template.id) : writingNew ? "new" : ""}
+                        disabled={Boolean(reviewing) || held}
+                        // A template with two variants is marked so, in place of a tag.
+                        options={data.templates.map((one) => ({
+                          value: String(one.id),
+                          label: one.name,
+                          ...templateOption(one, others(one)),
+                          ...(one.condition !== null && { mark: <TwoVariants who={conditionWords(one.condition)} /> }),
+                        }))}
+                        last={{ value: "new", label: copy.newTemplate }}
+                        onChange={chooseWords}
+                      />
+                    </div>
+                    {template ? (
                       <div className={own.templateActions}>
-                        <Button variant="ghost" size="small" fit onClick={editAsNew}>
+                        <Button variant="ghost" size="small" fit onClick={() => editAsNew(template)}>
                           {copy.editTemplate}
                         </Button>
                         {unused(template) && (
@@ -1358,17 +1393,16 @@ export default function BroadcastWriter({
                           />
                         )}
                       </div>
-                    </div>
-                  )}
-                  {/* A template still being written, with a variant whose words are an approved one's, so fixed:
-                      the same button frees them. */}
-                  {!template && (stands.except.chosen || (textVersion && stands.only.chosen)) && (
-                    <div className={own.templateActions}>
-                      <Button variant="ghost" size="small" fit onClick={editAsNew}>
-                        {copy.editTemplate}
-                      </Button>
-                    </div>
-                  )}
+                    ) : (
+                      held && (
+                        <PressTwice
+                          label={copy.discardTemplate}
+                          sure={staffVocabulary.deleteItShort}
+                          onConfirm={discard}
+                        />
+                      )
+                    )}
+                  </div>
                   {deleteError && <Alert>{deleteError}</Alert>}
                   {writingNew && waiting && <TemplatePending template={waiting} withdraw={withdraw} />}
                   {/* What they're called in the list of templates, once approved, and what the broadcast is. */}
@@ -1435,7 +1469,8 @@ export default function BroadcastWriter({
                   textVersion && {
                     condition: textVersion.condition,
                     body: textVersion.body,
-                    words: stands.only.chosen ? "chosen" : "new",
+                    // Testable once WhatsApp has approved its words, fixed or not.
+                    words: stands.only.approved ? "chosen" : "new",
                     footer: footerOf(stands.only),
                     place: textVersion.header === "location" ? textVersion.place : null,
                     picture:

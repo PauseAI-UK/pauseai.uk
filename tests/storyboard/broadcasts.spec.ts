@@ -349,6 +349,14 @@ test("A template's words edited as a new one, and an unused one deleted", async 
   await approval.scrollIntoViewIfNeeded();
   await frame(page, "Changed, to send for approval", { window: true });
   story(
+    "While a new template has anything written, the dropdown is greyed, so choosing another can't lose it. They discard it, pressed twice, which frees the dropdown.",
+  );
+  const discard = page.getByRole("button", { name: copy.discardTemplate });
+  await discard.scrollIntoViewIfNeeded();
+  await frame(page, "The dropdown greyed, with Discard beside it", { window: true });
+  await discard.click();
+  await savedAfter(page, () => page.getByRole("button", { name: staffVocabulary.deleteItShort }).click());
+  story(
     "They choose an old template instead, and delete it: pressed twice, it goes from WhatsApp and from the dropdown, and the draft chooses again.",
   );
   await savedAfter(page, () => chooseTemplate(page, "Local group meetup"));
@@ -903,7 +911,7 @@ test("A text with a variant for some", async ({ page, request, flowDatabase }) =
 
 test("A conditional variant on an approved template", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff choose a template WhatsApp has approved, then give those who registered for an event a variant of their own. It starts as a copy of the template's own words, so it's the same approved variant: its words are fixed, and nothing goes for approval.",
+    "Staff choose a template WhatsApp has approved, then give those who registered for an event a variant of their own. It starts as a copy of the template's own words, so it's the same approved variant, and nothing goes for approval, but it's a new template now, so its words are free to change.",
   );
   await importLuma(request, BASE);
   addTemplates(flowDatabase);
@@ -918,9 +926,8 @@ test("A conditional variant on an approved template", async ({ page, request, fl
   await tabs.first().scrollIntoViewIfNeeded();
   await frame(page, "The variant, the same approved words", { window: true });
   story(
-    "To say something else to those who registered, staff edit it as a new template, which frees the words. Only the ones they change go to WhatsApp, as everyone else's are approved.",
+    "To say something else to those who registered, staff change their words. Only those go to WhatsApp, as everyone else's are approved.",
   );
-  await page.getByRole("button", { name: copy.editTemplate }).click();
   const words = page.getByRole("textbox", { name: copy.templateWords });
   await expect(words).toBeVisible();
   // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.

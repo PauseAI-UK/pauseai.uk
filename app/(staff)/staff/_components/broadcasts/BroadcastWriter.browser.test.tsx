@@ -12,7 +12,7 @@ import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
-import BroadcastWriter, { templateOption, templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
+import BroadcastWriter, { templateOption, type BroadcastWriterActions } from "./BroadcastWriter";
 import ChannelWriter from "./ChannelWriter";
 import {
   exampleBroadcastData,
@@ -778,8 +778,10 @@ describe("BroadcastWriter, by text", () => {
     await page.getByRole("button", { name: march, exact: true }).click();
     await expect.element(page.getByRole("heading", { name: march, level: 1 })).toBeVisible();
     await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${march}`);
-    // Under the dropdown too: the last of its two, as the menu's comes first.
-    await expect.element(page.getByText(templateLine(exampleTemplates[0])).last()).toBeVisible();
+    // In the dropdown's box too, as in the menu: its facts under its name.
+    await expect
+      .poll(() => words().element().textContent)
+      .toContain(templateOption(exampleTemplates[0], exampleTemplates[0].uses).facts!.join(" · "));
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
     await pick(exampleTemplates[2].name);
     await expect.element(page.getByRole("heading", { name: "Our next event is on Saturday.", level: 1 })).toBeVisible();
@@ -788,23 +790,20 @@ describe("BroadcastWriter, by text", () => {
   it("says a template made in WhatsApp Manager was made there", async () => {
     await renderWriter({ draft: exampleBroadcastText });
     await pick(manager);
-    await expect.element(page.getByText(templateLine(exampleTemplates[1])).last()).toBeVisible();
-    expect(templateLine(exampleTemplates[1])).toContain(copy.templateMadeIn);
+    await expect.poll(() => words().element().textContent).toContain(copy.templateMadeIn);
+    // Its Unused tag beside its name, as in the menu.
+    await expect.poll(() => words().element().textContent).toContain(copy.templateFacts.unused);
   });
 
-  it("gives the chosen template's facts as the dropdown does, on a line, Unused last, and counts drafts but this one", async () => {
+  it("gives the chosen template's facts in the dropdown's box, counting drafts but this one", async () => {
     const one = exampleTemplates[0];
-    expect(templateLine(one)).toBe(
-      ["jo@pauseai.uk", copy.templateFacts.used("2 Nov 2026", 318), copy.templateFacts.drafts(1)].join(" · "),
-    );
-    expect(templateLine(exampleTemplates[1])).toBe(
-      [copy.templateMadeIn, copy.templateFacts.approved("20 Oct 2026"), copy.templateFacts.unused].join(" · "),
-    );
     // This draft has it saved, so it's one draft fewer.
     await renderWriter({ draft: onMarch });
     await expect
-      .element(page.getByText(templateLine(one, { ...one.uses, drafts: 0 }), { exact: true }).last())
-      .toBeVisible();
+      .poll(() => words().element().textContent)
+      .toContain(["jo@pauseai.uk", copy.templateFacts.used("2 Nov 2026", 318)].join(" · "));
+    expect(words().element().textContent).not.toContain(copy.templateFacts.drafts(1));
+    expect(one.uses.drafts).toBe(1);
   });
 
   it("gives each template in the dropdown its words and facts: who made it, when last sent, scheduled for or approved, and what has it", () => {
@@ -935,13 +934,22 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.deleteRefused.failed)).not.toBeInTheDocument();
   });
 
-  it("opens the editor for new words, with a second version for some in place of parts, and WhatsApp's formatting, and keeps them and their name", async () => {
-    await renderWriter({ draft: exampleBroadcastText });
+  it("opens the editor for new words, with a variant for some in place of parts, and WhatsApp's formatting, empty each time it's chosen", async () => {
+    // A template with a map and a button, which New template leaves behind.
+    const templates = exampleTemplates.map((one) =>
+      one.id === 1
+        ? { ...one, default: { ...one.default, header: "location" as const, buttons: [{ text: "Count me in" }] } }
+        : one,
+    );
+    await renderWriter({ draft: exampleBroadcastText, data: { ...exampleBroadcastData, templates } });
     await pick(copy.newTemplate);
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
     await expect.element(page.getByText(mailingsCopy.mailingEditor.partsHeading)).toBeVisible();
     await expect.element(page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor })).toBeVisible();
     await expect.element(page.getByRole("button", { name: mailingsCopy.mailingEditor.except })).not.toBeInTheDocument();
+    // Chosen again while it's empty: nothing changes.
+    await pick(copy.newTemplate);
+    await expect.element(page.getByLabelText(copy.templateName)).toHaveValue("");
     await page.getByLabelText(copy.templateName).fill("March day");
     await page.getByRole("textbox", { name: copy.templateWords }).fill("See you at the march");
     // WhatsApp's formatting: bold, italic, lists and quotes, but no links, by button or by key.
@@ -951,14 +959,24 @@ describe("BroadcastWriter, by text", () => {
     expect(button(editing.link).query()).toBeNull();
     await userEvent.keyboard("{Control>}k{/Control}");
     expect(page.getByRole("textbox", { name: editing.linkBar.address }).query()).toBeNull();
-    // A template, then new words again: the words and their name are kept.
+    // With anything written, the dropdown is greyed, so choosing another template can't lose it; Discard, pressed
+    // twice, empties it and frees the dropdown.
+    await expect.element(words()).toBeDisabled();
+    await button(copy.discardTemplate).click();
+    expect(page.getByLabelText(copy.templateName).query()).not.toBeNull();
+    await button(staffVocabulary.deleteItShort).click();
+    await expect.element(words()).toBeEnabled();
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.pickTemplate}`);
+    expect(page.getByLabelText(copy.templateName).query()).toBeNull();
+    expect(button(copy.discardTemplate).query()).toBeNull();
+    // A template, then New template again: empty, with none of what was written, nor the template's map and button.
     await pick(march);
     await pick(copy.newTemplate);
-    await expect
-      .element(page.getByRole("textbox", { name: copy.templateWords }))
-      .toHaveTextContent("See you at the march");
-    await expect.element(page.getByLabelText(copy.templateName)).toHaveValue("March day");
-    await expect.element(page.getByRole("heading", { name: "March day", level: 1 })).toBeVisible();
+    await expect.element(page.getByLabelText(copy.templateName)).toHaveValue("");
+    await expect.element(page.getByRole("textbox", { name: copy.templateWords })).not.toHaveTextContent("See you");
+    await expect.element(page.getByRole("radio", { name: copy.textTop.none })).toHaveAttribute("aria-checked", "true");
+    expect(page.getByLabelText(copy.replyButtons.words).query()).toBeNull();
+    await expect.element(page.getByRole("heading", { name: copy.newTitle.text, level: 1 })).toBeVisible();
   });
 
   it("shows the card WhatsApp makes for the words' first link, asking about each link once it's typed, and once only", async () => {
@@ -1329,7 +1347,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     expect(page.getByText(copy.problems["same-words"]).query()).toBeNull();
   });
 
-  it("takes new words WhatsApp approves while the page is open as approved, fixed, and as their template once it's listed", async () => {
+  it("takes new words WhatsApp approves while the page is open as approved, and as their template, fixed, once it's listed", async () => {
     const actions = fakeActions();
     const own = (status: "pending" | "approved") =>
       exampleTemplate(51, "See you there", {}, { body: saying("See you at the march"), status });
@@ -1345,32 +1363,38 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(button(copy.withdrawTemplate)).toBeVisible();
     // WhatsApp approves them; the draft says so before the list of approved templates has it, then the list does.
     await screen.rerender(writer("approved", exampleTemplates));
-    await expect.element(button(copy.editTemplate)).toBeVisible();
+    // Approved, so nothing to send, but still a new template's, free to change, with no Edit to press.
     await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.newTemplate}`);
-    expect(editor().query()).toBeNull();
+    await expect.element(editor()).toBeVisible();
     expect(button(copy.withdrawTemplate).query()).toBeNull();
+    expect(button(copy.submitTemplate).query()).toBeNull();
+    expect(button(copy.editTemplate).query()).toBeNull();
     await screen.rerender(writer("approved", [...exampleTemplates, own("approved")]));
     await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: See you there`);
-    expect(editor().query()).toBeNull();
-    await expect.element(button(copy.editTemplate)).toBeVisible();
+    await expect.element(editor()).not.toBeInTheDocument();
+    // Edit as a new template, at the top right of Write.
+    await expect
+      .element(
+        page
+          .getByRole("region", { name: copy.sections.write, exact: false })
+          .getByRole("button", { name: copy.editTemplate }),
+      )
+      .toBeVisible();
     // Worked out from what the page is given, so there's nothing to save.
     expect(actions.save).not.toHaveBeenCalled();
   });
 
-  it("takes a conditional variant changed to an approved one's words as that variant, fixed, till it's edited as new", async () => {
+  it("takes a conditional variant changed to an approved one's words as that variant, still free to change", async () => {
     await renderWriter({ draft: newWords, data: withSeeYou });
     await addVersion();
     await editor().fill("See you at the march");
-    await expect.element(editor()).not.toBeInTheDocument();
-    await expect.element(page.getByText("See you at the march").first()).toBeVisible();
-    await expect.element(kind(top.none)).toBeDisabled();
-    // Approved already, so only the default variant's words go for approval.
+    // Approved already, so only the default variant's words go for approval; on a new template, nothing is fixed.
     await expect.element(page.getByText(copy.textVersions.templates(1))).toBeVisible();
     await expect.element(button(copy.submitTemplate)).toBeVisible();
-    // Edited as new, it's free to change, and goes for approval too once it has.
-    await button(copy.editTemplate).click();
     await expect.element(editor()).toBeVisible();
-    await expect.element(page.getByText(copy.textVersions.templates(1))).toBeVisible();
+    await expect.element(kind(top.none)).toBeEnabled();
+    expect(button(copy.editTemplate).query()).toBeNull();
+    // Changed, it goes for approval too.
     await editor().fill("See you all at the march");
     await expect.element(button(copy.textVersions.submit(2))).toBeVisible();
   });
@@ -1419,7 +1443,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
 
   it("marks a template with two variants in the dropdown with who its conditional one is for", async () => {
     await renderWriter({
-      draft: newWords,
+      draft: exampleBroadcastText,
       data: { ...withFlyering, templates: [...withFlyering.templates, seeYou] },
     });
     await words().click();
@@ -1437,7 +1461,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
   });
 
   it("takes a template with two variants whole, each fixed, and one with a single variant as the whole text", async () => {
-    const actions = await renderWriter({ draft: newWords, data: withFlyering });
+    const actions = await renderWriter({ draft: exampleBroadcastText, data: withFlyering });
     await pick(flyering.name);
     await saved(actions, {
       templateId: 60,
@@ -1465,8 +1489,9 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
   });
 
   it("keeps what a conditional variant's header shows when a template with two variants is chosen over it", async () => {
+    const on = onTemplate(exampleBroadcastText, flyering);
     const actions = await renderWriter({
-      draft: twoWays({ ...version("draft"), pictureId: examplePictureId }),
+      draft: { ...on, textVersion: { ...on.textVersion!, place: examplePlace, pictureId: examplePictureId } },
       data: withFlyering,
     });
     await pick(flyeringGone.name);
@@ -1621,22 +1646,20 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
   });
 
-  it("offers a conditional variant under a chosen template's facts, which starts as the template's own, fixed, till it's edited as new", async () => {
+  it("offers a conditional variant under a chosen template's facts, which starts as the template's own, free to change", async () => {
     const actions = await renderWriter({ draft: onMarch });
     await addVersion();
-    // A copy of the approved variant is that variant: fixed, with nothing to send for approval, and ready to schedule.
+    // A new template now, whose variants are both the approved one: nothing to send for approval, and ready to
+    // schedule, but each free to change.
     await expect.element(page.getByRole("tab").first()).toBeVisible();
     await saved(actions, { title: marchTemplate.name, textVersion: expect.objectContaining({ condition: WROTE }) });
-    expect(editor().query()).toBeNull();
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.newTemplate}`);
+    await expect.element(editor()).toBeVisible();
+    expect(button(copy.editTemplate).query()).toBeNull();
     expect(page.getByText(copy.textVersions.templates(1)).query()).toBeNull();
     expect(button(copy.submitTemplate).query()).toBeNull();
     await expect.element(button(copy.schedule(412, "text"))).toBeEnabled();
     await expect.element(page.getByText(copy.testVia.text("07700 900000"))).toBeVisible();
-    // Edited as new, every variant is free to change. Its words are the approved one's till they do, so nothing
-    // goes for approval yet.
-    await button(copy.editTemplate).click();
-    await expect.element(editor()).toBeVisible();
-    expect(button(copy.submitTemplate).query()).toBeNull();
     expect(page.getByText(copy.problems["same-words"]).query()).toBeNull();
     await editor().fill("Thanks for writing.");
     // Only the conditional variant's words go, as the default one's are approved.
@@ -1656,7 +1679,6 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await renderWriter({ draft: { ...onMarch, dueAt: soon } });
     expect(page.getByText(copy.approvalSoon).query()).toBeNull();
     await addVersion();
-    await button(copy.editTemplate).click();
     await expect.element(editor()).toBeVisible();
     // Approved words still, till they change.
     expect(page.getByText(copy.approvalSoon).query()).toBeNull();
@@ -1668,7 +1690,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     const actions = await renderWriter({ draft: newWords, data: withSeeYou });
     await addVersion();
     await editor().fill("See you at the march");
-    await expect.element(editor()).not.toBeInTheDocument();
+    await expect.element(page.getByText(copy.textVersions.templates(1))).toBeVisible();
     await button(editing.forEveryone).click();
     await expect.element(tab(120)).not.toBeInTheDocument();
     await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${seeYou.name}`);
@@ -1678,7 +1700,6 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
   it("makes the open variant the text for everyone with its ×, as new words, the other gone", async () => {
     const actions = await renderWriter({ draft: onMarch });
     await addVersion();
-    await button(copy.editTemplate).click();
     await editor().fill("Thanks for writing.");
     await button(editing.forEveryone).click();
     await expect.element(tab(120)).not.toBeInTheDocument();

@@ -25,7 +25,7 @@ const named = (option: FilterOption): string =>
  * A dropdown, for choices a native select can't show: in groups with
  * icons, or each with its name in bold, a tag, its words and facts about it,
  * each a line that never wraps, a rule between each (`MenuOption`), in a
- * wider menu. A field's box
+ * wider menu, and in the box once chosen. A field's box
  * with the choice made, or `placeholder`, that opens the list filters' own
  * menu (Menu, Choices), each group's icon beside its name, and `last`, if
  * given, at its foot under a rule, as a select's list draws one. Picking one
@@ -60,7 +60,19 @@ export default function MenuSelect({
   const all = last ? [...options, last] : options;
   const chosen = all.find((option) => option.value === value);
   const shown = chosen ? named(chosen) : placeholder;
-  const box = chosen ? (
+  const rich = options.some((option) => option.facts);
+  // What's beside a choice's name: a mark of its own, or else its tag.
+  const besideOf = ({ mark, tag }: Pick<MenuOption, "mark" | "tag">) => mark ?? (tag && <Tag>{tag}</Tag>);
+  // A choice with facts is in the box as it is in the menu: its name and what's beside it, its facts under them.
+  const box = chosen?.facts ? (
+    <span className={styles.chosenRich}>
+      <span className={styles.head}>
+        <span className={styles.name}>{chosen.label}</span>
+        {besideOf(chosen)}
+      </span>
+      <span className={styles.facts}>{chosen.facts.join(" · ")}</span>
+    </span>
+  ) : chosen ? (
     <span className={styles.chosen}>
       {chosen.group?.icon}
       {shown}
@@ -68,11 +80,9 @@ export default function MenuSelect({
   ) : (
     <span className={styles.placeholder}>{placeholder}</span>
   );
-  const rich = options.some((option) => option.facts);
   // Choices draws a filter's choices, which have none of these.
   const row = ({ tag, mark, words, facts, ...option }: FilterOption & Omit<MenuOption, keyof FilterOption>) => {
-    // What's beside its name: a mark of its own, or else its tag.
-    const beside = mark ?? (tag && <Tag>{tag}</Tag>);
+    const beside = besideOf({ mark, tag });
     // That, the words and each fact by its id, so they're read as separate words.
     const said = [...(beside ? ["tag"] : []), ...(words ? ["words"] : []), ...(facts ?? []).map((_, n) => n)].map(
       (one) => `${id}-${option.value}-${one}`,
