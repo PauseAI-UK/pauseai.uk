@@ -8,11 +8,13 @@ import {
   newsMobileRow1,
   newsMobileRow2,
   newsMobileRow3,
-  type CoverageItem,
-} from "@/lib/content/press-coverage";
+  outletAnchor,
+  type PressLogo,
+} from "@/lib/content/press-logos";
 import styles from "./PressMarquee.module.css";
 
-export function NewsRow({ items, reverse = false }: { items: CoverageItem[]; reverse?: boolean }) {
+/** A row of logos, each linking to its outlet's newest piece on /press. */
+export function NewsRow({ items, reverse = false }: { items: PressLogo[]; reverse?: boolean }) {
   return (
     <div className={reverse ? `${styles.row} ${styles.reverse}` : styles.row}>
       <div className={styles.track} data-marquee-track="news">
@@ -24,32 +26,24 @@ export function NewsRow({ items, reverse = false }: { items: CoverageItem[]; rev
             {...(copyIdx > 0 ? { "aria-hidden": true } : {})}
           >
             {items.map((item, i) => (
-              <a
+              <Link
                 key={i}
                 className={styles.item}
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                title={item.title}
-                aria-label={`${item.outlet}: ${item.title}`}
+                href={`/press#${outletAnchor(item.outlet)}`}
                 {...(copyIdx > 0 ? { tabIndex: -1 } : {})}
               >
                 <div className={styles.logoBox}>
-                  {item.logoSrc ? (
-                    <Image
-                      className={styles.logo}
-                      src={item.logoSrc}
-                      alt={item.outlet}
-                      width={item.logoIntrinsicWidth ?? 100}
-                      height={item.logoIntrinsicHeight ?? 44}
-                      loading="lazy"
-                      style={item.logoHeight ? ({ "--logo-h": item.logoHeight } as CSSProperties) : undefined}
-                    />
-                  ) : (
-                    <span dangerouslySetInnerHTML={{ __html: item.logoHtml! }} />
-                  )}
+                  <Image
+                    className={styles.logo}
+                    src={item.logoSrc}
+                    alt={item.outlet}
+                    width={item.logoIntrinsicWidth}
+                    height={item.logoIntrinsicHeight}
+                    loading="lazy"
+                    style={{ "--logo-h": item.logoHeight } as CSSProperties}
+                  />
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         ))}
@@ -74,7 +68,7 @@ export default function PressMarquee() {
         </div>
       </div>
       <div className={`container ${styles.cta}`}>
-        <Link className="inline-link" href="/press/">
+        <Link className="inline-link" href="/press">
           See our press page →
         </Link>
       </div>

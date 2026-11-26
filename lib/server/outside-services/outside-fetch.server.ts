@@ -40,6 +40,11 @@ export type OutsideInit = RequestInit & {
    * sets it also asks for `redirect: "manual"` and checks each redirect's.
    */
   publicOnly?: boolean;
+  /**
+   * For a site whose answer can carry more headers than fetch takes (16 KB),
+   * as some news sites' cookies and policies do: room for 128 KB.
+   */
+  largeHeaders?: boolean;
 };
 
 /**
@@ -54,7 +59,7 @@ export type OutsideInit = RequestInit & {
  * refusal it is.
  */
 export async function outsideFetch({ service, fake }: Outside, url: string, init: OutsideInit = {}): Promise<Response> {
-  const { retries = 0, mostWait = Infinity, publicOnly = false, ...request } = init;
+  const { retries = 0, mostWait = Infinity, publicOnly = false, largeHeaders = false, ...request } = init;
   if (config.fixtures && !config.realServices.includes(service)) {
     // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow, and the
     // services it has made fail. Imported here, as they read Node's files, so a component that renders on
@@ -75,7 +80,7 @@ export async function outsideFetch({ service, fake }: Outside, url: string, init
     throw new OutsideFailure(service, "unreachable", { asked: url, message: `${url} isn't on the public internet` });
   }
   for (let attempt = 0; ; attempt++) {
-    const res = await answer(service, url, request);
+    const res = await answer(service, url, request, largeHeaders);
     if (!ASKED_AGAIN.includes(res.status) || attempt === retries) return res;
     const seconds = retryAfterOf(res) ?? 2 ** attempt;
     if (seconds > mostWait) return res;
@@ -92,9 +97,18 @@ const NO_BODY = [204, 205, 304];
  * that drops or stalls partway fails as the service's, as one that never
  * answers does, and a binding can read the body without a failure of its own.
  */
-async function answer(service: OutsideService, url: string, init: RequestInit): Promise<Response> {
+async function answer(
+  service: OutsideService,
+  url: string,
+  init: RequestInit,
+  largeHeaders: boolean,
+): Promise<Response> {
   try {
-    const res = await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(OUTSIDE_TIMEOUT_MS) });
+    const signal = init.signal ?? AbortSignal.timeout(OUTSIDE_TIMEOUT_MS);
+    // Node's fetch takes a pool as `dispatcher`, which RequestInit doesn't name.
+    // Imported here, as it's Node's, so a component that renders on fixture data in the browser doesn't load it.
+    const pool = largeHeaders ? { dispatcher: (await import("./large-header-pool.server")).largeHeaderPool } : {};
+    const res = await fetch(url, { ...init, ...pool, signal } as RequestInit);
     const body = NO_BODY.includes(res.status) ? null : await res.arrayBuffer();
     return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
   } catch (error) {

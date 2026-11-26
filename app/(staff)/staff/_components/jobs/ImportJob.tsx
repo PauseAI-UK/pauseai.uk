@@ -3,6 +3,7 @@ import { staffMemberText } from "@/lib/staff-member";
 import { site } from "@/lib/content/site";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK } from "@/lib/asks/asks";
 import { EDM_PAGE } from "@/lib/asks/edm";
+import { pressCopy } from "@/lib/press/copy";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import type { RunningJob } from "@/lib/server/import-run-lists.server";
 import {
@@ -53,6 +54,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "import-controlai": "controlai",
   "import-controlai-statement": "controlai",
   "import-edm": "parliament",
+  "import-press": "news",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "send-mailings": "sending",
@@ -75,7 +77,6 @@ function politicianImport(job: PoliticianImportJob) {
     href: API_DOCS[job],
     also: words.held,
     button: words.importNow[job],
-    none: words.never,
   };
 }
 
@@ -90,14 +91,12 @@ const ABOUT: Record<
     then?: { link: string; after: string; href: string }[];
     also?: string;
     button: string;
-    none: string;
   }
 > = {
   "import-luma": {
     intro: jobsCopy.luma.intro,
     href: site.social.luma,
     button: jobsCopy.luma.importNow,
-    none: jobsCopy.luma.never,
   },
   "import-parliament": politicianImport("import-parliament"),
   "import-scottish-parliament": politicianImport("import-scottish-parliament"),
@@ -108,33 +107,33 @@ const ABOUT: Record<
     href: CONTROLAI_LETTER_PAGE,
     then: [{ ...jobsCopy.controlAi.introThen, href: askHref(CONTROLAI_LETTER_ASK) }],
     button: jobsCopy.controlAi.importNow,
-    none: jobsCopy.controlAi.never,
   },
   "import-controlai-statement": {
     intro: jobsCopy.controlAiStatement.intro,
     href: CONTROLAI_STATEMENT_PAGE,
     then: [{ ...jobsCopy.controlAiStatement.introThen, href: askHref(CONTROLAI_STATEMENT_ASK) }],
     button: jobsCopy.controlAiStatement.importNow,
-    none: jobsCopy.controlAiStatement.never,
   },
   "import-edm": {
     intro: jobsCopy.edm.intro,
     href: EDM_PAGE,
     then: [{ ...jobsCopy.edm.introThen, href: askHref(EDM_ASK) }],
     button: jobsCopy.edm.importNow,
-    none: jobsCopy.edm.never,
+  },
+  "import-press": {
+    intro: pressCopy.job.intro,
+    href: "/staff/press",
+    button: pressCopy.job.importNow,
   },
   "import-civicrm": {
     intro: jobsCopy.civicrm.intro,
     href: CIVICRM,
     button: jobsCopy.civicrm.importNow,
-    none: jobsCopy.civicrm.never,
   },
   "read-gmail": {
     intro: jobsCopy.gmailReading.intro,
     href: "/staff/me",
     button: jobsCopy.gmailReading.readNow,
-    none: jobsCopy.gmailReading.never,
   },
   "send-mailings": {
     intro: jobsCopy.sending.intro,
@@ -144,7 +143,6 @@ const ABOUT: Record<
       { ...jobsCopy.sending.introLast, href: "/staff/broadcasts" },
     ],
     button: jobsCopy.sending.sendNow,
-    none: jobsCopy.sending.never,
   },
   "tidy-logs": {
     intro: jobsCopy.tidying.intro,
@@ -154,7 +152,6 @@ const ABOUT: Record<
       { ...jobsCopy.tidying.introLast, href: ERRORS_LIST.path },
     ],
     button: jobsCopy.tidying.tidyNow,
-    none: jobsCopy.tidying.never,
   },
 };
 
@@ -178,7 +175,7 @@ function Intro({ job }: { job: ImportJob }) {
 }
 
 /** That a run of the job is going, and since when; or its newest run on a line (RunBox); or that it has never run. */
-function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | undefined; running?: RunningJob }) {
+function NewestRun({ run, running }: { run: AnyImportRun | undefined; running?: RunningJob }) {
   if (running)
     return (
       <p className={boxes.line}>
@@ -186,7 +183,7 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
         <span className={boxes.when}>{staffTime(running.startedAt)}</span>
       </p>
     );
-  if (!run) return <p className={styles.never}>{ABOUT[job].none}</p>;
+  if (!run) return <p className={styles.never}>{words.never}</p>;
   return <Run run={run} variant="line" />;
 }
 
@@ -235,7 +232,7 @@ export function ImportOverview({
                   icon={<ImportIcon source={SOURCES[job]} />}
                   next={untilNext(job, now)}
                 >
-                  <NewestRun job={job} run={newest[i]} running={running[i]} />
+                  <NewestRun run={newest[i]} running={running[i]} />
                 </ImportCard>
               ) : null,
             )}
@@ -296,7 +293,7 @@ export function ImportJobPage({
           </Strip>
         </div>
       )}
-      <RunList runs={runs} none={ABOUT[job].none} decide={decide} running={running} />
+      <RunList runs={runs} none={words.never} decide={decide} running={running} />
     </>
   );
 }

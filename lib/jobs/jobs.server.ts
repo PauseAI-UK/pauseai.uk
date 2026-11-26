@@ -11,6 +11,7 @@ import { importControlAiStatement } from "./controlai-statement-import.server";
 import { importEdm } from "./edm-import.server";
 import { importPoliticians } from "@/lib/politicians/imports.server";
 import { runSending } from "./sending.server";
+import { runPressSurvey } from "@/lib/press/survey.server";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
 // of a job at a time: a function that does it as a run of the import log,
@@ -39,6 +40,7 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-controlai": (by) => importControlAiLetter(by),
   "import-controlai-statement": (by) => importControlAiStatement(by),
   "import-edm": (by) => importEdm(by),
+  "import-press": (by, request) => runPressSurvey(by, request),
   "tidy-logs": (by) => runTidying(by),
 };
 

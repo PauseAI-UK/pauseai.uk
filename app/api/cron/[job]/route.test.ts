@@ -112,6 +112,22 @@ describeWithDatabase("POST /api/cron/<job>", () => {
     });
   });
 
+  it("surveys the press and says what it found", async () => {
+    // Searched already today, and nothing found waits to be read.
+    await query("UPDATE press_search SET searched_to = $1", [new Date().toISOString().slice(0, 10)]);
+    expect(await answer("import-press")).toEqual({
+      searched: 0,
+      found: 0,
+      read: 0,
+      known: 0,
+      unreadable: 0,
+      waiting: 0,
+      notOurs: 0,
+      left: 0,
+      told: 0,
+    });
+  });
+
   it("tidies the logs and the empty drafts, and says how much went", async () => {
     await query(
       "INSERT INTO import_runs (job, at, status) VALUES ('import-luma', now() - interval '8 days', 'ok'), ('import-luma', now(), 'ok')",

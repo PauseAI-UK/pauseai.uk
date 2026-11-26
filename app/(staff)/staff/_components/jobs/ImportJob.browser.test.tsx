@@ -23,6 +23,7 @@ import { press } from "@/tests/browser/staff";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { pressCopy } from "@/lib/press/copy";
 
 const ran = exampleRun;
 
@@ -85,6 +86,7 @@ describe("ImportOverview", () => {
       "/staff/scheduled-jobs/controlai",
       "/staff/scheduled-jobs/controlai-statement",
       "/staff/scheduled-jobs/edm",
+      "/staff/scheduled-jobs/press",
       "/staff/scheduled-jobs/tidying",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
@@ -99,6 +101,7 @@ describe("ImportOverview", () => {
       importRunsCopy.jobTitles["import-controlai"],
       importRunsCopy.jobTitles["import-controlai-statement"],
       importRunsCopy.jobTitles["import-edm"],
+      importRunsCopy.jobTitles["import-press"],
       importRunsCopy.jobTitles["tidy-logs"],
     ]);
     // Under the name, its newest run on a line: how it ended, after a dot of its colour, when, and what it found.
@@ -108,10 +111,10 @@ describe("ImportOverview", () => {
     expect([0, 1, 3, 4, 5, 8].map(tone)).toEqual(["amber", "green", "green", "amber", "green", "red"]);
     expect(status(8).textContent).toContain(jobsCopy.runs.error("No PDF linked"));
     expect(tone(2)).toBeUndefined();
-    expect(status(2).textContent).toBe(jobsCopy.sending.never);
-    expect(status(6).textContent).toBe(politiciansCopy.politicianImports.never);
-    expect(status(10).textContent).toBe(jobsCopy.edm.never);
-    expect(status(11).textContent).toBe(jobsCopy.tidying.never);
+    expect(status(2).textContent).toBe(jobsCopy.import.never);
+    expect(status(6).textContent).toBe(jobsCopy.import.never);
+    expect(status(10).textContent).toBe(jobsCopy.import.never);
+    expect(status(11).textContent).toBe(jobsCopy.import.never);
     // Its name alone: how often it runs is the heading over it, and when, its foot.
     expect(cards[0].querySelector("h3")!.textContent).toBe(importRunsCopy.jobTitles["import-luma"]);
     expect(cards[1].querySelector("h3")!.textContent).toBe(importRunsCopy.jobTitles["read-gmail"]);
@@ -208,12 +211,17 @@ describe("ImportJobPage", () => {
         jobsCopy.sending.introLast.after,
       ].join(""),
     );
-    expect([...cards[11].querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
+    // The press survey's links the Press page, where its finds wait.
+    expect([...cards[11].querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/staff/press"]);
+    expect(cards[11].textContent).toBe(
+      [pressCopy.job.intro.before, pressCopy.job.intro.link, pressCopy.job.intro.after].join(""),
+    );
+    expect([...cards[12].querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/audit-log",
       "/staff/mailings",
       "/staff/errors",
     ]);
-    expect(cards[11].textContent).toBe(
+    expect(cards[12].textContent).toBe(
       [
         jobsCopy.tidying.intro.before,
         jobsCopy.tidying.intro.link,
@@ -279,7 +287,7 @@ describe("ImportJobPage", () => {
     );
 
     await rerender(<ImportJobPage job="import-controlai-statement" runs={[]} run={run} decide={decide} now={NOW} />);
-    await expect.element(page.getByText(jobsCopy.controlAiStatement.never)).toBeVisible();
+    await expect.element(page.getByText(jobsCopy.import.never)).toBeVisible();
     // Never run: nothing to say of how it stands or when it last ran.
     expect(facts()).toEqual([
       [jobsCopy.import.facts.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "07:26")],
@@ -300,6 +308,6 @@ describe("ImportJobPage", () => {
     await rerender(<ImportJobPageExample running="jo@pauseai.uk" />);
     await expect.element(page.getByText(/^Running, started by jo@pauseai\.uk/)).toBeVisible();
     await rerender(<ImportJobPageExample never />);
-    await expect.element(page.getByText(jobsCopy.controlAi.never)).toBeVisible();
+    await expect.element(page.getByText(jobsCopy.import.never)).toBeVisible();
   });
 });

@@ -1,9 +1,10 @@
 /* The press kit: who to contact, our boilerplate, brand assets and coverage. */
 
 .article {
-  /* The page hero's width, so the two line up. */
-  --container-width: var(--measure-page);
-  padding: 64px 0 88px;
+  /* The wide page hero's width, so the two line up. */
+  --container-width: var(--measure-wide);
+  /* No room at its top: the page hero, tight, leaves it. */
+  padding: 0 0 88px;
   background: var(--bg);
 }
 .section {
@@ -95,6 +96,27 @@
   color: var(--muted);
   margin-top: 2px;
 } /* Coverage list */
+/* The kit in a column on the left, the coverage on the right; one column, the kit first, on a narrow screen. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  gap: 64px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+.kit .assets {
+  grid-template-columns: 1fr;
+}
+/* An anchored section or row stops below the sticky header, not under it. */
+.section,
+.coverageItem {
+  scroll-margin-top: var(--space-9);
+}
 .coverageList {
   list-style: none;
   margin: 0;
@@ -108,30 +130,27 @@
 .coverageItem:first-child {
   border-top: 1px solid var(--border);
 }
+/* A piece: when, where and what kind on a line, then its headline under them, as the column is narrow beside the kit. */
 .coverageLink {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 16px 4px;
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 14px;
+  /* Room on the left for a picked row's bar (ui/Picked). */
+  padding: 14px 4px 14px 12px;
   text-decoration: none !important;
 }
 .coverageDate {
-  flex-shrink: 0;
-  width: 90px;
   font-size: 13.5px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
 .coverageOutlet {
-  flex-shrink: 0;
-  width: 170px;
   font-size: 14px;
   font-weight: 600;
   color: var(--muted);
 }
 .coverageMedium {
-  flex-shrink: 0;
-  width: 130px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -139,8 +158,6 @@
   color: var(--accent);
 }
 .coveragePlatforms {
-  flex-shrink: 0;
-  width: 130px;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--muted);
@@ -155,6 +172,7 @@
   color: var(--pause-orange);
 }
 .coverageTitle {
+  grid-column: 1 / -1;
   font-size: 15.5px;
   line-height: 1.5;
   color: var(--text);
@@ -169,16 +187,5 @@
   .contact {
     flex-direction: column;
     align-items: flex-start;
-  }
-  .coverageLink {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  .coverageDate,
-  .coverageOutlet,
-  .coverageMedium,
-  .coveragePlatforms {
-    width: auto;
   }
 }

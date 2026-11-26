@@ -178,9 +178,6 @@
   --amber-rgb: 255 148 22;
   --rust-rgb: 153 78 29;
 
-  /* A press logo set as text (lib/content/press-coverage.ts). */
-  --logo-swlondoner: #2b7bbc;
-
   /* Form greys */
   --neutral-50: #faf9f7;
   --neutral-100: #f2f1ee;

@@ -5,6 +5,7 @@ import {
   exampleControlAiResult,
   exampleControlAiStatementResult,
   exampleEdmResult,
+  examplePressResult,
   exampleHeldImport,
   exampleImportResult,
   exampleFailedRun,
@@ -59,6 +60,14 @@ const RUNS: Record<ImportJob, Variant> = {
     render: () => (
       <StaffPage as="div">
         <Run run={exampleRun("import-controlai-statement", exampleControlAiStatementResult)} />
+      </StaffPage>
+    ),
+  },
+  "import-press": {
+    label: "A call of the press survey, with finds left to read",
+    render: () => (
+      <StaffPage as="div">
+        <Run run={exampleRun("import-press", examplePressResult)} />
       </StaffPage>
     ),
   },

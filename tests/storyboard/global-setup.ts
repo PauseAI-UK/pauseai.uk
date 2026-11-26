@@ -57,6 +57,8 @@ export default async function globalSetup(): Promise<void> {
   // Left over from this checkout's run that was stopped: nothing can be using them now.
   for (const name of databaseNames(FLOW_DATABASES)) dropDatabase(name);
 
+  // A minute before the migrations start, so that every row they write is after it, whatever the clocks.
+  const migrating = new Date(Date.now() - 60_000).toISOString();
   const url = freshDatabase(TEMPLATE_DATABASE);
   addTestMps(url, TEST_MP_EMAIL);
   // Letters go from the letters inbox, so every flow has it connected.
@@ -73,11 +75,14 @@ export default async function globalSetup(): Promise<void> {
                   WHERE table_schema = 'public' AND column_default = 'now()'
        LOOP
          EXECUTE format('ALTER TABLE public.%I ALTER COLUMN %I SET DEFAULT fixture.now()', col.table_name, col.column_name);
+         -- The rows the migrations wrote got the real clock's time, which changes from one day's run to the next.
+         -- A time a migration set on purpose, such as an old mailing's, is older than the migrations, and stays.
+         EXECUTE format('UPDATE public.%I SET %I = fixture.now() WHERE %I >= %L', col.table_name, col.column_name,
+           col.column_name, '${migrating}');
        END LOOP;
      END $$;
-     -- The rows the migrations wrote got the real clock's time.
-     UPDATE staff_accounts SET added_at = fixture.now(),
-       gmail_connected_at = CASE WHEN gmail_token IS NOT NULL THEN fixture.now() END WHERE added_by = 'migration';`,
+     UPDATE staff_accounts SET gmail_connected_at = CASE WHEN gmail_token IS NOT NULL THEN fixture.now() END
+      WHERE added_by = 'migration';`,
   );
 
   // The outbox fills up over runs, and every email in it is read each time a flow looks.

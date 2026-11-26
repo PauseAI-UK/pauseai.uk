@@ -1971,7 +1971,7 @@ CREATE TABLE public.import_runs (
     problems jsonb DEFAULT '[]'::jsonb NOT NULL,
     failure jsonb,
     CONSTRAINT import_runs_failed CHECK (((status = 'failed'::text) = ((error IS NOT NULL) OR (failure IS NOT NULL)))),
-    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['import-parliament'::text, 'import-scottish-parliament'::text, 'import-senedd'::text, 'import-ni-assembly'::text, 'import-controlai'::text, 'import-controlai-statement'::text, 'import-edm'::text, 'import-luma'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
+    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['import-parliament'::text, 'import-scottish-parliament'::text, 'import-senedd'::text, 'import-ni-assembly'::text, 'import-controlai'::text, 'import-controlai-statement'::text, 'import-edm'::text, 'import-luma'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text, 'import-press'::text]))),
     CONSTRAINT import_runs_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unchanged'::text, 'held'::text, 'applied'::text, 'discarded'::text])))
 );
 
@@ -2520,6 +2520,156 @@ CREATE TABLE public.preference_links (
 );
 
 --
+-- Name: press_coverage; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.press_coverage (
+    id bigint NOT NULL,
+    outlet_id bigint NOT NULL,
+    title text NOT NULL,
+    medium text NOT NULL,
+    url text,
+    links jsonb,
+    published date,
+    note text,
+    state text DEFAULT 'shown'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by text NOT NULL,
+    updated_at timestamp with time zone,
+    updated_by text,
+    CONSTRAINT press_coverage_check CHECK ((num_nonnulls(url, links) = 1)),
+    CONSTRAINT press_coverage_links_check CHECK (((jsonb_typeof(links) = 'array'::text) AND (jsonb_array_length(links) > 0))),
+    CONSTRAINT press_coverage_medium_check CHECK ((medium = ANY (ARRAY['Article'::text, 'Video'::text, 'Photos'::text]))),
+    CONSTRAINT press_coverage_state_check CHECK ((state = ANY (ARRAY['shown'::text, 'removed'::text]))),
+    CONSTRAINT press_coverage_title_check CHECK ((btrim(title) <> ''::text))
+);
+
+--
+-- Name: press_coverage_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.press_coverage_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: press_coverage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.press_coverage_id_seq OWNED BY public.press_coverage.id;
+
+--
+-- Name: press_finds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.press_finds (
+    id bigint NOT NULL,
+    google_link text NOT NULL,
+    title text NOT NULL,
+    outlet_name text,
+    site text,
+    published date,
+    found_at timestamp with time zone DEFAULT now() NOT NULL,
+    state text DEFAULT 'unread'::text NOT NULL,
+    url text,
+    passage text,
+    medium text,
+    verdict text,
+    org text,
+    reason text,
+    read_failure jsonb,
+    reads integer DEFAULT 0 NOT NULL,
+    notified_at timestamp with time zone,
+    coverage_id bigint,
+    note text,
+    edited_at timestamp with time zone,
+    decided_by text,
+    decided_at timestamp with time zone,
+    CONSTRAINT press_finds_check CHECK (((state = 'added'::text) = (coverage_id IS NOT NULL))),
+    CONSTRAINT press_finds_check1 CHECK ((((verdict IS NULL) = (org IS NULL)) AND ((verdict IS NULL) = (reason IS NULL)))),
+    CONSTRAINT press_finds_medium_check CHECK ((medium = ANY (ARRAY['Article'::text, 'Video'::text, 'Photos'::text]))),
+    CONSTRAINT press_finds_org_check CHECK ((org = ANY (ARRAY['uk'::text, 'global'::text, 'us'::text, 'lookalike'::text, 'none'::text, 'unclear'::text]))),
+    CONSTRAINT press_finds_state_check CHECK ((state = ANY (ARRAY['unread'::text, 'known'::text, 'waiting'::text, 'not ours'::text, 'added'::text]))),
+    CONSTRAINT press_finds_verdict_check CHECK ((verdict = ANY (ARRAY['ours'::text, 'not ours'::text, 'unclear'::text])))
+);
+
+--
+-- Name: press_finds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.press_finds_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: press_finds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.press_finds_id_seq OWNED BY public.press_finds.id;
+
+--
+-- Name: press_outlets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.press_outlets (
+    id bigint NOT NULL,
+    name text NOT NULL,
+    lean text,
+    note text,
+    CONSTRAINT press_outlets_lean_check CHECK ((lean = ANY (ARRAY['Left'::text, 'Lean Left'::text, 'Center'::text, 'Lean Right'::text, 'Right'::text]))),
+    CONSTRAINT press_outlets_name_check CHECK ((btrim(name) <> ''::text))
+);
+
+--
+-- Name: press_outlets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.press_outlets_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: press_outlets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.press_outlets_id_seq OWNED BY public.press_outlets.id;
+
+--
+-- Name: press_search; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.press_search (
+    one boolean DEFAULT true NOT NULL,
+    searched_to date NOT NULL,
+    CONSTRAINT press_search_one_check CHECK (one)
+);
+
+--
+-- Name: press_sources; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.press_sources (
+    site text NOT NULL,
+    name text NOT NULL,
+    kind text,
+    tier smallint,
+    outlet_id bigint,
+    reason text,
+    judged_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT press_sources_kind_check CHECK ((kind = ANY (ARRAY['uk-national'::text, 'international'::text, 'news-agency'::text, 'uk-regional'::text, 'local-elsewhere'::text, 'specialist'::text, 'student'::text, 'state-media'::text, 'press-release'::text, 'content-farm'::text, 'aggregator'::text, 'finance-crypto'::text, 'photo-agency'::text]))),
+    CONSTRAINT press_sources_tier_check CHECK (((tier >= 1) AND (tier <= 4)))
+);
+
+--
 -- Name: proxies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2857,6 +3007,24 @@ CREATE TABLE public.whatsapp_unreachable (
     message_id bigint,
     CONSTRAINT whatsapp_unreachable_number_check CHECK ((NOT (((number)::public.phone)::text IS DISTINCT FROM number)))
 );
+
+--
+-- Name: press_coverage id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_coverage ALTER COLUMN id SET DEFAULT nextval('public.press_coverage_id_seq'::regclass);
+
+--
+-- Name: press_finds id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_finds ALTER COLUMN id SET DEFAULT nextval('public.press_finds_id_seq'::regclass);
+
+--
+-- Name: press_outlets id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_outlets ALTER COLUMN id SET DEFAULT nextval('public.press_outlets_id_seq'::regclass);
 
 --
 -- Name: saved_filters id; Type: DEFAULT; Schema: public; Owner: -
@@ -3444,6 +3612,62 @@ ALTER TABLE ONLY public.preference_choices
 
 ALTER TABLE ONLY public.preference_links
     ADD CONSTRAINT preference_links_pkey PRIMARY KEY (token_hash);
+
+--
+-- Name: press_coverage press_coverage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_coverage
+    ADD CONSTRAINT press_coverage_pkey PRIMARY KEY (id);
+
+--
+-- Name: press_finds press_finds_coverage_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_finds
+    ADD CONSTRAINT press_finds_coverage_id_key UNIQUE (coverage_id);
+
+--
+-- Name: press_finds press_finds_google_link_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_finds
+    ADD CONSTRAINT press_finds_google_link_key UNIQUE (google_link);
+
+--
+-- Name: press_finds press_finds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_finds
+    ADD CONSTRAINT press_finds_pkey PRIMARY KEY (id);
+
+--
+-- Name: press_outlets press_outlets_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_outlets
+    ADD CONSTRAINT press_outlets_name_key UNIQUE (name);
+
+--
+-- Name: press_outlets press_outlets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_outlets
+    ADD CONSTRAINT press_outlets_pkey PRIMARY KEY (id);
+
+--
+-- Name: press_search press_search_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_search
+    ADD CONSTRAINT press_search_pkey PRIMARY KEY (one);
+
+--
+-- Name: press_sources press_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_sources
+    ADD CONSTRAINT press_sources_pkey PRIMARY KEY (site);
 
 --
 -- Name: proxies proxies_notable_person_id_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -4044,6 +4268,18 @@ CREATE INDEX preference_choices_address ON public.preference_choices USING btree
 CREATE INDEX preference_links_address ON public.preference_links USING btree (address);
 
 --
+-- Name: press_finds_unread; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX press_finds_unread ON public.press_finds USING btree (found_at) WHERE (state = 'unread'::text);
+
+--
+-- Name: press_finds_url; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX press_finds_url ON public.press_finds USING btree (url) WHERE (url IS NOT NULL);
+
+--
 -- Name: signup_upload_entries_upload; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4458,6 +4694,27 @@ ALTER TABLE ONLY public.politician_domains
 
 ALTER TABLE ONLY public.politicians
     ADD CONSTRAINT politicians_notable_person_fkey FOREIGN KEY (id, kind) REFERENCES public.notable_people(id, kind) ON DELETE CASCADE;
+
+--
+-- Name: press_coverage press_coverage_outlet_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_coverage
+    ADD CONSTRAINT press_coverage_outlet_id_fkey FOREIGN KEY (outlet_id) REFERENCES public.press_outlets(id) ON DELETE RESTRICT;
+
+--
+-- Name: press_finds press_finds_coverage_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_finds
+    ADD CONSTRAINT press_finds_coverage_id_fkey FOREIGN KEY (coverage_id) REFERENCES public.press_coverage(id) ON DELETE RESTRICT;
+
+--
+-- Name: press_sources press_sources_outlet_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.press_sources
+    ADD CONSTRAINT press_sources_outlet_id_fkey FOREIGN KEY (outlet_id) REFERENCES public.press_outlets(id) ON DELETE SET NULL;
 
 --
 -- Name: proxies proxies_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

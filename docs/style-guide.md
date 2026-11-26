@@ -576,8 +576,9 @@ half, starts just after the page appears, and never repeats. It's a change
 of colour, not a movement, so it stays with motion turned off. These do
 it:
 
-- the ask a link picked out on an asks list (`AsksList.module.css`), which
-  stays tinted;
+- the ask a link picked out on an asks list, and every piece of the outlet
+  a link picks out on `/press` (`/press#bbc`), each of which stays tinted
+  (`components/ui/Picked.module.css`);
 - the broadcast just sent for approval, on the list of broadcasts
   (`MailingsOverview.module.css`);
 - the address just added to a politician's, in their email's bubble

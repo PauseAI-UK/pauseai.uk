@@ -14,6 +14,7 @@ export type StaffPageId =
   | "signupUpload"
   | "campaigns"
   | "events"
+  | "press"
   | "supporterEmails"
   | "politicians"
   | "asks"
@@ -69,8 +70,12 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
   },
   {
     id: "events",
-    // Our events and who owns each: no one's personal details, so open to all staff.
-    pages: [{ id: "events", href: "/staff/events" }],
+    // Our events and who owns each, and our press coverage and the press survey's finds: no one's personal
+    // details, so open to all staff.
+    pages: [
+      { id: "events", href: "/staff/events" },
+      { id: "press", href: "/staff/press", added: "2026-11-25" },
+    ],
   },
   {
     id: "admin",

@@ -34,7 +34,9 @@ const DATABASE_HOOK = 60_000;
  * statuses), and those emptied by a DELETE instead: the mailings, of only
  * those a test wrote, and the WhatsApp templates and their variants, as
  * truncating them would take the imported mailings that refer to them. Every
- * other table in the database is truncated.
+ * other table in the database is truncated, but the press survey's one row,
+ * how far it has searched, which is set back to where the migration starts
+ * it.
  */
 const SEEDED = [
   "ask_kind_statuses",
@@ -43,6 +45,7 @@ const SEEDED = [
   "mailings",
   "whatsapp_templates",
   "whatsapp_template_variants",
+  "press_search",
 ];
 
 /**
@@ -80,6 +83,7 @@ export function useTestDatabase() {
     await query("DELETE FROM whatsapp_templates");
     await query("DELETE FROM whatsapp_template_variants");
     for (const table of MAILINGS_REFER_TO) await query(`DELETE FROM ${table}`);
+    await query("UPDATE press_search SET searched_to = '2026-09-30'");
     // The kept supporters list, emptied with the tables it's made from.
     await query("REFRESH MATERIALIZED VIEW supporters_list");
   });

@@ -47,6 +47,8 @@ export const jobsCopy = {
     pageTitle: "Scheduled jobs",
     // Under the title.
     pageIntro: "Imports, sending and tidying that run on their own",
+    // On a job's page, and its card, before it has ever run.
+    never: "It hasn't run yet.",
     // At the foot of each job's card: how long till it next runs on its own (staffVocabulary.dueIn), and the time.
     runsAgain: (inWords: string, at: string) => `Runs again ${inWords} · ${at}`,
     // On a job's page, the facts in its band: how it stands now; when it last ran; when it
@@ -68,6 +70,7 @@ export const jobsCopy = {
     controlai: "ControlAI",
     database: "Database",
     sending: "Gmail, Postmark and WhatsApp",
+    news: "Google News",
     luma: "Luma",
     civicrm: "CiviCRM",
     gmail: "Gmail",

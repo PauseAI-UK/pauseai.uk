@@ -214,6 +214,10 @@ export const staffVocabulary = {
       owner: "Owner",
       previous: "Before",
       url: "Google Doc",
+      // The press survey's finds and the pieces on /press.
+      article: "Article",
+      findId: "Find",
+      coverageId: "Piece",
     } as Record<string, string>,
   },
 };

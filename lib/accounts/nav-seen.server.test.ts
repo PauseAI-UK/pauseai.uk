@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
 import { firstSeen, newPagesFor } from "./nav-seen.server";
@@ -15,7 +15,13 @@ const add = (email: string) => query("INSERT INTO staff_accounts (email, added_b
 describeWithDatabase("the new tag on staff navigation", () => {
   useTestDatabase();
 
+  afterEach(() => vi.useRealTimers());
+
+  /** A day long after any page went live, so none is new by the day it was added. */
+  const longAfter = () => vi.useFakeTimers({ now: new Date("2100-01-01T12:00:00Z"), toFake: ["Date"] });
+
   it("shows nothing as new on a new account's first login, and after", async () => {
+    longAfter();
     await add("new@pauseai.uk");
     expect(await newPagesFor("new@pauseai.uk", ["supporters"])).toEqual([]);
     expect(await newPagesFor("new@pauseai.uk", ["supporters"])).toEqual([]);
@@ -36,6 +42,7 @@ describeWithDatabase("the new tag on staff navigation", () => {
   });
 
   it("shows the pages a new permission opens as new", async () => {
+    longAfter();
     await add("jo@pauseai.uk");
     expect(await newPagesFor("jo@pauseai.uk", [])).toEqual([]);
     expect(await newPagesFor("jo@pauseai.uk", ["admin"])).toEqual(

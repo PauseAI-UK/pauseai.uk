@@ -10,6 +10,9 @@ import { controlaiFake } from "./fakes/controlai";
 import { devolvedBodiesFake } from "./fakes/devolved-bodies";
 import { googleFake } from "./fakes/google";
 import { linkPagesFake } from "./fakes/link-pages";
+import { googleNewsFake } from "./fakes/google-news";
+import { newsPagesFake } from "./fakes/news-pages";
+import { anthropicFake } from "./fakes/anthropic";
 import { lumaFake } from "./fakes/luma";
 import { parliamentFake } from "./fakes/parliament";
 import { googleMapsFake, photonFake } from "./fakes/places";
@@ -39,6 +42,9 @@ const FAKES: Fake[] = [
   photonFake,
   mapTilesFake,
   googleMapsFake,
+  googleNewsFake,
+  newsPagesFake,
+  anthropicFake,
 ];
 
 /**

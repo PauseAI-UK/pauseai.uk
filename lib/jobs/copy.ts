@@ -26,7 +26,6 @@ export const jobsCopy = {
     // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
     introThen: { link: "ControlAI's letter to the Prime Minister", after: "”. This can't be changed by hand." },
     importNow: "Import ControlAI letter now",
-    never: "Not imported yet.",
     result: (r: { signatories: number; matched: number; added: number; removed: number }) =>
       `${r.signatories} names, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
     columns: { name: "Name", problem: "Problem" },
@@ -43,7 +42,6 @@ export const jobsCopy = {
         ", who registered for each, who the hosts are and who is subscribed to the calendar (the contacts). Tags new upcoming events on Luma with location and online tags if it can.",
     },
     importNow: "Import Luma now",
-    never: "Not imported yet.",
     columns: {
       events: "Events",
       guests: "Guests changed",
@@ -107,7 +105,6 @@ export const jobsCopy = {
         ". From policy@ and Joseph's, it also imports any threads with politicians as one-off emails. In the letters inbox, it relays mail between supporters and their MPs' offices, both ways, and emails the policy inbox about anything it couldn't place.",
     },
     readNow: "Read Gmail now",
-    never: "Not read yet.",
     // The run's totals, over every account, then a line for each.
     result: (accounts: { replies: number; autoReplies: number; bounces: number }[]) =>
       `${count(accounts.length, "account", "accounts")} read: ${accounts.reduce((n, a) => n + a.replies, 0)} replies, ${accounts.reduce((n, a) => n + a.autoReplies, 0)} automatic replies, ${accounts.reduce((n, a) => n + a.bounces, 0)} bounces.`,
@@ -139,7 +136,6 @@ export const jobsCopy = {
       after: " messages that are ready to send.",
     },
     sendNow: "Send emails now",
-    never: "Nothing sent yet.",
     result: (r: {
       started: number[];
       sent: number;
@@ -169,7 +165,6 @@ export const jobsCopy = {
       after: " not seen for a month.",
     },
     tidyNow: "Tidy logs now",
-    never: "Not tidied yet.",
     // A run kept from before errors were tidied counts none.
     result: (r: { importRuns: number; auditEntries: number; drafts: number; errors?: number }) =>
       `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
@@ -183,7 +178,6 @@ export const jobsCopy = {
       after: ", with their details, which UK lists they're on, and their do-not flags and holds.",
     },
     importNow: "Import contacts now",
-    never: "Not imported yet.",
     result: (r: {
       contacts: number;
       added: number;
@@ -210,7 +204,6 @@ export const jobsCopy = {
     // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
     introThen: { link: "ControlAI's campaign statement", after: "”. This can't be changed by hand." },
     importNow: "Import ControlAI statement now",
-    never: "Not imported yet.",
     result: (r: { supporters: number; matched: number; added: number; removed: number }) =>
       `${r.supporters} supporters, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
   },
@@ -228,7 +221,6 @@ export const jobsCopy = {
       after: "”. This can't be changed by hand.",
     },
     importNow: "Import EDM 1133 now",
-    never: "Not imported yet.",
     result: (r: { signers: number; matched: number; added: number; removed: number }) =>
       `${r.signers} signers, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
   },

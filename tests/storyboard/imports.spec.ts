@@ -122,7 +122,7 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
   await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toBeVisible();
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
-  await expect(page.getByText(jobsCopy.gmailReading.never)).toBeVisible();
+  await expect(page.getByText(jobsCopy.import.never)).toBeVisible();
   await frame(page, "The Gmail import's page");
 
   story("They read it now. It reads their account for replies and bounces, and finds nothing new.");
@@ -309,7 +309,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   const card = (job: ImportJob) =>
     page.locator("section").filter({ has: page.getByRole("link", { name: importRunsCopy.jobTitles[job] }) });
   await expect(card("import-parliament").getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
-  await expect(card("import-controlai").getByText(jobsCopy.controlAi.never)).toBeVisible();
+  await expect(card("import-controlai").getByText(jobsCopy.import.never)).toBeVisible();
   await frame(page, "The Scheduled jobs page");
 });
 

@@ -14,13 +14,15 @@ export type ImportSource =
   | "ni-assembly"
   | "controlai"
   | "database"
-  | "sending";
+  | "sending"
+  | "news";
 
 // Each service's own mark, in its own colours: Gmail's M, and Luma's
 // star, CiviCRM's triangle and ControlAI's box, their own pictures from
 // luma.com, civicrm.org and controlai.com, as Luma's is shaded and the others
 // have no flat copy to hand. Our own database, no one's, is a stack of discs;
-// our sending, by several services, a paper plane, as the sidebar's Mailings.
+// our sending, by several services, a paper plane, as the sidebar's Mailings;
+// the news, searched for coverage, a folded newspaper.
 const MARKS: Record<ImportSource, ReactNode> = {
   gmail: (
     <svg viewBox="52 42 88 66">
@@ -83,6 +85,13 @@ const MARKS: Record<ImportSource, ReactNode> = {
   sending: (
     <svg viewBox="0 0 24 24" className={styles.line}>
       <path d="M21 3L3 10.5l7 2.5M21 3l-6.5 18-4.5-8M21 3L10 13" />
+    </svg>
+  ),
+  news: (
+    <svg viewBox="0 0 24 24" className={styles.line}>
+      <path d="M5 4h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V8h1" />
+      <path d="M18 8h2v10a2 2 0 0 1-2 2" />
+      <path d="M8 8h6M8 12h6M8 16h4" />
     </svg>
   ),
 };

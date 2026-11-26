@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { allCoverage, formatCoverageDate } from "@/lib/content/press-coverage";
 import { site } from "@/lib/content/site";
 import PressKit from "./press/_components/PressKit";
+import { EXAMPLE_COVERAGE } from "./press/_components/PressKit.examples";
 import PrivacyPolicy from "./privacy/_components/PrivacyPolicy";
 import ChangeSteps from "./theory-of-change/_components/ChangeSteps";
 import Closing from "@/components/ui/Closing";
@@ -12,14 +12,19 @@ import About from "./what-is-pauseai-uk/_components/About";
 
 // Pages that are mostly prose: each section renders its headings and links.
 describe("content sections", () => {
-  it("press: contact, boilerplate, brand assets and every piece of coverage", async () => {
-    const { container } = await render(<PressKit />);
+  it("press: contact, boilerplate and brand assets beside every piece of coverage", async () => {
+    const { container } = await render(<PressKit coverage={EXAMPLE_COVERAGE} />);
     await expect.element(page.getByRole("heading", { name: "Media contact" })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: site.pressEmail }).first())
       .toHaveAttribute("href", `mailto:${site.pressEmail}`);
-    expect(container.textContent).toContain(formatCoverageDate(allCoverage[0].date));
-    expect(container.textContent).toContain(allCoverage[allCoverage.length - 1].title);
+    expect(container.textContent).toContain("16 Sept 2026");
+    expect(container.textContent).toContain("Campaigners call for a pause on AI");
+    // Each outlet's newest piece carries its anchor, which the homepage's logo for it links to.
+    expect([...container.querySelectorAll("#coverage li[id]")].map((li) => li.id)).toEqual([
+      "the-example-gazette",
+      "example-news",
+    ]);
   });
 
   it("privacy policy", async () => {

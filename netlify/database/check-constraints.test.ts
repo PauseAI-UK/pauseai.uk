@@ -33,6 +33,10 @@ import { SIGNUP_KINDS } from "@/lib/supporters/signup-csv";
 import { PERMISSIONS } from "@/lib/accounts/permissions";
 import type { TextHeader } from "@/lib/broadcasts/text-parts";
 import { PICTURE_TYPES } from "@/lib/broadcasts/text-pictures.server";
+import { COVERAGE_STATES, LEANS, MEDIA } from "@/lib/press/coverage";
+import { SOURCE_KINDS } from "@/lib/press/sources";
+import { FIND_STATES } from "@/lib/press/finds";
+import { ORGS, VERDICTS } from "@/lib/press/review";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
 // A column whose CHECK lists the values it allows lists them in TypeScript
@@ -141,6 +145,14 @@ const LISTED: Record<string, readonly string[]> = {
   "politician_addresses.source": every<AddressSource>()(["parliament", "office", "staff", "rejected"]),
   "politicians.country": COUNTRIES,
   "politicians.house": HOUSES,
+  "press_coverage.medium": MEDIA,
+  "press_coverage.state": COVERAGE_STATES,
+  "press_finds.medium": MEDIA,
+  "press_sources.kind": SOURCE_KINDS,
+  "press_finds.org": ORGS,
+  "press_finds.state": FIND_STATES,
+  "press_finds.verdict": VERDICTS,
+  "press_outlets.lean": LEANS,
   "signup_upload_entries.known": every<NonNullable<SignupUploadPerson["known"]>>()(["email", "mobile"]),
   "signup_upload_entries.luma": every<NonNullable<SignupUploadPerson["luma"]>>()([
     "going",

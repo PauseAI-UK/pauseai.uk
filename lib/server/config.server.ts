@@ -125,6 +125,10 @@ export const config = {
   get whatsappAppId(): string | undefined {
     return value(process.env.WHATSAPP_APP_ID);
   },
+  /** Anthropic's API key, for Claude's judgement of the press survey's finds (lib/server/outside-services/anthropic.server.ts). */
+  get anthropicApiKey(): string | undefined {
+    return value(process.env.ANTHROPIC_API_KEY?.trim());
+  },
   get lumaApiKey(): string | undefined {
     return value(process.env.LUMA_API_KEY?.trim());
   },

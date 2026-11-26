@@ -204,6 +204,14 @@ const SERVICES = [
   },
   { name: "postcodes.io", files: ["postcodes.server.ts"], host: "api\\.postcodes\\.io" },
   { name: "Photon", files: ["photon.server.ts"], host: "photon\\.komoot\\.io" },
+  {
+    name: "Anthropic's API",
+    files: ["anthropic.server.ts"],
+    host: "api\\.anthropic\\.com",
+    why: "and its key stays on the server",
+  },
+  // Google News's search and its article links, not links to news.google.com in pages.
+  { name: "Google News", files: ["google-news.server.ts"], host: "news\\.google\\.com.(?:rss|articles|_)" },
   // Stripe's API, not the donate links, which are payment pages on donate.stripe.com.
   {
     name: "Stripe's API",
@@ -272,7 +280,8 @@ const NETWORK_IMPORTS = [
  * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `binding` is an
  * outside service's, which throws only an OutsideFailure. `asyncHandlers`
  * may write an async function in place as a handler or a transition. `staff` adds the staff pages' rules for links
- * that look like buttons, and for forms that send a Server Action.
+ * that look like buttons, and for forms that send a Server Action. `undici` may import undici, the library Node's
+ * fetch is built on, for a pool to give fetch.
  */
 function siteCodeRules({
   service,
@@ -288,6 +297,7 @@ function siteCodeRules({
   asyncHandlers = false,
   staff = false,
   binding = false,
+  undici = false,
 }) {
   return {
     "no-restricted-syntax": [
@@ -307,7 +317,10 @@ function siteCodeRules({
     "no-restricted-imports": [
       "error",
       {
-        paths: [...(database ? [] : [PG_IMPORT]), ...NETWORK_IMPORTS],
+        paths: [
+          ...(database ? [] : [PG_IMPORT]),
+          ...NETWORK_IMPORTS.filter((path) => !(undici && path.name === "undici")),
+        ],
         patterns: [
           ...(sendEmail ? [] : [POSTMARK_IMPORT, GMAIL_IMPORT]),
           ...(outsideFetch ? [] : [OUTSIDE_FETCH_IMPORT]),
@@ -468,6 +481,7 @@ export const FEATURES = {
   broadcasts: ["accounts", "email", "supporters", "politicians", "letters", "mailings"],
   oversight: ["accounts", "email", "supporters", "politicians", "letters", "broadcasts"],
   dashboard: ["accounts", "asks", "supporters", "letters"],
+  press: ["accounts", "email"],
   jobs: [
     "accounts",
     "email",
@@ -479,6 +493,7 @@ export const FEATURES = {
     "mailings",
     "broadcasts",
     "oversight",
+    "press",
   ],
 };
 /** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
@@ -703,6 +718,8 @@ const eslintConfig = defineConfig([
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true, binding: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true, binding: true })),
     { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true, binding: true },
+    // The pool outsideFetch gives fetch for an answer with large headers.
+    { files: [`${OUTSIDE}/large-header-pool.server.ts`], undici: true, binding: true },
     // What the provider said of a send that failed, which the letter's or copy's own record keeps for its page.
     { files: ["lib/email/email.server.ts"], sendEmail: true, describeError: true },
     // The Errors page's record of an error, and why a mailbox couldn't be read, in the run's own account of it.

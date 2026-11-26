@@ -5,7 +5,7 @@ import photoPreviews from "@/lib/content/hero-photo-previews.json";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { localGroups } from "@/lib/content/local-groups";
 import { people } from "@/lib/content/people";
-import { newsRow1, type CoverageItem } from "@/lib/content/press-coverage";
+import { newsRow1, outletAnchor, type PressLogo } from "@/lib/content/press-logos";
 import { site } from "@/lib/content/site";
 import GetInvolved from "./GetInvolved";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
@@ -187,34 +187,26 @@ describe("home page sections", () => {
     expect(tracks.filter((t) => getComputedStyle(t).animationDirection === "reverse")).toHaveLength(2);
     // At this narrow test width the desktop rows are hidden by CSS, so look in the DOM.
     const first = newsRow1[0];
-    const link = [...container.querySelectorAll("[data-marquee-track] a")].find(
-      (a) => a.getAttribute("aria-label") === `${first.outlet}: ${first.title}`,
-    );
-    expect(link?.getAttribute("href")).toBe(first.url);
+    const link = container.querySelector(`[data-marquee-track] a:has(img[alt="${first.outlet}"])`);
+    expect(link?.getAttribute("href")).toBe(`/press#${outletAnchor(first.outlet)}`);
     await expect.element(page.getByRole("link", { name: "See our press page →" })).toHaveAttribute("href", "/press");
   });
 
-  it("draws an outlet's logo from its image or its HTML, with default sizes", async () => {
-    const items: CoverageItem[] = [
-      { outlet: "Image", title: "A", medium: "Article", url: "https://a.example", logoSrc: "/images/x.svg" },
+  it("draws each outlet's logo at its own size, linking to its place on /press", async () => {
+    const items: PressLogo[] = [
       {
-        outlet: "Sized",
-        title: "B",
-        medium: "Article",
-        url: "https://b.example",
-        logoSrc: "/images/y.svg",
+        outlet: "The Example Times",
+        logoSrc: "/images/x.svg",
+        logoHeight: 30,
         logoIntrinsicWidth: 200,
         logoIntrinsicHeight: 50,
-        logoHeight: 30,
       },
-      { outlet: "Html", title: "C", medium: "Article", url: "https://c.example", logoHtml: "<b>Html</b>" },
     ];
     const { container } = await render(<NewsRow items={items} />);
-    const imgs = container.querySelectorAll("[data-marquee-copy]:first-child img");
-    expect([imgs[0].getAttribute("width"), imgs[0].getAttribute("height")]).toEqual(["100", "44"]);
-    expect((imgs[0] as HTMLElement).style.getPropertyValue("--logo-h")).toBe("");
-    expect((imgs[1] as HTMLElement).style.getPropertyValue("--logo-h")).toBe("30");
-    expect(container.querySelector("[data-marquee-copy]:first-child b")?.textContent).toBe("Html");
+    const img = container.querySelector("[data-marquee-copy]:first-child img") as HTMLElement;
+    expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["200", "50"]);
+    expect(img.style.getPropertyValue("--logo-h")).toBe("30");
+    expect(img.closest("a")?.getAttribute("href")).toBe("/press#the-example-times");
     expect(getComputedStyle(container.querySelector("[data-marquee-track]")!).animationDirection).toBe("normal");
     // The second copy can't be tabbed into.
     expect(
