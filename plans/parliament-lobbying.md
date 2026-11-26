@@ -146,11 +146,18 @@ blocks and filters:
 The broadcasts also need two new fields for each reader:
 
 - their MP's name;
-- a link to write to their MP, that opens the letter for the lobbying
-  day with their postcode already filled in.
+- a link to write to their MP on a campaign, which staff pick when they
+  put the field in, so it serves any campaign, not just a lobbying
+  day's. It opens that campaign's letter with their postcode already
+  filled in.
 
 The link is personal, so it can't carry the postcode in plain sight.
 It would carry a code that only the site can read.
+
+The link only works for someone whose postcode we know, so it goes in
+a conditional block for "has a postcode". The broadcasts' `has:` condition
+checks whether a reader has a field, so this may only need the
+postcode offered as one.
 
 ## The day itself
 
