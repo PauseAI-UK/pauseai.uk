@@ -61,6 +61,36 @@ export const config = {
     return process.env.ANALYTICS === "1";
   },
 
+  // How this server's Node and Lambda run, for the report of it
+  // (lib/oversight/node-report.server.ts), which anyone can read: names, but
+  // for the runtime's own, never values.
+
+  /** The flags in NODE_OPTIONS, by name alone (--max-old-space-size from --max-old-space-size=4096), as a value could be a secret. */
+  get nodeOptionFlags(): string[] {
+    return (process.env.NODE_OPTIONS ?? "")
+      .split(/\s+/)
+      .filter((part) => part.startsWith("-"))
+      .map((flag) => flag.split("=")[0]);
+  },
+  /** Lambda's name for its runtime (AWS_EXECUTION_ENV), such as AWS_Lambda_nodejs24.x. */
+  get lambdaRuntime(): string | undefined {
+    return value(process.env.AWS_EXECUTION_ENV);
+  },
+  /** Whether Lambda's runtime API is set (AWS_LAMBDA_RUNTIME_API), as it is in a Lambda function. */
+  get lambdaRuntimeApi(): boolean {
+    return Boolean(process.env.AWS_LAMBDA_RUNTIME_API);
+  },
+  /** Next's runtime for this code (NEXT_RUNTIME): "nodejs" or "edge". */
+  get nextRuntime(): string | undefined {
+    return value(process.env.NEXT_RUNTIME);
+  },
+  /** The names, never the values, of the environment variables that set up Node or Lambda: NODE_* and AWS_LAMBDA_*. */
+  get runtimeVariableNames(): string[] {
+    return Object.keys(process.env)
+      .filter((name) => /^(NODE_|AWS_LAMBDA_)/.test(name))
+      .sort();
+  },
+
   /**
    * The policy team's shared inbox (POLICY_INBOX): letters are Bcc'd to it, it
    * gets every reply to one, and its Gmail is read. Undefined where it isn't

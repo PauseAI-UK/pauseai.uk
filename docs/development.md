@@ -880,6 +880,8 @@ The database sleeps after five minutes without a query, and is billed while it's
 
 UptimeRobot asks the site whether it's doing its work, and posts in Discord when it isn't. Each monitor asks one address, which answers 200 when every check in its group is good and 503 when any is bad (`lib/oversight/health.ts`, `app/api/health/`). Anyone can load an address, and its page says what each check found: job names, times and limits, never an error's words, a name or an email address. `/api/health` alone lists every group.
 
+`/api/health?node=1` adds how the server's Node runs (`lib/oversight/node-report.server.ts`): its version and features, its flags, and the Lambda and Node environment variables by name, whether anything hooks how it loads modules, and whether its own `require()` loads an ES module and jsdom, with the error if it doesn't. It's there to find why production's server handler can't `require()` an ES module, and goes once that's settled. Its status is the groups' alone, and without `?node=1` the answer has none of it.
+
 A check only reads the database, so a monitor costs a few small queries. With the database down every check fails, so every monitor goes red. A technical monitor going red means something is broken. A product monitor going red means something has stopped happening, which may be a fault or may be a quiet week, so it means "have a look".
 
 | Monitor's name               | Address, after `https://pauseai.uk`       | Bad when                                                                                                                                                    |

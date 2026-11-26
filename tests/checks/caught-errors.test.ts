@@ -57,6 +57,8 @@ const EXCEPTIONS = new Map([
     "lib/server/outside-services/link-pages.server.ts  linkCard",
     "a page that can't be reached is an answer: its link has no card",
   ],
+  // Whether this server's Node can load a module: the catch is the question, and the report says how it failed.
+  ["lib/oversight/node-report.server.ts  attempt", "a module that won't load is the answer the report gives"],
   // CiviCRM's refusal that isn't JSON is said as it came: the catch is the question.
   [
     "lib/server/outside-services/civicrm.server.ts  said",
@@ -116,6 +118,8 @@ const OWN_CATCHES = [
   "lib/letters/one-off-emails.server.ts",
   // Keeps errors, keepCaught() among them: a failure to keep one is reported, never kept in turn.
   "lib/oversight/errors-seen.server.ts",
+  // Whether this server's Node can load a module is the question the report of it asks, and its answer says how it failed.
+  "lib/oversight/node-report.server.ts",
   // Marks an address searched after any failure but Gmail's rate limit, which stops the search till next time.
   "lib/politicians/aliases.server.ts",
   // Answers the visitor politely whether postcodes.io or our database failed.

@@ -27,6 +27,33 @@ describe("config", () => {
     ]);
   });
 
+  it("says how Node and Lambda run, giving NODE_OPTIONS' flags and the runtime's variables by name alone", () => {
+    vi.stubEnv("NODE_OPTIONS", " --max-old-space-size=4096  --require ./preload.js -r x ");
+    vi.stubEnv("AWS_EXECUTION_ENV", "AWS_Lambda_nodejs24.x");
+    vi.stubEnv("AWS_LAMBDA_RUNTIME_API", "127.0.0.1:9001");
+    vi.stubEnv("AWS_REGION", "eu-west-2");
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    expect(config.nodeOptionFlags).toEqual(["--max-old-space-size", "--require", "-r"]);
+    expect([config.lambdaRuntime, config.lambdaRuntimeApi, config.nextRuntime]).toEqual([
+      "AWS_Lambda_nodejs24.x",
+      true,
+      "nodejs",
+    ]);
+    expect(config.runtimeVariableNames).toEqual(expect.arrayContaining(["AWS_LAMBDA_RUNTIME_API", "NODE_OPTIONS"]));
+    expect(config.runtimeVariableNames).not.toContain("AWS_REGION");
+    expect(config.runtimeVariableNames).toEqual([...config.runtimeVariableNames].sort());
+    vi.stubEnv("NODE_OPTIONS", undefined);
+    vi.stubEnv("AWS_EXECUTION_ENV", "");
+    vi.stubEnv("AWS_LAMBDA_RUNTIME_API", undefined);
+    vi.stubEnv("NEXT_RUNTIME", undefined);
+    expect([config.nodeOptionFlags, config.lambdaRuntime, config.lambdaRuntimeApi, config.nextRuntime]).toEqual([
+      [],
+      undefined,
+      false,
+      undefined,
+    ]);
+  });
+
   it("gives every address trimmed and lowercased, and none where it's unset or blank", () => {
     vi.stubEnv("POLICY_INBOX", " Policy@Example.org ");
     vi.stubEnv("LETTERS_INBOX", "Letters@Example.org");
