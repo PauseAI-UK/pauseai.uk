@@ -20,6 +20,7 @@ import { logIn } from "./login-steps";
 import { newestEmail, newestEmailTo } from "./outbox-steps";
 import { bouncy, BOUNCY_ADDRESS, WEBHOOK_AUTH } from "./postmark-steps";
 import { POLICY_INBOX, TO_NOTIFICATIONS } from "./staff-inboxes";
+import { connectGmail } from "./gmail-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { editor, newParagraphAboveSignOff } from "./editor-steps";
 import { scrollSettled } from "./settle";
@@ -277,6 +278,8 @@ test("Automatic replies", async ({ page, request, flowDatabase }) => {
 
 test("Emails that aren't relayed", async ({ page, request, flowDatabase }) => {
   const sender = madeUpAddress("Jane Smith", 35);
+  // Connected, so the run that reads the letters inbox has nothing to say of the policy inbox.
+  connectGmail(flowDatabase, POLICY_INBOX);
   await writeLetter(page, flowDatabase, sender);
   story(
     "Three emails arrive at proxy addresses: one to Jane from a stranger, one that says it's from the MP's office but fails Gmail's checks, and spam. None of them is relayed.",
