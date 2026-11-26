@@ -344,7 +344,7 @@ test("Logging a colleague out", async ({ page, browser, flowDatabase }, testInfo
   story("They end all of a colleague's sessions, and the colleague is logged out.");
   await row.getByRole("button", { name: accountsCopy.accounts.endSessions }).click();
   await expect(row.getByRole("button", { name: accountsCopy.accounts.endSessions })).toHaveCount(0);
-  await expect(row.getByRole("cell").nth(5)).toHaveText("0");
+  await expect(row.getByRole("cell").nth(6)).toHaveText("0");
   await frame(page, "The accounts page, the colleague logged out");
   story("The audit log says who ended whose sessions.");
   await theirs.goto(`${BASE}/staff`);
