@@ -31,8 +31,9 @@ change to the letter), so they're counted as "before versions", and they
 still keep the text they started from, as now.
 
 A campaign added to the code later appears on the staff site with no
-letter. Its public page says it isn't open yet until staff publish its
-first version.
+letter. Until staff publish its first version, the step where a
+supporter would write it says it isn't open yet ("How the form uses
+it").
 
 ## What's stored
 
@@ -78,10 +79,29 @@ same version, so it measures how much they changed against what they
 were actually given, even if staff published a new version in between.
 The letter records the version's ID.
 
-The campaign pages are built once now, as they have nothing that changes.
-Reading the letter from the database means they're either built on each
-visit or rebuilt whenever staff publish. I'll read this Next.js's docs on
-caching before choosing, and say which in the PR.
+Only the step where the supporter writes their letter
+(`/campaigns/<slug>/write`) needs the letter. That page is built on each
+visit, reading the latest version as it's shown, as `/press` reads its
+coverage. The campaign's own page, with the postcode form, and the
+preview and sent steps don't need it, so they stay built once at deploy.
+
+The other way would be to build the write step once and rebuild it when
+staff publish (`revalidatePath()`, in this Next.js's docs at
+`node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`).
+That doesn't work here. The build runs before a deploy's migrations, as
+the comment on `/press` says, so the build can't read the letters. And
+Next.js's guide to revalidation says that with more than one server, a
+rebuild happens only on the server that was asked unless the host shares
+it (`how-revalidation-works.md`, "Multi-Instance Considerations"). I don't
+know how Netlify handles that, so a publish might not show at once.
+
+Building on each visit costs one small database query per visit to that
+step, which is a few milliseconds, on a page that already looks up the MP.
+
+A campaign with no published letter says so on its write step. Its own
+page is built at deploy, so it can't know, and still shows the postcode
+form. Only a link to it shows it, as the public list of campaigns that
+comes later will only list campaigns that have a letter.
 
 ## Personal data
 
