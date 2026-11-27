@@ -74,7 +74,7 @@ test("Staff edit a campaign's letter", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: copy.editLetter }).click();
   await expect(page).toHaveURL(`${BASE}/staff/campaigns/${bill.slug}/letter`);
   const preview = page.getByRole("region", { name: writer.preview });
-  await expect(preview.getByText(writer.exampleSender)).toBeVisible();
+  await expect(preview.getByRole("paragraph").filter({ hasText: writer.exampleSender })).toBeVisible();
   await frame(page, "The draft and its preview, for an MP who signed");
 
   story(
