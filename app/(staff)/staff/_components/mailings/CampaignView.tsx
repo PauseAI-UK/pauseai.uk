@@ -186,12 +186,7 @@ export default function CampaignView({
             )
           }
         >
-          <CampaignLetter
-            versions={versions}
-            changed={changed}
-            changedHref={filtersPath(path, { ...filters, tab: "changed" })}
-            conditions={conditions}
-          />
+          <CampaignLetter versions={versions} conditions={conditions} />
         </Card>
         <Card span={3} as="div">
           <div className={styles.recipientsHead}>
@@ -202,7 +197,15 @@ export default function CampaignView({
                   ? copy.tabs.changed
                   : lettersCopy.copyStates.tabs[search.tab]}
             </h2>
-            {search.tab && <StaffLink href={filtersPath(path, { ...filters, tab: "" })}>{copy.showAll}</StaffLink>}
+            {search.tab ? (
+              <StaffLink href={filtersPath(path, { ...filters, tab: "" })}>{copy.showAll}</StaffLink>
+            ) : (
+              changed > 0 && (
+                <StaffLink href={filtersPath(path, { ...filters, tab: "changed" })}>
+                  {copy.changedLink(changed)}
+                </StaffLink>
+              )
+            )}
           </div>
           <ListFrame
             count={lettersCopy.letters.total(letters.total)}

@@ -95,7 +95,9 @@ export const mailingsCopy = {
     version: "Version of the letter",
     // Beside the latest version's line, opening the list of every version.
     earlierVersions: (n: number) => `⁂ Earlier versions (${n})`,
-    versionLine: (from: string | null, n: number) => `${from ? `From ${from}: ` : ""}${count(n, "letter", "letters")}`,
+    // Under a version of a campaign's letter: when it was published, by whom if staff did, and its letters.
+    versionLine: (from: string | null, by: string | null, n: number) =>
+      `⁂ ${[from && `Published ${from}`, by && `by ${by}`].filter(Boolean).join(" ")}${from ? " · " : ""}${count(n, "letter", "letters")}`,
     // The letters from before staff could edit a campaign's letter, as a version in the list.
     beforeVersions: (n: number) => `⁂ Before versions: ${count(n, "letter", "letters")}`,
     ownDrafts:

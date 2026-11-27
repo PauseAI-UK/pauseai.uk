@@ -2,7 +2,7 @@
 // (app/(tools)/gallery/_examples/staff-letters.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import CampaignLetter from "./CampaignLetter";
-import { exampleChanged, exampleConditions, exampleVersions } from "./CampaignPages.examples";
+import { exampleConditions, exampleVersions } from "./CampaignPages.examples";
 import StaffPage from "../ui/StaffPage";
 
 export const campaignLetterGallery: Example[] = [
@@ -11,15 +11,10 @@ export const campaignLetterGallery: Example[] = [
     file: "app/(staff)/staff/_components/mailings/CampaignLetter.tsx",
     variants: [
       {
-        label: "Several versions, and how much people changed them",
+        label: "Several versions, the latest shown",
         render: () => (
           <StaffPage as="div">
-            <CampaignLetter
-              changedHref="#changed"
-              versions={exampleVersions}
-              changed={exampleChanged}
-              conditions={exampleConditions}
-            />
+            <CampaignLetter versions={exampleVersions} conditions={exampleConditions} />
           </StaffPage>
         ),
       },
@@ -27,12 +22,7 @@ export const campaignLetterGallery: Example[] = [
         label: "A version with a part only for some MPs",
         render: () => (
           <StaffPage as="div">
-            <CampaignLetter
-              changedHref="#changed"
-              versions={exampleVersions.slice(1, 2)}
-              changed={0}
-              conditions={exampleConditions}
-            />
+            <CampaignLetter versions={exampleVersions.slice(1, 2)} conditions={exampleConditions} />
           </StaffPage>
         ),
       },
@@ -40,15 +30,15 @@ export const campaignLetterGallery: Example[] = [
         label: "Letters from before staff could edit the letter",
         render: () => (
           <StaffPage as="div">
-            <CampaignLetter changedHref="#changed" versions={exampleVersions.slice(2)} changed={0} />
+            <CampaignLetter versions={exampleVersions.slice(2)} />
           </StaffPage>
         ),
       },
       {
-        label: "One version, nothing changed",
+        label: "One version",
         render: () => (
           <StaffPage as="div">
-            <CampaignLetter changedHref="#changed" versions={exampleVersions.slice(0, 1)} changed={0} />
+            <CampaignLetter versions={exampleVersions.slice(0, 1)} />
           </StaffPage>
         ),
       },
@@ -56,7 +46,7 @@ export const campaignLetterGallery: Example[] = [
         label: "No text",
         render: () => (
           <StaffPage as="div">
-            <CampaignLetter changedHref="#changed" versions={[]} changed={0} />
+            <CampaignLetter versions={[]} />
           </StaffPage>
         ),
       },
