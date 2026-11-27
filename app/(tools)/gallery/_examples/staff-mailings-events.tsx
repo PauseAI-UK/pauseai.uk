@@ -6,6 +6,7 @@
 import { eventColumnsGallery } from "@/app/(staff)/staff/_components/events/EventColumns.gallery";
 import { eventEditGallery } from "@/app/(staff)/staff/_components/events/EventEdit.gallery";
 import { eventFiltersGallery } from "@/app/(staff)/staff/_components/events/EventFilters.gallery";
+import { eventRecordGallery } from "@/app/(staff)/staff/_components/events/EventRecord.gallery";
 import { eventsTableGallery } from "@/app/(staff)/staff/_components/events/EventsTable.gallery";
 import type { Group } from "../_components/types";
 import { pressFindsGallery } from "@/app/(staff)/staff/_components/press/PressFinds.gallery";
@@ -26,7 +27,7 @@ import { answerableReplyGallery } from "@/app/(staff)/staff/_components/mailings
 import { mailingReplyThreadGallery } from "@/app/(staff)/staff/_components/mailings/MailingReplyThread.gallery";
 
 // The events' examples, in the order the group shows them.
-const [eventsTable, eventTabs, eventGroups, missing, eventsIntro] = eventsTableGallery;
+const [eventsTable, eventTabs, eventGroups, missing, eventsIntro, owner, hosts, doc] = eventsTableGallery;
 const [eventsList, eventColumns] = eventColumnsGallery;
 
 export const staffMailingsEvents: Group = {
@@ -42,8 +43,12 @@ export const staffMailingsEvents: Group = {
     eventGroups,
     eventsList,
     missing,
+    owner,
+    hosts,
+    doc,
     eventColumns,
     ...eventFiltersGallery,
+    ...eventRecordGallery,
     ...pressFindsGallery,
     ...eventEditGallery,
     eventsIntro,

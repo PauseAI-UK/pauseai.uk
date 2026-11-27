@@ -1,13 +1,13 @@
 import "server-only";
 import { cache } from "react";
-import { now } from "@/lib/now";
-import { findEvents, type EventFilter, type EventsFound } from "./list";
 import { query } from "@/lib/server/db.server";
 
 // Our events on Luma, as the Luma import has them (luma-import.server.ts), for
-// the staff interface's events page, with who on staff owns each
+// the staff interface's events pages, with who on staff owns each
 // (event_owners), the link to its Google Doc (event_docs), and its hosts on
-// Luma (luma_event_hosts), whom only staff who see supporters see. Only our
+// Luma (luma_event_hosts), whom only staff who see supporters see; and what
+// the events list's filters offer. The events page puts them together with
+// the list's filters (./list-page.server.ts). Only our
 // own: one another calendar runs and ours lists isn't ours to own. Setting
 // an owner or a doc is ./staff-events.server.ts.
 
@@ -72,37 +72,14 @@ export const listEvents = cache(async function listEvents(ids?: string[], hosts 
   });
 });
 
-/** An event as the page has it: without its hosts' emails. */
-function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
+/** An event as a page has it: without its hosts' emails. */
+export function withoutEmails({ hostEmails, ...event }: SearchedEvent): StaffEvent {
   void hostEmails;
   return event;
 }
 
-/**
- * The events page: the events `filter` finds, a page of them, or all of
- * them for lists by a grouping (findEvents), with their hosts for staff who see supporters (`hosts`),
- * who can search by them, but never their emails; every staff account,
- * whom an event can be given to and the Owner filter offers; every tag and
- * city our events have, for the Tag and Place filters, in alphabetical
- * order; and now.
- */
-export async function eventsPage(
-  filter: EventFilter,
-  hosts: boolean,
-): Promise<EventsFound & { staff: string[]; tags: string[]; cities: string[]; now: Date }> {
-  const at = now();
-  const events = await listEvents(undefined, hosts);
-  const found = findEvents(events, filter, at);
-  return {
-    ...found,
-    events: found.events.map(withoutEmails),
-    ...(await choicesOf(events)),
-    now: at,
-  };
-}
-
 /** What the events list's filters offer, among `events`. */
-const choicesOf = cache(async function choicesOf(
+export const choicesOf = cache(async function choicesOf(
   events: SearchedEvent[],
 ): Promise<{ staff: string[]; tags: string[]; cities: string[] }> {
   const staff = await query<{ email: string }>("SELECT email FROM staff_accounts ORDER BY email");

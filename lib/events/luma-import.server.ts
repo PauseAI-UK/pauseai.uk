@@ -23,6 +23,7 @@ import { type EventGuest, listEventGuests } from "@/lib/server/outside-services/
 import { keptError, problem } from "@/lib/server/problems.server";
 import { withNumbersRead, type NumbersRead } from "@/lib/phone";
 import { eventProblems } from "./copy";
+import { isGuestStatus } from "./guests";
 import { outsideId } from "@/lib/problems";
 
 // Copies our Luma calendar into luma_events, luma_people, luma_guests and
@@ -248,9 +249,6 @@ async function upsertPeople(guests: Pick<EventGuest, "userId" | "email" | "name"
   return rows.length;
 }
 
-/** The statuses a guest row can have: Luma's others (invited, or a ticket's) aren't registrations. */
-export const GUEST_STATUSES = ["approved", "pending_approval", "waitlist", "declined"];
-
 /** Upserts a page of an event's guests; returns how many were new or different. */
 async function upsertGuests(eventId: string, guests: NumbersRead<EventGuest>[], db?: Queryable): Promise<number> {
   const rows = await query(
@@ -298,7 +296,7 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
       if (!page) return undefined;
       const guests = page.entries.filter(
         (guest): guest is EventGuest & { registeredAt: string } =>
-          GUEST_STATUSES.includes(guest.approvalStatus) && guest.registeredAt !== null,
+          isGuestStatus(guest.approvalStatus) && guest.registeredAt !== null,
       );
       const { rows: unique, unread } = withNumbersRead([...new Map(guests.map((guest) => [guest.id, guest])).values()]);
       if (unread > 0) problem(eventProblems.numbersUnread({ unread, event: outsideId(eventId) }));

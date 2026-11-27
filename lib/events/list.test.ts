@@ -8,9 +8,9 @@ import {
   EVENTS_PAGE_SIZE,
   findEvents,
   stillToCome,
-  type EventFilter,
   type EventList,
 } from "./list";
+import type { EventFilter } from "./list-terms";
 
 const NOW = new Date("2026-11-02T12:00:00.000Z");
 

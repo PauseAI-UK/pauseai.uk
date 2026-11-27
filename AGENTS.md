@@ -26,7 +26,7 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 
 ## Serving a branch
 
-When the person you're working with asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give them the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until they're done with it, then stop it with `--stop`.
+When the person you're working with asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give them the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until they're done with it, then stop it with `--stop`. It builds into a folder of its own, so it keeps running beside a storyboard review or the gate ("The CI gate", below).
 
 Link to a page that shows what the branch changes, such as the staff page of a fixture record it affects, rather than the home page or `/staff/login`: the login appears over any staff page, with buttons to log in. Open the link first to check it shows the change.
 
@@ -56,7 +56,14 @@ Each command has a time limit and a log in `tmp/gate/`. While they run, a line a
 
 It takes a few minutes, so run it in the background with its output going to a file in `tmp/`, and look at that file each minute (`docs/testing.md`, "`npm run gate`").
 
-It leaves out `npm run build`: that repeats the unit tests and linters, and the storyboard builds the site anyway. Two `next build`s in one checkout share `.next`, so never run two at once, and don't run the gate beside a storyboard review in the same checkout. CI runs the storyboard without pictures: every flow on main, and on a pull request only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). `npm run test:storyboard` runs every flow.
+It leaves out `npm run build`, which repeats the unit tests and linters, as the storyboard builds the site anyway.
+
+What can run at once in one checkout depends on where each builds the site:
+
+- The gate, a storyboard review and `npm run test:storyboard` all build into `.next`, and each would overwrite the others' build. Run one of them at a time in a checkout. Another worktree has its own `.next`.
+- A served branch (`npm run serve`) builds into `.next-serve`, so it runs beside any of them. Never stop it for one.
+
+CI runs the storyboard without pictures: every flow on main, and on a pull request only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). `npm run test:storyboard` runs every flow.
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 
@@ -143,6 +150,7 @@ A PR with a migration carries the `migration` label, so the open PRs whose merge
 - The review is for looking at what a change does to the pages, and doesn't check the flows it leaves out. When a change might break flows it doesn't reach, run `npm run test:storyboard` too: every flow, without pictures. CI on a pull request runs only the flows a change reaches, so a flow the map misses breaks on main, after the merge.
 - A check waits up to 15 seconds, so a change that breaks many flows takes a long time to fail them all. Watch a review's output as it runs, and once several flows fail on the same thing, stop it and fix that, rather than waiting for the end (`docs/testing.md`, "Long runs in the background").
 - When a review pictures flows a change can't reach, such as every flow for one deleted picture, `scripts/storyboard-reach.mjs` has a flow's dependencies wrong. Fix it on your branch at once, with a test, rather than logging it in `investments/`: `npm run reach -- --branch` says which changed file reaches the most.
+- When the reach is real, through imports, but far wider than the change, take it as a prompt to separate concerns: split the module that pulls in too much, so the next change reaches less, even if this review stays large (`docs/testing.md`, "Which flows a review runs").
 - If a review says it couldn't place a file, teach `scripts/storyboard-reach.mjs` what that kind of file reaches. If it says a server was already up, that's one named with `--server`, or another checkout's: its flows aren't recorded as this code's, so the next review runs them all again.
 - A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").

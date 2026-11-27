@@ -10,7 +10,7 @@ import { emailFrame } from "./email-frame";
 import { handled, openBubble } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "@/app/(staff)/staff/_components/events/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };
@@ -142,7 +142,7 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/events`);
   const protest = page.getByRole("row").filter({ hasText: "Protest at Parliament" });
   const hosts = protest.getByRole("cell").nth(5);
-  await expect(hosts).toHaveText(`Jane Fixture, Sam Fixture, ${copy.noHostName}`);
+  await expect(hosts).toHaveText(`Jane Fixture, Sam Fixture, ${supportersCopy.supporters.noName}`);
   await expect(page.getByRole("row").filter({ hasText: "Leicester" }).getByRole("cell").nth(5)).toHaveText(
     "Alex Fixture",
   );
@@ -175,6 +175,43 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
     `${n} ${supportersCopy.supporters.detail.eventsCounted(n)}`,
   );
   await frame(page, "Jane Fixture's page");
+});
+
+test("An event's page", async ({ page, request, flowDatabase }) => {
+  story(
+    "Each event's name on the events page leads to a page of its own. For staff who see supporters, it lists everyone registered on Luma, with their status, and the postcode, phone and link they came by where any guest has one.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase, ["supporters"]);
+  await page.goto(`${BASE}/staff/events`);
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Protest at Parliament" })
+    .getByRole("link", { name: "PauseAI London: Protest at Parliament" })
+    .click();
+  await expect(page.getByRole("heading", { level: 1, name: "PauseAI London: Protest at Parliament" })).toBeVisible();
+  const guests = page.getByRole("region", { name: eventsCopy.event.guests });
+  await expect(guests.locator("tbody tr")).toHaveCount(5);
+  await expect(guests.locator("thead th")).toHaveText([
+    eventsCopy.event.columns.name,
+    eventsCopy.event.columns.postcode,
+    eventsCopy.event.columns.phone,
+    eventsCopy.event.columns.cameFrom,
+    eventsCopy.event.columns.status,
+    eventsCopy.event.columns.registered,
+    eventsCopy.event.columns.changed,
+  ]);
+  await expect(guests.getByRole("row").filter({ hasText: "Dee Clined" })).toContainText(
+    eventsCopy.event.statuses.declined,
+  );
+  await frame(page, "The protest's page");
+
+  story(
+    "The button over the guests makes a new broadcast by email to those registered who may hear our updates, the declined left out, and opens it to write.",
+  );
+  await guests.getByRole("button", { name: /^Broadcast to/ }).click();
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+  await frame(page, "The new broadcast to the protest's guests");
 });
 
 /**

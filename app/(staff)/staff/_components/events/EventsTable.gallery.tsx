@@ -1,10 +1,10 @@
 // EventsTable in the component gallery (app/(tools)/gallery/), in the staff mailings
 // and events group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 import PageHead from "../ui/PageHead";
 import StaffPage from "../ui/StaffPage";
-import { EventGroups, EventsIntro, EventTabs, Missing } from "./EventsTable";
+import { Doc, EventGroups, EventsIntro, EventTabs, Hosts, Missing, Owner } from "./EventsTable";
 import { exampleEventsTab } from "./EventsTable.examples";
 import { EventsTableExample } from "./EventsTable.gallery.client";
 
@@ -131,6 +131,70 @@ export const eventsTableGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <PageHead intro={<EventsIntro />}>Events</PageHead>
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "Owner",
+    file: "app/(staff)/staff/_components/events/EventsTable.tsx",
+    variants: [
+      {
+        label: "Its owner, by their address",
+        render: () => (
+          <StaffPage as="div">
+            <Owner owner="joseph@pauseai.uk" needed />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "None, on an event to come: an error",
+        render: () => (
+          <StaffPage as="div">
+            <Owner owner={null} needed />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "Hosts",
+    file: "app/(staff)/staff/_components/events/EventsTable.tsx",
+    variants: [
+      {
+        label: "One linked to their supporter, one not, and one with no name on Luma",
+        render: () => (
+          <StaffPage as="div">
+            <Hosts
+              hosts={[
+                { name: "Jane Smith", supporterId: 12 },
+                { name: "John Smith", supporterId: null },
+                { name: "", supporterId: 14 },
+              ]}
+            />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "Doc",
+    file: "app/(staff)/staff/_components/events/EventsTable.tsx",
+    variants: [
+      {
+        label: "Its Google Doc, linked",
+        render: () => (
+          <StaffPage as="div">
+            <Doc doc="https://docs.google.com/document/d/example-protest-plan/edit" />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "None: a dash",
+        render: () => (
+          <StaffPage as="div">
+            <Doc doc={null} />
           </StaffPage>
         ),
       },

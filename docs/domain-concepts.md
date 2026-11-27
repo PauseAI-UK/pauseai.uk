@@ -1421,6 +1421,17 @@ for. Each hosted event is dated when the import first found them a host of
 it. For a host found on the event's first read, it's dated when the event
 was made on Luma, as Luma doesn't say when someone became a host.
 
+Each event's name leads to its own page (`/staff/events/<id>`,
+`lib/events/event-page.server.ts`), with what the list says of it and a
+link to it on Luma. For staff who see supporters, it lists the guests
+Luma lists, with how many have each status. Each guest has their status
+on Luma, when they registered and when that last changed. Their postcode,
+phone and the `utm_source` they came by are shown too, each column only
+when a guest has one, as only some events ask. Its button makes a
+broadcast by email to the supporters list's Event filter for it (everyone
+registered but those declined), under PauseAI UK Updates including Luma,
+and opens it (`lib/broadcasts/event-audience.server.ts`).
+
 Each event can have one owner on staff
 (`event_owners`, `lib/events/staff-events.server.ts`), kept apart from
 `luma_events` as only the import writes that. Any staff member can make
@@ -2211,7 +2222,7 @@ emails, events, imports). Permissions open more
 
 Some pages show less without `supporters`:
 
-- the events page has no hosts;
+- the events page has no hosts, and an event's page no hosts or guests;
 - Correspondence hides a thread with someone else in it;
 - the sent emails and the audit log leave out what's about a supporter;
 - on an MP's page, the letters come from a query that doesn't select their

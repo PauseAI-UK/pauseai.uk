@@ -5,24 +5,24 @@ import {
   eventsByOwner,
   eventsByTag,
   ownerNeeded,
-  EVENT_GROUPINGS,
-  type EventGrouping,
   type EventList,
   type EventsFound,
 } from "@/lib/events/list";
+import { EVENT_GROUPINGS, type EventGrouping } from "@/lib/events/list-terms";
 import { among } from "@/lib/list-params";
 import type { EventsSearch } from "@/lib/staff-search";
 import AlertIcon from "../ui/AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
-import EventsTable, { Missing } from "./EventsTable";
+import EventsTable, { eventHref, Missing } from "./EventsTable";
 import Empty from "../ui/Empty";
 import ExternalLink from "../ui/ExternalLink";
 import Grid, { Card, Column } from "../ui/Grid";
 import Rows, { Row } from "../ui/Rows";
+import StaffLink from "../ui/StaffLink";
 import StaffMember from "../ui/StaffMember";
 import { staffDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 
 const copy = eventsCopy.events;
 
@@ -99,7 +99,7 @@ function List({
         </span>
       }
     >
-      <ExternalLink href={event.url}>{event.name}</ExternalLink>
+      <StaffLink href={eventHref(event.id)}>{event.name}</StaffLink>
     </Row>
   );
   return (

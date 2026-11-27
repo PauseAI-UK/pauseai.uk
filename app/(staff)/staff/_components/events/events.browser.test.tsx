@@ -16,7 +16,8 @@ import {
 } from "./EventsTable.examples";
 import { EventColumnsExample, EventsListExample } from "./EventColumns.gallery.client";
 import { EventsTableExample } from "./EventsTable.gallery.client";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 const copy = eventsCopy.events;
 const noAction: SaveEvent = async () => ({ ok: true, emailed: [], owner: null });
@@ -83,7 +84,7 @@ describe("EventsTable", () => {
     const protest = row("Protest at Parliament");
     await expect
       .element(protest.getByRole("link", { name: "PauseAI London: Protest at Parliament" }))
-      .toHaveAttribute("href", "https://luma.com/evt-protest");
+      .toHaveAttribute("href", "/staff/events/evt-protest");
     await expect
       .element(protest.getByRole("link", { name: copy.doc }))
       .toHaveAttribute("href", "https://docs.google.com/document/d/example-protest-plan/edit");
@@ -165,13 +166,13 @@ describe("EventsTable", () => {
     const headings = [...document.querySelectorAll("thead th")].map((th) => th.textContent!.replace(/[▲▼ ]+$/, ""));
     expect(headings.slice(5, 7)).toEqual([copy.columns.hosts, copy.owner]);
     const hosts = row("Protest at Parliament").getByRole("cell").nth(5);
-    expect(hosts.element().textContent).toBe(`Jane Smith, John Smith, ${copy.noHostName}`);
+    expect(hosts.element().textContent).toBe(`Jane Smith, John Smith, ${supportersCopy.supporters.noName}`);
     await expect
       .element(hosts.getByRole("link", { name: "Jane Smith" }))
       .toHaveAttribute("href", "/staff/supporters/12");
     expect(hosts.getByRole("link", { name: "John Smith" }).query()).toBeNull();
     await expect
-      .element(hosts.getByRole("link", { name: copy.noHostName }))
+      .element(hosts.getByRole("link", { name: supportersCopy.supporters.noName }))
       .toHaveAttribute("href", "/staff/supporters/14");
     expect(document.body.textContent).not.toContain("@example.com");
     // Its heading doesn't sort.

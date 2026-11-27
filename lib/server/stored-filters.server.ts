@@ -7,7 +7,7 @@ import { COUNTRIES, EMAIL_STATES, HOUSES, PERSON_STATUSES } from "@/lib/politici
 import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
 import type { SavedList } from "@/lib/saved-filters";
 import { DASHBOARD_WINDOWS } from "@/lib/time-windows";
-import { NO_OWNER, ONLINE } from "@/lib/events/list";
+import { NO_OWNER, ONLINE } from "@/lib/events/list-terms";
 import {
   FILTER_LISTS,
   storedFilter,
