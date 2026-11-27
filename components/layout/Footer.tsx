@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { site } from "@/lib/content/site";
+import { site, whatsappJoinPath } from "@/lib/content/site";
 import { CookieSettingsLink } from "./CookieConsent";
 import Brand from "./Brand";
 import FooterQr from "./FooterQr";
@@ -67,9 +67,7 @@ export default function Footer() {
                 <Link href={site.openLetterPath}>Open letter</Link>
               </li>
               <li>
-                <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-                  WhatsApp community
-                </a>
+                <Link href={whatsappJoinPath("footer")}>WhatsApp community</Link>
               </li>
               <li>
                 <a href={site.shopUrl} target="_blank" rel="noreferrer">

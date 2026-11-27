@@ -248,7 +248,7 @@ describe("home page sections", () => {
     await render(<GetInvolved />);
     await expect
       .element(page.getByRole("link", { name: "Join the WhatsApp community" }))
-      .toHaveAttribute("href", site.whatsappUrl);
+      .toHaveAttribute("href", "/whatsapp?utm_source=get-involved");
     await expect.element(page.getByRole("link", { name: "event calendar" })).toHaveAttribute("href", site.social.luma);
   });
 });

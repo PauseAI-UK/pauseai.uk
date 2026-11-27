@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { BlogPost } from "../posts";
-import { site } from "../site";
+import Link from "next/link";
+import { whatsappJoinPath } from "../site";
 
 const post: BlogPost = {
   slug: "nobody-knows-how-to-make-ai-behave",
@@ -172,10 +173,7 @@ const post: BlogPost = {
         and the way to do that is through legislation. I think that we should be optimistic, but diligent - we have an
         amazing opportunity to make a difference by advocating for legislation, and we ought to do what we can. If you
         want to find out more, consider joining the{" "}
-        <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-          PauseAI Whatsapp community
-        </a>
-        .
+        <Link href={whatsappJoinPath("blog")}>PauseAI Whatsapp community</Link>.
       </p>
       <p>Thanks for reading.</p>
       <p>Lachlan Ewart</p>

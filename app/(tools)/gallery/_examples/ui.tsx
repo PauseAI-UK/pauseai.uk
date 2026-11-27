@@ -382,8 +382,8 @@ export const ui: Group = {
       name: "Closing",
       file: "components/ui/Closing.tsx",
       variants: [
-        { label: "Buttons alone", render: () => <Closing /> },
-        { label: "With a line", render: () => <Closing line="An example line above the buttons." /> },
+        { label: "Buttons alone", render: () => <Closing from="gallery" /> },
+        { label: "With a line", render: () => <Closing from="gallery" line="An example line above the buttons." /> },
       ],
     },
     {

@@ -1,5 +1,6 @@
 import StoryShareForm from "@/components/people/StoryShareForm";
-import { site } from "@/lib/content/site";
+import Link from "next/link";
+import { whatsappJoinPath } from "@/lib/content/site";
 import { Lede, SectionHeader } from "@/components/ui/Section";
 import styles from "./ShareYourStory.module.css";
 
@@ -13,9 +14,9 @@ export default function ShareYourStory({ id }: { id?: string }) {
           <Lede>Why did you get involved, or what are your own concerns about AI?</Lede>
           <Lede>
             Tell us in your own words, we may feature it on this page. Connect with others who have similar stories in{" "}
-            <a className="inline-link" href={site.whatsappUrl} target="_blank" rel="noreferrer">
+            <Link className="inline-link" href={whatsappJoinPath("people")}>
               our community
-            </a>
+            </Link>
             .
           </Lede>
         </SectionHeader>
