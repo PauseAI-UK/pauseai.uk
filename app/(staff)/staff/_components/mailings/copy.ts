@@ -118,8 +118,8 @@ export const mailingsCopy = {
     fields: {
       salutation: "Salutation",
       constituency: "Constituency",
-      name: "⁂ MP's name",
-      sender: "⁂ Sender's name",
+      name: "MP's name",
+      sender: "Sender's name",
       postcode: "Postcode",
     } as Record<string, string>,
     noText: "We've lost the text.",
