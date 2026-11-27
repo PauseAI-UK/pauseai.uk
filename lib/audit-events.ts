@@ -109,6 +109,8 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "unblock address": { address: string; note: string };
   "set event owner": { eventId: string; owner: string; previous: string | null };
   "set event doc": { eventId: string; url: string | null; previous: string | null };
+  /** The WhatsApp community's invite link the waiting room sends (lib/broadcasts/waiting-room.server.ts). */
+  "set waiting room link": { link: string };
   /** A find of the press survey put on /press (lib/press/finds.server.ts), as the piece `coverageId`. */
   "add press find": { findId: number; coverageId: number; title: string; article: string };
   "remove press find": { findId: number; title: string };

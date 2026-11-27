@@ -20,6 +20,8 @@ import SupporterDetails from "../../../_components/supporters/SupporterDetails";
 import { supporterOneOffs } from "@/lib/letters/one-off-emails.server";
 import { OneOffTable } from "../../../_components/letters/OneOffList";
 import Page from "../../../_components/ui/Page";
+import SupporterWaitingRoom from "../../../_components/broadcasts/SupporterWaitingRoom";
+import { waitingRoomOf } from "@/lib/broadcasts/waiting-room.server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,10 +41,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function SupporterPage({ params }: Params) {
   const staff = await requireStaff("supporters");
   const supporter = await supporterOf(params);
-  const [notes, oneOffs, broadcasts] = await Promise.all([
+  const [notes, oneOffs, broadcasts, waitingRoom] = await Promise.all([
     notesOn({ supporterId: supporter.summary.id }),
     supporterOneOffs(supporter.summary.id),
     broadcastsToSupporter(supporter.summary.id),
+    waitingRoomOf(supporter.summary.id),
   ]);
   return (
     <Page kind="record" under="supporters" here={supporterTitle(supporter.summary)}>
@@ -50,7 +53,12 @@ export default async function SupporterPage({ params }: Params) {
         supporter={supporter}
         erase={<EraseLink supporterId={supporter.summary.id} />}
         oneOffs={<OneOffTable threads={oneOffs} />}
-        messages={<SupporterBroadcasts broadcasts={broadcasts} />}
+        messages={
+          <>
+            <SupporterBroadcasts broadcasts={broadcasts} />
+            <SupporterWaitingRoom person={waitingRoom} />
+          </>
+        }
         sentAndNoted={{ broadcasts: broadcasts.length, notes: notes.length }}
         optOut={
           <>

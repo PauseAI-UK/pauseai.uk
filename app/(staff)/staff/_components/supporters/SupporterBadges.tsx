@@ -1,5 +1,5 @@
 import Tag from "@/components/ui/Tag";
-import { signedUpForMarch, type SupporterSummary } from "@/lib/supporters/supporters";
+import { cameByWhatsApp, signedUpForMarch, type SupporterSummary } from "@/lib/supporters/supporters";
 import styles from "./SupporterBadges.module.css";
 import { supportersCopy } from "./copy";
 
@@ -13,7 +13,7 @@ export function supporterBadgeWords(supporter: SupporterSummary): string {
     supporter.letters > 0 && badges.letter,
     signedUpForMarch(supporter.sources) && badges.march,
     supporter.sources.includes("paper-signup") && badges.paper,
-    supporter.sources.includes("whatsapp-community") && badges.whatsapp,
+    cameByWhatsApp(supporter.sources) && badges.whatsapp,
   ]
     .filter(Boolean)
     .join("; ");
@@ -37,7 +37,7 @@ export default function SupporterBadges({ supporter, large }: { supporter: Suppo
       {supporter.letters > 0 && <Tag tone="blue">{badges.letter}</Tag>}
       {signedUpForMarch(supporter.sources) && <Tag>{badges.march}</Tag>}
       {supporter.sources.includes("paper-signup") && <Tag>{badges.paper}</Tag>}
-      {supporter.sources.includes("whatsapp-community") && <Tag>{badges.whatsapp}</Tag>}
+      {cameByWhatsApp(supporter.sources) && <Tag>{badges.whatsapp}</Tag>}
     </span>
   );
 }

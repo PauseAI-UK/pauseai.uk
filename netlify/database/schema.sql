@@ -214,8 +214,8 @@ CREATE TABLE public.form_entries (
     contact_consent boolean NOT NULL,
     utm_source text,
     bulk_notice_at timestamp with time zone,
-    CONSTRAINT form_entries_email_check CHECK (((email IS NOT NULL) OR ((form = 'whatsapp-community'::text) AND (phone IS NOT NULL)))),
-    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'march-2027-04'::text, 'paper-signup'::text, 'whatsapp-community'::text]))),
+    CONSTRAINT form_entries_email_check CHECK (((email IS NOT NULL) OR ((form = ANY (ARRAY['whatsapp-community'::text, 'whatsapp-join'::text])) AND (phone IS NOT NULL)))),
+    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'march-2027-04'::text, 'paper-signup'::text, 'whatsapp-community'::text, 'whatsapp-join'::text]))),
     CONSTRAINT form_entries_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone)))
 );
 
@@ -1422,7 +1422,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE (f.contact_consent AND (f.email IS NOT NULL))
+  WHERE (f.contact_consent AND (f.email IS NOT NULL) AND (f.form <> 'whatsapp-join'::text))
 UNION ALL
  SELECT f.phone AS address,
     'text'::text AS way,
@@ -1436,7 +1436,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE (f.contact_consent AND ((f.form = 'paper-signup'::text) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
+  WHERE (f.contact_consent AND ((f.form = ANY (ARRAY['paper-signup'::text, 'whatsapp-join'::text])) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
 UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,
@@ -1458,7 +1458,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE ((NOT f.contact_consent) AND ((f.form = 'paper-signup'::text) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
+  WHERE ((NOT f.contact_consent) AND ((f.form = ANY (ARRAY['paper-signup'::text, 'whatsapp-join'::text])) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
 UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,
@@ -2958,6 +2958,105 @@ CREATE TABLE public.unmatched_mail (
 );
 
 --
+-- Name: waiting_room; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.waiting_room (
+    id bigint NOT NULL,
+    number public.phone NOT NULL,
+    profile_name text DEFAULT ''::text NOT NULL,
+    came_from text,
+    asked_at timestamp with time zone NOT NULL,
+    state text DEFAULT 'asked'::text NOT NULL,
+    held_why text,
+    decided_by text,
+    decided_at timestamp with time zone,
+    link_sent_at timestamp with time zone,
+    checking_sent_at timestamp with time zone,
+    entry_id bigint,
+    CONSTRAINT waiting_room_came_from_check CHECK ((came_from ~ '^[a-z0-9-]{1,40}$'::text)),
+    CONSTRAINT waiting_room_check CHECK (((state = ANY (ARRAY['let-in'::text, 'dismissed'::text])) = (decided_at IS NOT NULL))),
+    CONSTRAINT waiting_room_state_check CHECK ((state = ANY (ARRAY['asked'::text, 'held'::text, 'let-in'::text, 'dismissed'::text])))
+);
+
+--
+-- Name: waiting_room_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.waiting_room_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: waiting_room_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.waiting_room_id_seq OWNED BY public.waiting_room.id;
+
+--
+-- Name: waiting_room_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.waiting_room_links (
+    id bigint NOT NULL,
+    link text NOT NULL,
+    set_by text NOT NULL,
+    set_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT waiting_room_links_link_check CHECK ((link ~ '^https://chat\.whatsapp\.com/[A-Za-z0-9]+$'::text))
+);
+
+--
+-- Name: waiting_room_links_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.waiting_room_links_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: waiting_room_links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.waiting_room_links_id_seq OWNED BY public.waiting_room_links.id;
+
+--
+-- Name: waiting_room_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.waiting_room_messages (
+    id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    at timestamp with time zone NOT NULL,
+    ours boolean NOT NULL,
+    kind text,
+    body text,
+    provider_message_id text
+);
+
+--
+-- Name: waiting_room_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.waiting_room_messages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: waiting_room_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.waiting_room_messages_id_seq OWNED BY public.waiting_room_messages.id;
+
+--
 -- Name: whatsapp_erased; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3085,6 +3184,24 @@ ALTER TABLE ONLY public.press_outlets ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public.saved_filters ALTER COLUMN id SET DEFAULT nextval('public.saved_filters_id_seq'::regclass);
+
+--
+-- Name: waiting_room id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room ALTER COLUMN id SET DEFAULT nextval('public.waiting_room_id_seq'::regclass);
+
+--
+-- Name: waiting_room_links id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room_links ALTER COLUMN id SET DEFAULT nextval('public.waiting_room_links_id_seq'::regclass);
+
+--
+-- Name: waiting_room_messages id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room_messages ALTER COLUMN id SET DEFAULT nextval('public.waiting_room_messages_id_seq'::regclass);
 
 --
 -- Name: ask_kind_statuses ask_kind_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3864,6 +3981,48 @@ ALTER TABLE ONLY public.unmatched_mail
     ADD CONSTRAINT unmatched_mail_pkey PRIMARY KEY (account, gmail_message_id);
 
 --
+-- Name: waiting_room waiting_room_entry_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room
+    ADD CONSTRAINT waiting_room_entry_id_key UNIQUE (entry_id);
+
+--
+-- Name: waiting_room_links waiting_room_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room_links
+    ADD CONSTRAINT waiting_room_links_pkey PRIMARY KEY (id);
+
+--
+-- Name: waiting_room_messages waiting_room_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room_messages
+    ADD CONSTRAINT waiting_room_messages_pkey PRIMARY KEY (id);
+
+--
+-- Name: waiting_room_messages waiting_room_messages_provider_message_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room_messages
+    ADD CONSTRAINT waiting_room_messages_provider_message_id_key UNIQUE (provider_message_id);
+
+--
+-- Name: waiting_room waiting_room_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room
+    ADD CONSTRAINT waiting_room_number_key UNIQUE (number);
+
+--
+-- Name: waiting_room waiting_room_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room
+    ADD CONSTRAINT waiting_room_pkey PRIMARY KEY (id);
+
+--
 -- Name: whatsapp_erased whatsapp_erased_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4408,6 +4567,12 @@ CREATE UNIQUE INDEX supporters_list_id ON public.supporters_list USING btree (id
 CREATE INDEX unmatched_mail_waiting ON public.unmatched_mail USING btree (found_at) WHERE (reported_at IS NULL);
 
 --
+-- Name: waiting_room_messages_person; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX waiting_room_messages_person ON public.waiting_room_messages USING btree (person_id, at);
+
+--
 -- Name: whatsapp_templates_conditional_variant; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4879,6 +5044,20 @@ ALTER TABLE ONLY public.supporter_links
 
 ALTER TABLE ONLY public.supporter_merges
     ADD CONSTRAINT supporter_merges_into_id_fkey FOREIGN KEY (into_id) REFERENCES public.supporters(id) ON DELETE CASCADE;
+
+--
+-- Name: waiting_room waiting_room_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room
+    ADD CONSTRAINT waiting_room_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES public.form_entries(id) ON DELETE SET NULL;
+
+--
+-- Name: waiting_room_messages waiting_room_messages_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.waiting_room_messages
+    ADD CONSTRAINT waiting_room_messages_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.waiting_room(id) ON DELETE CASCADE;
 
 --
 -- Name: whatsapp_templates whatsapp_templates_conditional_variant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

@@ -130,9 +130,61 @@ Mocked up: https://claude.ai/artifact/P8TCoTdXUwt1oX5ZnjvKYk
   text, and legitimate interests for checking they aren't a bot. Article
   9(2)(d) for the political opinion joining shows.
 - The LLM is a new processor of their messages: the privacy policy names it.
-- Erasure takes their messages and verdicts with the rest of them, and
-  their number's hash stops the waiting room letting them in again.
+- Erasure takes their place in the waiting room and its messages with
+  the rest of them. If they ask to join again, they start afresh.
 
 ## The tables
 
-To be written next, and agreed before any migration.
+**`waiting_room`**: one row per number that asked to join, the person in
+the waiting room. Their number, the WhatsApp profile name it came with,
+where they came from (the button's code), when they asked, and where they
+are: `asked` (welcomed, no reply yet), `held`, `let-in` or `dismissed`.
+With it, why the check held them, who decided (a staff member, or none for
+the check) and when, when the community's link went to them, and the form
+entry they became once let in.
+
+**`waiting_room_messages`**: every message in the chat, theirs and ours:
+which person's, when, whether it's ours, its words and kind (as a reply to
+a broadcast keeps them), and WhatsApp's ID for it.
+
+**`waiting_room_links`**: each community link staff have set, who set it
+and when. The newest is the one sent.
+
+**Joining is a form entry** (`form_entries`, form `whatsapp-join`), made
+when they're let in, so they become a supporter as every form's sender
+does: their profile name, number, email and postcode if they gave them,
+where they came from as its `utm_source`, and the box to hear from us
+ticked, for the newsletter by text. Their email is kept, but joining is no
+yes to email. A later message with a postcode or email updates it.
+
+For example, Jane taps the button on the Parents page, sends the message,
+and replies "I'm a parent worried about AI, LS6 1AA":
+
+| waiting_room | |
+|---|---|
+| number | +447700900123 |
+| profile_name | Jane |
+| came_from | parents |
+| state | let-in |
+| decided_by | (none: the check) |
+| entry_id | 812 |
+
+| waiting_room_messages | ours | words |
+|---|---|---|
+| 1 | no | Hi PauseAI UK, I'd like to join (parents) |
+| 2 | yes | Thanks for asking to join… |
+| 3 | no | I'm a parent worried about AI, LS6 1AA |
+| 4 | yes | Thanks, welcome! Here's the link… |
+
+| form_entries 812 | |
+|---|---|
+| form | whatsapp-join |
+| name | Jane |
+| phone | +447700900123 |
+| postcode | LS6 1AA |
+| utm_source | parents |
+| contact_consent | true |
+
+**Worked out, not stored:** the counts on the waiting room page's tabs, and
+whether anyone is held, for the daily email, which is sent at most once a
+day, as `email_sends` records each one.

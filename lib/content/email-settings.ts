@@ -57,6 +57,7 @@ const sources: Record<string, string> = {
   "web-form": "when you wrote to your MP",
   "paper-signup": "on a paper sign-up form",
   "whatsapp-community": "when you joined our WhatsApp community",
+  "whatsapp-join": "⁂ when you joined our WhatsApp community",
   civicrm: "with PauseAI Global",
   luma: "on Luma",
   "luma-webhook": "in a Luma email",

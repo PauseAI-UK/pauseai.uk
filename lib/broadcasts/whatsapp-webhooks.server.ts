@@ -19,6 +19,7 @@ import { markUnreachable } from "./unreachable.server";
 import { applyTemplateStatus } from "./whatsapp-templates.server";
 import { keptInWords, messageWords, type WhatsAppMessage } from "./whatsapp-messages";
 import { broadcastProblems, broadcastsCopy } from "./copy";
+import { receiveWaitingRoomMessage } from "./waiting-room.server";
 
 // What WhatsApp's webhook tells us (app/api/whatsapp/route.ts), each change
 // by its field: what became of each text sent (delivered, read, failed),
@@ -41,6 +42,9 @@ type Status = {
 type Message = WhatsAppMessage;
 
 type Preference = { wa_id: string; category?: string; value?: string; timestamp?: string | number };
+
+/** Who a message is from, as WhatsApp names them: their number, and their profile's name. */
+type Contact = { wa_id?: string; profile?: { name?: string } };
 
 /** A time WhatsApp gives, in seconds since 1970. */
 const timeOf = (seconds: string | number | undefined): Date => new Date(Number(seconds ?? 0) * 1000);
@@ -237,14 +241,15 @@ async function removeReaction(number: string, to: string | null, at: Date): Prom
 
 /**
  * A message someone sent us: a stop, if it asks to, the first time kept as
- * a reply to the copy it answers, if any, and answered; else a reply to the
- * copy it answers, kept once, for staff, with its kind where it's more than
+ * a reply to the copy it answers, if any, and answered; else the waiting
+ * room's, if it is (./waiting-room.server.ts), who it's from
+ * named `profileName`; else a reply to the copy it answers, kept once, for staff, with its kind where it's more than
  * words; else, as it answers no text, emailed to staff. A reaction answers
  * the message it's to, and is a reply as any other, its emoji its words:
  * one in place of another of theirs to the same message removes that one,
  * and one taken back, which has no emoji, is only marked removed.
  */
-async function applyMessage(message: Message): Promise<boolean> {
+async function applyMessage(message: Message, profileName?: string): Promise<boolean> {
   const number = numberOf(message.from);
   const at = timeOf(message.timestamp);
   const reactionTo = message.type === "reaction" ? (message.reaction?.message_id ?? null) : null;
@@ -259,6 +264,8 @@ async function applyMessage(message: Message): Promise<boolean> {
     }
     return recorded;
   }
+  const quoted = reactionTo ?? message.context?.id;
+  if (await receiveWaitingRoomMessage({ number, messageId: message.id, at, kept, quoted, profileName })) return true;
   if (!copyId) {
     const email = broadcastsCopy.notifications.whatsAppMessage;
     await notifyStaff(email.subject(number), email.body(number, keptInWords(kept)), null, "staff-alert");
@@ -310,7 +317,12 @@ async function applyChange(field: string, value: Record<string, unknown>): Promi
   let applied = 0;
   if (field === "messages") {
     for (const status of (value.statuses ?? []) as Status[]) applied += Number(await applyStatus(status));
-    for (const message of (value.messages ?? []) as Message[]) applied += Number(await applyMessage(message));
+    const names = new Map(
+      ((value.contacts ?? []) as Contact[]).map((contact) => [contact.wa_id, contact.profile?.name]),
+    );
+    for (const message of (value.messages ?? []) as Message[]) {
+      applied += Number(await applyMessage(message, names.get(message.from)));
+    }
   } else if (field === "user_preferences") {
     for (const preference of (value.user_preferences ?? []) as Preference[]) {
       applied += Number(await applyPreference(preference));

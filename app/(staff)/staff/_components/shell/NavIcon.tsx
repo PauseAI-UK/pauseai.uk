@@ -55,6 +55,8 @@ const PATHS: Record<StaffPageId | "home" | "me" | "logout", ReactNode> = {
   supporterEmails: BLOCKED,
   // An arrow up, out of a tray.
   signupUpload: <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" />,
+  // A door, ajar.
+  waitingRoom: <path d="M5 20h14M7 20V4h10v16M11 4l6 2v14M14.5 12v1" />,
   // A building with columns.
   politicians: <path d="M3 9.5L12 4l9 5.5M4 20h16M6 10v8M10 10v8M14 10v8M18 10v8" />,
   // A clipboard with a tick.

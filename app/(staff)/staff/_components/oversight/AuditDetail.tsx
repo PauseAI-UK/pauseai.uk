@@ -254,6 +254,7 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "disconnect gmail": none,
   "set event owner": none,
   "set event doc": none,
+  "set waiting room link": none,
   "add press find": none,
   "remove press find": none,
   "edit press piece": none,

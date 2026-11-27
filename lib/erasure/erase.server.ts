@@ -84,6 +84,8 @@ export async function eraseSupporter(id: number, reference: string, by: string):
       db,
     );
     await query(`DELETE FROM whatsapp_unreachable WHERE number IN ${theirs}`, [id], db);
+    // Their place in the WhatsApp waiting room, and its chat.
+    await query(`DELETE FROM waiting_room WHERE number IN ${theirs}`, [id], db);
     const lumaUsers = (
       await query<{ userId: string }>(
         `SELECT luma_user_id AS "userId" FROM supporter_links WHERE supporter_id = $1 AND luma_user_id IS NOT NULL`,

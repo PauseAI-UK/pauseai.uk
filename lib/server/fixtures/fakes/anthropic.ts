@@ -8,6 +8,10 @@ import { json, type Fake } from "../fake";
 // aggregator (tier 4), a "Times" for international news (2), one called
 // "Local" as unknown, and the rest as UK regional news (3);
 // a site named as an outlet on the list is that outlet.
+// Asked about a reply to the WhatsApp waiting room (lib/broadcasts/waiting-room-check.server.ts),
+// it holds one with a link, or of fewer than four words, as an advert or an
+// empty answer, and passes the rest; and pulls out a postcode, whole or its
+// first half, and an email, as written.
 
 type Candidate = { id: string; page?: { excerpts: string[]; captions: string[] } };
 
@@ -42,9 +46,38 @@ function sourcesAnswer(content: string) {
   return { sources: sources.map((source) => sourceFor(source, outlets)) };
 }
 
+const POSTCODE = /\b[A-Z]{1,2}\d[A-Z\d]?(?: ?\d[A-Z]{2})?\b/;
+const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+
+/** The check of a reply to the waiting room, as Claude gives it. */
+function replyChecked(content: string) {
+  const reply = /<reply>\n?([\s\S]*?)\n?<\/reply>/.exec(content)?.[1] ?? "";
+  const held = /https?:|www\./i.test(reply)
+    ? "It's an advert with a link."
+    : reply.split(/\s+/).filter(Boolean).length < 4
+      ? "It gives no reason for joining."
+      : null;
+  return {
+    verdict: held ? "hold" : "pass",
+    reason: held ?? "A sincere reason for joining.",
+    postcode: POSTCODE.exec(reply)?.[0] ?? null,
+    email: EMAIL.exec(reply)?.[0] ?? null,
+  };
+}
+
+/** Claude's answer, as JSON, in the message the API gives. */
+const answered = (answer: object) =>
+  json({
+    type: "message",
+    role: "assistant",
+    stop_reason: "end_turn",
+    content: [{ type: "text", text: JSON.stringify(answer) }],
+  });
+
 export const anthropicFake: Fake = ({ hostname, pathname }, init) => {
   if (hostname !== "api.anthropic.com" || pathname !== "/v1/messages") return undefined;
   const request = JSON.parse(String(init?.body)) as { messages: { content: string }[] };
+  if (request.messages[0].content.includes("<reply>")) return answered(replyChecked(request.messages[0].content));
   if (request.messages[0].content.includes("<sources>")) {
     return json({
       type: "message",
