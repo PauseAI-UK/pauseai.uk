@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
 import IconButton, { CrossIcon, iconButtonClass } from "@/components/ui/IconButton";
 import IconText from "../ui/IconText";
-import { mailingsCopy } from "./copy";
 import styles from "./PartBox.module.css";
-
-const copy = mailingsCopy.mailingEditor;
 
 /**
  * A part's box's classes, for the letter's editor (MailingEditor), which

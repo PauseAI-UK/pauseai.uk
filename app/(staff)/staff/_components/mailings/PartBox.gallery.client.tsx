@@ -8,7 +8,11 @@ export function ClosablePartExample() {
   return (
     <Logged>
       {(log) => (
-        <PartBox label="Only for those who registered for “PauseCon London”" onRemove={log("onRemove")} removeLabel="Remove this variant">
+        <PartBox
+          label="Only for those who registered for “PauseCon London”"
+          onRemove={log("onRemove")}
+          removeLabel="Remove this variant"
+        >
           <p>We&apos;ll see you there on Saturday.</p>
         </PartBox>
       )}

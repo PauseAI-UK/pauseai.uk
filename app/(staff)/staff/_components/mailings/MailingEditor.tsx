@@ -488,31 +488,31 @@ function Sidebar({
         {fields
           .filter((field) => !field.group)
           .map((field) => (
-          <li key={field.id}>
-            {/* Not a <button>, which Firefox won't drag: a button's role, focus and keys. */}
-            <span
-              role="button"
-              tabIndex={0}
-              className={styles.fieldLozenge}
-              aria-disabled={!usable(field) || undefined}
-              title={fieldHint(field)}
-              draggable={usable(field)}
-              onDragStart={(event) => {
-                event.dataTransfer.effectAllowed = "copy";
-                event.dataTransfer.setData("text/html", `<span data-field="${field.id}">${field.label}</span>`);
-                event.dataTransfer.setData("text/plain", field.label);
-              }}
-              onClick={() => insert(field)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                insert(field);
-              }}
-            >
-              {field.label}
-            </span>
-          </li>
-        ))}
+            <li key={field.id}>
+              {/* Not a <button>, which Firefox won't drag: a button's role, focus and keys. */}
+              <span
+                role="button"
+                tabIndex={0}
+                className={styles.fieldLozenge}
+                aria-disabled={!usable(field) || undefined}
+                title={fieldHint(field)}
+                draggable={usable(field)}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "copy";
+                  event.dataTransfer.setData("text/html", `<span data-field="${field.id}">${field.label}</span>`);
+                  event.dataTransfer.setData("text/plain", field.label);
+                }}
+                onClick={() => insert(field)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  insert(field);
+                }}
+              >
+                {field.label}
+              </span>
+            </li>
+          ))}
         {groups.map((group) => (
           <li key={group}>
             <FieldMenu

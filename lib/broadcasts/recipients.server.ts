@@ -239,7 +239,10 @@ export function broadcastChoices(
         lacking: recipients.length - covering(HAS_MP),
         onlyInPart: true,
         // A link for each campaign is one lozenge, whose menu picks the campaign.
-        ...(mpLinkCampaign(id) && { group: copy.mpFieldWords.linkGroup, option: campaignNamed(mpLinkCampaign(id)!)!.title }),
+        ...(mpLinkCampaign(id) && {
+          group: copy.mpFieldWords.linkGroup,
+          option: campaignNamed(mpLinkCampaign(id)!)!.title,
+        }),
       })),
     ],
     conditions: parts.map((part) => ({ ...part, covers: covering(part.id) })),
