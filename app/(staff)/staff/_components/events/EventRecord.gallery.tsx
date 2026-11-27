@@ -4,7 +4,7 @@ import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { BroadcastSupportersExample } from "../broadcasts/BroadcastSupporters.gallery.client";
 import StaffPage from "../ui/StaffPage";
 import EventRecord from "./EventRecord";
-import { exampleGuests, exampleGuestsAnsweringNothing } from "./EventRecord.examples";
+import { exampleCounts, exampleGuests, exampleGuestsAnsweringNothing } from "./EventRecord.examples";
 import { exampleEvents, exampleEventsNow } from "./EventsTable.examples";
 
 const protest = exampleEvents.find((event) => event.id === "evt-protest")!;
@@ -22,6 +22,7 @@ export const eventRecordGallery: Example[] = [
             <EventRecord
               event={protest}
               guests={exampleGuests}
+              counts={exampleCounts(exampleGuests)}
               now={exampleEventsNow}
               broadcast={<BroadcastSupportersExample />}
             />
@@ -35,6 +36,7 @@ export const eventRecordGallery: Example[] = [
             <EventRecord
               event={protest}
               guests={exampleGuestsAnsweringNothing}
+              counts={exampleCounts(exampleGuestsAnsweringNothing)}
               now={exampleEventsNow}
               broadcast={<BroadcastSupportersExample />}
             />
@@ -45,7 +47,13 @@ export const eventRecordGallery: Example[] = [
         label: "Taken off Luma, with no owner, no Google Doc and no one registered",
         render: () => (
           <StaffPage as="div">
-            <EventRecord event={removed} guests={[]} now={exampleEventsNow} broadcast={null} />
+            <EventRecord
+              event={removed}
+              guests={[]}
+              counts={exampleCounts([])}
+              now={exampleEventsNow}
+              broadcast={null}
+            />
           </StaffPage>
         ),
       },
@@ -53,7 +61,13 @@ export const eventRecordGallery: Example[] = [
         label: "For staff who don't see supporters: no hosts or guests",
         render: () => (
           <StaffPage as="div">
-            <EventRecord event={{ ...protest, hosts: [] }} guests={null} now={exampleEventsNow} broadcast={null} />
+            <EventRecord
+              event={{ ...protest, hosts: [] }}
+              guests={null}
+              counts={null}
+              now={exampleEventsNow}
+              broadcast={null}
+            />
           </StaffPage>
         ),
       },

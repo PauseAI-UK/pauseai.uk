@@ -1,14 +1,14 @@
 import { EVENTS_LIST } from "@/lib/staff-lists";
 import { filteredName, filterWords } from "@/lib/staff-list-filters";
 import { EVENT_FILTERS, type EventChoices } from "@/lib/events/list-filters";
-import { EVENT_GROUPINGS } from "@/lib/events/list";
+import { EVENT_GROUPINGS } from "@/lib/events/list-terms";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { eventsSearch, type EventsSearch } from "@/lib/staff-search";
 import { among } from "@/lib/list-params";
 import { EventGroups, eventFiltersOf } from "./EventsTable";
 import FilterBar from "../ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 
 /**
  * What the events list shows, in words: the Past tab and the grouping, if

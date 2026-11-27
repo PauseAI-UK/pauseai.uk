@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { eventsPage } from "@/lib/events/staff-events-list.server";
+import { eventsPage } from "@/lib/events/list-page.server";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { type EventsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";

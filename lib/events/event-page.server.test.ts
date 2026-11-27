@@ -84,12 +84,22 @@ describeWithDatabase("eventPage", () => {
       cameFrom: "brixton",
     });
     expect(found!.guests![1]).toMatchObject({ supporterId: null, postcode: null, phone: null, cameFrom: null });
+    expect(found!.counts).toEqual([
+      { status: "approved", n: 3 },
+      { status: "pending_approval", n: 1 },
+      { status: "waitlist", n: 1 },
+      { status: "declined", n: 1 },
+    ]);
   });
 
   it("has no guests for staff who don't see supporters", async () => {
     await addEvent("evt-1");
     await addGuest("gst-ann", "evt-1", "Ann");
-    expect(await eventPage("evt-1", false)).toMatchObject({ event: { id: "evt-1", hosts: [] }, guests: null });
+    expect(await eventPage("evt-1", false)).toMatchObject({
+      event: { id: "evt-1", hosts: [] },
+      guests: null,
+      counts: null,
+    });
   });
 
   it("finds no event that isn't ours, or that we don't know", async () => {

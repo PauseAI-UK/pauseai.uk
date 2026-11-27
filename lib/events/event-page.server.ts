@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { query } from "@/lib/server/db.server";
 import { GUEST_STATUSES, type GuestStatus } from "./guests";
-import { listEvents, type StaffEvent } from "./staff-events-list.server";
+import { listEvents, withoutEmails, type StaffEvent } from "./staff-events-list.server";
 
 // One of our events, for its staff page: the event as the events list has it,
 // and the guests on its Luma guest list, as the Luma import has them. A
@@ -28,8 +28,14 @@ export type Guest = {
   cameFrom: string | null;
 };
 
-/** An event's page: the event, and its guests for staff who see supporters, or null for those who don't. */
-export type EventPage = { event: StaffEvent; guests: Guest[] | null };
+/** How many of an event's guests have each status, in GUEST_STATUSES' order. */
+export type GuestCount = { status: GuestStatus; n: number };
+
+/**
+ * An event's page: the event, and for staff who see supporters its guests
+ * and how many have each status, or null for those who don't.
+ */
+export type EventPage = { event: StaffEvent; guests: Guest[] | null; counts: GuestCount[] | null };
 
 /**
  * One of our events by its Luma ID, with its hosts and guests for staff who
@@ -39,9 +45,14 @@ export type EventPage = { event: StaffEvent; guests: Guest[] | null };
 export const eventPage = cache(async function eventPage(id: string, people: boolean): Promise<EventPage | undefined> {
   const [found] = await listEvents([id], people);
   if (!found) return undefined;
-  const { hostEmails, ...event } = found;
-  void hostEmails;
-  return { event, guests: people ? await guestsOf(id) : null };
+  const event = withoutEmails(found);
+  if (!people) return { event, guests: null, counts: null };
+  const guests = await guestsOf(id);
+  const counts = GUEST_STATUSES.map((status) => ({
+    status,
+    n: guests.filter((guest) => guest.status === status).length,
+  }));
+  return { event, guests, counts };
 });
 
 /** The guests Luma lists for event `id`. */

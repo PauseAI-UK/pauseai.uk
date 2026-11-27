@@ -16,7 +16,7 @@ import {
 } from "./EventsTable.examples";
 import { EventColumnsExample, EventsListExample } from "./EventColumns.gallery.client";
 import { EventsTableExample } from "./EventsTable.gallery.client";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 
 const copy = eventsCopy.events;
 const noAction: SaveEvent = async () => ({ ok: true, emailed: [], owner: null });

@@ -24,13 +24,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function EventPage({ params }: Params) {
   const staff = await requireStaff();
   const { id } = await params;
-  const { event, guests } = found(await eventPage(id, canSeeSupporters(staff)));
-  const audience = await eventAudience(event.id);
+  const event = found(await eventPage(id, canSeeSupporters(staff)));
+  const audience = await eventAudience(event.event.id);
   return (
-    <Page kind="record" under="events" here={event.name}>
+    <Page kind="record" under="events" here={event.event.name}>
       <EventRecord
-        event={event}
-        guests={guests}
+        {...event}
         now={now()}
         broadcast={<BroadcastSupporters search={audience.search} total={audience.total} action={newBroadcast} />}
       />

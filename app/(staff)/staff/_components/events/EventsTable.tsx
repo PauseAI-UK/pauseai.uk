@@ -4,16 +4,8 @@ import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { site } from "@/lib/content/site";
 import type { EventHost, StaffEvent } from "@/lib/events/staff-events-list.server";
-import {
-  EVENT_SORTS,
-  EVENTS_PAGE_SIZE,
-  EVENT_GROUPINGS,
-  eventHref,
-  ownerNeeded,
-  type EventsFound,
-  type EventSort,
-  type EventTab,
-} from "@/lib/events/list";
+import { EVENTS_PAGE_SIZE, ownerNeeded, type EventsFound } from "@/lib/events/list";
+import { EVENT_GROUPINGS, EVENT_SORTS, type EventSort, type EventTab } from "@/lib/events/list-terms";
 import { type EventsSearch } from "@/lib/staff-search";
 import { among, filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { parseSort, sortHref } from "@/lib/staff-sort";
@@ -30,10 +22,15 @@ import StaffLink from "../ui/StaffLink";
 import Tabs from "../ui/Tabs";
 import styles from "./EventsTable.module.css";
 import ExternalLink from "../ui/ExternalLink";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 
 const PATH = EVENTS_LIST.path;
 const copy = eventsCopy.events;
+
+/** Event `id`'s staff page, which its name in the table and the lists leads to. */
+export function eventHref(id: string): string {
+  return `/staff/events/${encodeURIComponent(id)}`;
+}
 
 /** Under the page's title: what it lists, and where the events come from, our calendar on Luma, which it links to. */
 export function EventsIntro() {

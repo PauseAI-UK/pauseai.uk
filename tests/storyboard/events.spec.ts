@@ -10,7 +10,7 @@ import { emailFrame } from "./email-frame";
 import { handled, openBubble } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "@/app/(staff)/staff/_components/events/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };

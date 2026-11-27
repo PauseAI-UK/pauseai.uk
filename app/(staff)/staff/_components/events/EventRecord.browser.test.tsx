@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import EventRecord from "./EventRecord";
-import { exampleGuests, exampleGuestsAnsweringNothing } from "./EventRecord.examples";
+import { exampleCounts, exampleGuests, exampleGuestsAnsweringNothing } from "./EventRecord.examples";
 import { exampleEvents, exampleEventsNow } from "./EventsTable.examples";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 
 const copy = eventsCopy.events;
 const words = eventsCopy.event;
@@ -17,7 +17,15 @@ const cells = (name: string) => [...row(name).querySelectorAll("td")].map((td) =
 
 describe("EventRecord", () => {
   it("shows the event's facts, its hosts and its page on Luma, and how many have each status", async () => {
-    await render(<EventRecord event={protest} guests={exampleGuests} now={exampleEventsNow} broadcast={null} />);
+    await render(
+      <EventRecord
+        event={protest}
+        guests={exampleGuests}
+        counts={exampleCounts(exampleGuests)}
+        now={exampleEventsNow}
+        broadcast={null}
+      />,
+    );
     await expect.element(page.getByRole("heading", { level: 1, name: protest.name })).toBeVisible();
     await expect.element(page.getByText("London", { exact: true })).toBeVisible();
     await expect.element(page.getByText("Big events, London")).toBeVisible();
@@ -34,7 +42,13 @@ describe("EventRecord", () => {
 
   it("lists each guest with their status and dates, and the postcode, phone and Came from columns some have", async () => {
     await render(
-      <EventRecord event={protest} guests={exampleGuests} now={exampleEventsNow} broadcast={<button>Email</button>} />,
+      <EventRecord
+        event={protest}
+        guests={exampleGuests}
+        counts={exampleCounts(exampleGuests)}
+        now={exampleEventsNow}
+        broadcast={<button>Email</button>}
+      />,
     );
     await expect.element(page.getByRole("heading", { name: words.guests })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Email" })).toBeVisible();
@@ -67,7 +81,13 @@ describe("EventRecord", () => {
 
   it("leaves out the postcode, phone and Came from columns when no guest has one", async () => {
     await render(
-      <EventRecord event={protest} guests={exampleGuestsAnsweringNothing} now={exampleEventsNow} broadcast={null} />,
+      <EventRecord
+        event={protest}
+        guests={exampleGuestsAnsweringNothing}
+        counts={exampleCounts(exampleGuestsAnsweringNothing)}
+        now={exampleEventsNow}
+        broadcast={null}
+      />,
     );
     expect(headings()).toEqual([
       words.columns.name,
@@ -78,7 +98,9 @@ describe("EventRecord", () => {
   });
 
   it("says when no one has registered, and tags an event taken off Luma", async () => {
-    await render(<EventRecord event={removed} guests={[]} now={exampleEventsNow} broadcast={null} />);
+    await render(
+      <EventRecord event={removed} guests={[]} counts={exampleCounts([])} now={exampleEventsNow} broadcast={null} />,
+    );
     await expect.element(page.getByText(words.noGuests)).toBeVisible();
     await expect.element(page.getByText(copy.removed)).toBeVisible();
     await expect.element(page.getByText(copy.online)).not.toBeInTheDocument();
@@ -90,6 +112,7 @@ describe("EventRecord", () => {
       <EventRecord
         event={{ ...protest, city: null, hosts: [] }}
         guests={null}
+        counts={null}
         now={exampleEventsNow}
         broadcast={<button>Email</button>}
       />,

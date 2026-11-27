@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SearchedEvent } from "./staff-events-list.server";
 import {
-  eventHref,
   eventListColumns,
   eventsByOwner,
   eventsByTag,
@@ -9,9 +8,9 @@ import {
   EVENTS_PAGE_SIZE,
   findEvents,
   stillToCome,
-  type EventFilter,
   type EventList,
 } from "./list";
+import type { EventFilter } from "./list-terms";
 
 const NOW = new Date("2026-11-02T12:00:00.000Z");
 
@@ -288,12 +287,5 @@ describe("eventListColumns", () => {
   it("puts a single list in the first column, and none in either with none", () => {
     expect(split(list("a", 2))).toEqual([["a"], []]);
     expect(split()).toEqual([[], []]);
-  });
-});
-
-describe("eventHref", () => {
-  it("is the event's staff page, its ID made safe for the address", () => {
-    expect(eventHref("evt-abc")).toBe("/staff/events/evt-abc");
-    expect(eventHref("evt a/b")).toBe("/staff/events/evt%20a%2Fb");
   });
 });

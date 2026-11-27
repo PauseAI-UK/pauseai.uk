@@ -12,7 +12,7 @@ import Bubble from "@/components/ui/Bubble";
 import Notice from "../ui/Notice";
 import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./EventsTable.module.css";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 import { staffMemberText } from "@/lib/staff-member";
 
 const copy = eventsCopy.events;

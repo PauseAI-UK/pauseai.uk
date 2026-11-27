@@ -1,7 +1,7 @@
 // EventsTable in the component gallery (app/(tools)/gallery/), in the staff mailings
 // and events group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { eventsCopy } from "@/lib/events/copy";
+import { eventsCopy } from "./copy";
 import PageHead from "../ui/PageHead";
 import StaffPage from "../ui/StaffPage";
 import { EventGroups, EventsIntro, EventTabs, Missing } from "./EventsTable";

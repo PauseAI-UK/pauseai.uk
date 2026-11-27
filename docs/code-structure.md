@@ -254,7 +254,7 @@ text may be written in the page.
   with `lib/`). `_components/<feature>/copy.ts` has those only its
   components use, and spreads the first, so a component imports only its
   own folder's `copy.ts`. A feature whose components have no words of their
-  own (`events`, `asks`) has no components' copy.
+  own (`asks`) has no components' copy.
 - **Words several features share** are `staffVocabulary`
   (`lib/staff-vocabulary.ts`): the kit's (the page title, the trail,
   deleting, a list's search, filters and paging) and the domain's (houses,

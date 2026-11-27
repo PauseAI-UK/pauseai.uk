@@ -10,7 +10,7 @@ import { getPolitician, listParties } from "@/lib/politicians/records.server";
 import { politicianAliases } from "@/lib/politicians/aliases.server";
 import { politicianBook } from "@/lib/letters/book.server";
 import { savedFiltersState } from "./saved-filters.server";
-import { eventsPage } from "@/lib/events/staff-events-list.server";
+import { eventsPage } from "@/lib/events/list-page.server";
 import { getSupporter, supporterChoices } from "@/lib/supporters/records.server";
 
 vi.mock("react", async (original) => ({

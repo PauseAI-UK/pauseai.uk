@@ -1,4 +1,5 @@
-import type { Guest } from "@/lib/events/event-page.server";
+import type { Guest, GuestCount } from "@/lib/events/event-page.server";
+import { GUEST_STATUSES } from "@/lib/events/guests";
 
 // Example guests of an event for its page's gallery entries and browser
 // tests: one of each status on Luma, one linked to their supporter, one
@@ -47,3 +48,8 @@ export const exampleGuestsAnsweringNothing: Guest[] = exampleGuests.map((one) =>
   phone: null,
   cameFrom: null,
 }));
+
+/** How many of `guests` have each status, as eventPage counts them. */
+export function exampleCounts(guests: Guest[]): GuestCount[] {
+  return GUEST_STATUSES.map((status) => ({ status, n: guests.filter((one) => one.status === status).length }));
+}

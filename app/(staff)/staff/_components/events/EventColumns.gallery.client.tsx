@@ -2,7 +2,7 @@
 
 // EventColumns' examples that log what their edit forms do (EventColumns.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import type { EventGrouping } from "@/lib/events/list";
+import type { EventGrouping } from "@/lib/events/list-terms";
 import EventColumns, { EventsList } from "./EventColumns";
 import { exampleEventsNow, exampleEventsTab, exampleEventsToCome, exampleStaff } from "./EventsTable.examples";
 

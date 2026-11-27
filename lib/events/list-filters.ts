@@ -1,7 +1,7 @@
 // The events list's filter bar (lib/staff-list-filters.ts).
 import { staffMemberText } from "@/lib/staff-member";
 import { WINDOW_OPTIONS } from "@/lib/time-windows";
-import { NO_OWNER, ONLINE } from "./list";
+import { NO_OWNER, ONLINE } from "./list-terms";
 import { EVENTS_LIST } from "@/lib/staff-lists";
 import { eventsCopy } from "./copy";
 import { listFilters, choicesOf } from "@/lib/staff-list-filters";
