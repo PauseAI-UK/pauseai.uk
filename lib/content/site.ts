@@ -1,7 +1,6 @@
 export const site = {
   url: "https://pauseai.uk",
   gaId: "G-DLLRWZCYD7",
-  whatsappUrl: "https://chat.whatsapp.com/F0nj2RjLNeB1P1hyoDFsTz",
   shopUrl: "https://pauseai-shop.fourthwall.com/en-gbp",
   openLetterPath: "/campaigns/dear-sir-demis-2025",
   contactEmail: "hello@pauseai.uk",
@@ -18,3 +17,12 @@ export const site = {
     linktree: "https://linktr.ee/pauseai_uk",
   },
 };
+
+/**
+ * The WhatsApp community's page (app/(site)/whatsapp), with where the
+ * button for it is, such as `footer` or a group's page, as its utm_source,
+ * which analytics records. No page holds the community's own link.
+ */
+export function whatsappJoinPath(from: string): string {
+  return `/whatsapp?utm_source=${encodeURIComponent(from)}`;
+}

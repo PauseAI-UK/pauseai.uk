@@ -38,7 +38,7 @@ describe("content sections", () => {
       <>
         <Foreword />
         <ChangeSteps />
-        <Closing />
+        <Closing from="theory-of-change" />
       </>,
     );
     await expect.element(page.getByRole("heading", { name: "Long-term goals" })).toBeVisible();

@@ -1,5 +1,5 @@
-import { ButtonAnchor } from "@/components/ui/Button";
-import { site } from "@/lib/content/site";
+import { ButtonLink } from "@/components/ui/Button";
+import { site, whatsappJoinPath } from "@/lib/content/site";
 import Section, { Lede } from "@/components/ui/Section";
 import Callout from "@/components/ui/Callout";
 
@@ -23,9 +23,9 @@ export default function GetInvolved() {
               .
             </Lede>
           </div>
-          <ButtonAnchor variant="primary" size="large" href={site.whatsappUrl} target="_blank" rel="noreferrer">
+          <ButtonLink variant="primary" size="large" href={whatsappJoinPath("get-involved")}>
             Join the WhatsApp community
-          </ButtonAnchor>
+          </ButtonLink>
         </Callout>
       </div>
     </Section>

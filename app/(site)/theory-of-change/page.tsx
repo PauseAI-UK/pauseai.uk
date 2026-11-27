@@ -21,7 +21,7 @@ export default function TheoryOfChangePage() {
 
         <ChangeSteps />
 
-        <Closing />
+        <Closing from="theory-of-change" />
       </main>
     </>
   );

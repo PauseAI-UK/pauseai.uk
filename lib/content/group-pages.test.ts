@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { groupMetadata, groupPages } from "./group-pages";
 import { groups } from "./groups";
-import { site } from "./site";
+import { site, whatsappJoinPath } from "./site";
 
 describe("group pages", () => {
   it("has a page for every group, under its own name", () => {
@@ -13,10 +13,10 @@ describe("group pages", () => {
     for (const page of Object.values(groupPages)) expect(page.hero.actions.length, page.name).toBeGreaterThan(0);
   });
 
-  it("gives every contact section a WhatsApp button and an email button, the first the only primary one", () => {
+  it("gives every contact section a WhatsApp button, saying which group it's for, and an email button, the first the only primary one", () => {
     for (const { name, contact } of Object.values(groupPages)) {
       const hrefs = contact.actions.map((action) => action.href);
-      expect(hrefs, name).toContain(site.whatsappUrl);
+      expect(hrefs, name).toContain(whatsappJoinPath(name.toLowerCase().replaceAll(" ", "-")));
       expect(
         hrefs.filter((href) => href.startsWith("mailto:")),
         name,
@@ -32,7 +32,7 @@ describe("group pages", () => {
     const first = (name: keyof typeof groupPages) => groupPages[name].contact.actions[0].href;
     for (const name of ["Oxford", "Leicester", "Cambridge"] as const) expect(first(name), name).toMatch(/^mailto:/);
     for (const name of ["London", "Scotland", "West of England", "Parents", "Teachers"] as const) {
-      expect(first(name), name).toBe(site.whatsappUrl);
+      expect(first(name), name).toMatch(/^\/whatsapp\?utm_source=/);
       expect(groupPages[name].contact.actions[1].href, name).toBe(`mailto:${site.contactEmail}`);
     }
   });

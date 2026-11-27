@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { GroupAction, GroupPageContent } from "@/components/groups/GroupPage";
 import { groupNamed, type GroupName } from "./groups";
-import { site } from "./site";
+import { site, whatsappJoinPath } from "./site";
 
 // What each group's page says, rendered by components/groups/GroupPage.tsx.
 // A local group's name, path, map pin and header logo are in
@@ -13,7 +13,9 @@ import { site } from "./site";
 // rest lead with WhatsApp, then email the team. Manchester leads with what
 // its organiser offers, a chat.
 
-const WHATSAPP = { label: "Join the WhatsApp community", href: site.whatsappUrl, newTab: true } as const;
+/** The button to join the WhatsApp community, saying which group's page it's on. */
+const whatsapp = (group: string) =>
+  ({ label: "Join the WhatsApp community", href: whatsappJoinPath(group), internal: true }) as const;
 const EMAIL_THE_TEAM = { label: "Email the team", href: `mailto:${site.contactEmail}` } as const;
 const WEST_OF_ENGLAND_LINKS = {
   label: "All our links",
@@ -29,8 +31,8 @@ const MANCHESTER_CHAT = {
 const CAMBRIDGE_EMAIL = "cambridge@pauseai.uk";
 
 /** The contact buttons of a group with no address of its own. */
-const WHATSAPP_THEN_TEAM: GroupAction[] = [
-  { ...WHATSAPP, variant: "primary" },
+const whatsappThenTeam = (group: string): GroupAction[] => [
+  { ...whatsapp(group), variant: "primary" },
   { ...EMAIL_THE_TEAM, variant: "ghost" },
 ];
 
@@ -41,7 +43,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       lede: "Bringing AI safety conversations to Scotland with public events, panels, and community organising.",
       actions: [
         { label: "View event calendar", href: site.social.luma, variant: "primary", newTab: true },
-        { ...WHATSAPP, variant: "ghost" },
+        { ...whatsapp("scotland"), variant: "ghost" },
         {
           label: "March against data centres, Edinburgh, Sat 14th Nov",
           href: "https://luma.com/mpan6y4o",
@@ -71,7 +73,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the WhatsApp community to connect with local organisers and hear about UK-wide events and campaigns.",
-      actions: WHATSAPP_THEN_TEAM,
+      actions: whatsappThenTeam("scotland"),
     },
   },
 
@@ -80,7 +82,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     hero: {
       lede: "Building a local network in the North West to campaign for AI safety, host discussions, and support national actions.",
       actions: [
-        { ...WHATSAPP, variant: "primary" },
+        { ...whatsapp("manchester"), variant: "primary" },
         {
           label: "Follow us on Instagram",
           href: "https://www.instagram.com/pauseai.manchester",
@@ -130,7 +132,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       actions: [
         { ...MANCHESTER_CHAT, variant: "primary" },
         { label: "Email us", href: "mailto:Adr.Skapars@gmail.com", variant: "ghost" },
-        { ...WHATSAPP, variant: "ghost" },
+        { ...whatsapp("manchester"), variant: "ghost" },
       ],
     },
   },
@@ -139,7 +141,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     name: "West of England",
     hero: {
       lede: "A new group bringing AI safety conversations and action to Bristol and the wider West of England.",
-      actions: [{ ...WHATSAPP, variant: "primary" }, WEST_OF_ENGLAND_LINKS],
+      actions: [{ ...whatsapp("west-of-england"), variant: "primary" }, WEST_OF_ENGLAND_LINKS],
       photo: "/images/local-groups/west-of-england/bristol-launch.jpg",
       photoStyle: {
         backgroundSize: "cover, cover",
@@ -150,7 +152,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the UK-wide WhatsApp to connect with organisers and hear about national events and campaigns.",
-      actions: [...WHATSAPP_THEN_TEAM, WEST_OF_ENGLAND_LINKS],
+      actions: [...whatsappThenTeam("west-of-england"), WEST_OF_ENGLAND_LINKS],
     },
   },
 
@@ -194,7 +196,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       lede: "Get in touch if you can host an event, promote a meetup, or want to collaborate on outreach.",
       actions: [
         { label: "Email Leicester", href: "mailto:leicester@pauseai.info", variant: "primary" },
-        { ...WHATSAPP, variant: "ghost" },
+        { ...whatsapp("leicester"), variant: "ghost" },
       ],
     },
   },
@@ -204,7 +206,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     hero: {
       lede: "Conversations on AI risk in Cambridge, grounded in collaboration between students, researchers, and local residents.",
       actions: [
-        { ...WHATSAPP, variant: "primary" },
+        { ...whatsapp("cambridge"), variant: "primary" },
         { label: `Email ${CAMBRIDGE_EMAIL}`, href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "ghost" },
       ],
       photo: "/images/local-groups/cambridge/hero.webp",
@@ -214,7 +216,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       lede: "Email us to attend the next meet, or to host an event in Cambridge.",
       actions: [
         { label: "Email Cambridge", href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "primary" },
-        { ...WHATSAPP, variant: "ghost" },
+        { ...whatsapp("cambridge"), variant: "ghost" },
       ],
     },
   },
@@ -251,7 +253,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       lede: "Email us to join the mailing list, attend the next meet, or host an event on campus.",
       actions: [
         { label: "Email Oxford", href: "mailto:oxford@pauseai.info", variant: "primary" },
-        { ...WHATSAPP, variant: "ghost" },
+        { ...whatsapp("oxford"), variant: "ghost" },
       ],
     },
   },
@@ -261,7 +263,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     hero: {
       lede: "We gather researchers, students, campaigners, and neighbours to push for safer AI development through public action and dialogue.",
       actions: [
-        { ...WHATSAPP, variant: "primary" },
+        { ...whatsapp("london"), variant: "primary" },
         { ...EMAIL_THE_TEAM, variant: "ghost" },
       ],
       photo: "/images/book-launch-2025/G1kOF_EXMAA7yfX.jpeg",
@@ -269,7 +271,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "We meet regularly in central London for talks, workshops, and campaign planning. New to the movement? Start by joining the WhatsApp community, then drop us an email if you'd like to host or speak at an event.",
-      actions: WHATSAPP_THEN_TEAM,
+      actions: whatsappThenTeam("london"),
     },
   },
 
@@ -278,7 +280,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     hero: {
       lede: "We're parents and carers worried about the world our children will grow up in. Together we campaign to stop the race to superintelligent AI until it can be shown to be safe.",
       actions: [
-        { ...WHATSAPP, variant: "primary" },
+        { ...whatsapp("parents"), variant: "primary" },
         { ...EMAIL_THE_TEAM, variant: "ghost" },
       ],
       photo: "/images/groups/parents-hero.webp",
@@ -287,7 +289,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the WhatsApp community to meet other parents and carers, or email us to find out more.",
-      actions: WHATSAPP_THEN_TEAM,
+      actions: whatsappThenTeam("parents"),
     },
   },
 
@@ -296,7 +298,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     hero: {
       lede: "We're teachers, lecturers and school staff watching AI change classrooms faster than anyone can keep up. We campaign to stop the race to superintelligent AI until it can be shown to be safe.",
       actions: [
-        { ...WHATSAPP, variant: "primary" },
+        { ...whatsapp("teachers"), variant: "primary" },
         { ...EMAIL_THE_TEAM, variant: "ghost" },
       ],
       photo: "/images/groups/teachers-hero.webp",
@@ -305,7 +307,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the WhatsApp community to meet other teachers and school staff, or email us to find out more.",
-      actions: WHATSAPP_THEN_TEAM,
+      actions: whatsappThenTeam("teachers"),
     },
   },
 };

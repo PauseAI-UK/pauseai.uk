@@ -21,6 +21,7 @@ import PersonStory from "@/app/(site)/people/_components/PersonStory";
 import ShareYourStory from "@/app/(site)/people/_components/ShareYourStory";
 import StoryGrid from "@/app/(site)/people/_components/StoryGrid";
 import CoverageList from "@/app/(site)/press/_components/CoverageList";
+import WaitingRoomDown from "@/app/(site)/whatsapp/_components/WaitingRoomDown";
 import PressKit from "@/app/(site)/press/_components/PressKit";
 import { EXAMPLE_COVERAGE } from "@/app/(site)/press/_components/PressKit.examples";
 import PrivacyPolicy from "@/app/(site)/privacy/_components/PrivacyPolicy";
@@ -29,6 +30,7 @@ import ChangeForeword from "@/app/(site)/theory-of-change/_components/Foreword";
 import About from "@/app/(site)/what-is-pauseai-uk/_components/About";
 import { people, personSlug, type Person } from "@/lib/content/people";
 import { pausefest } from "@/lib/content/pausefest";
+import ProsePage from "@/components/ui/ProsePage";
 import type { Group } from "../_components/types";
 
 /** Who's going to an event, with Luma's featured guests made up and none with a photo, which a fixture build won't fetch. */
@@ -191,6 +193,20 @@ export const pages: Group = {
       name: "ShareYourStory",
       file: "app/(site)/people/_components/ShareYourStory.tsx",
       variants: [{ label: "The form, under its invitation", render: () => <ShareYourStory id="example-share" /> }],
+    },
+    {
+      name: "WaitingRoomDown",
+      file: "app/(site)/whatsapp/_components/WaitingRoomDown.tsx",
+      variants: [
+        {
+          label: "The WhatsApp page while its waiting room is down",
+          render: () => (
+            <ProsePage>
+              <WaitingRoomDown />
+            </ProsePage>
+          ),
+        },
+      ],
     },
     {
       name: "PressKit",

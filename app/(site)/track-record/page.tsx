@@ -17,7 +17,7 @@ export default function TrackRecordPage() {
 
       <Timeline />
 
-      <Closing line="Join us for what comes next." />
+      <Closing from="track-record" line="Join us for what comes next." />
     </main>
   );
 }

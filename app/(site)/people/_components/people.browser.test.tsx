@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { people, personSlug, type Person } from "@/lib/content/people";
-import { site } from "@/lib/content/site";
 import PersonHeader from "./PersonHeader";
 import PersonStory from "./PersonStory";
 import ShareYourStory from "./ShareYourStory";
@@ -45,6 +44,8 @@ describe("people pages", () => {
   it("invites readers to share their own story, linkable when given an id", async () => {
     const { container } = await render(<ShareYourStory id="share-your-story" />);
     expect(container.querySelector("section")?.id).toBe("share-your-story");
-    await expect.element(page.getByRole("link", { name: "our community" })).toHaveAttribute("href", site.whatsappUrl);
+    await expect
+      .element(page.getByRole("link", { name: "our community" }))
+      .toHaveAttribute("href", "/whatsapp?utm_source=people");
   });
 });
