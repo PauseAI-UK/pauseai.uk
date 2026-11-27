@@ -7,3 +7,5 @@ export function worktreeOf(porcelain: string, branch: string): string | undefine
 export function networkAddress(interfaces?: NodeJS.Dict<NetworkInterfaceInfo[]>): string;
 export function towardsNext(headers: IncomingHttpHeaders, local: string): OutgoingHttpHeaders;
 export function withoutSecure(cookies: string[] | undefined): string[] | undefined;
+export const TURNSTILE_TEST_SITE_KEY: string;
+export function servedEnv(env: Record<string, string | undefined>): Record<string, string | undefined>;

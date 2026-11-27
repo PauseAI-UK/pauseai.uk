@@ -90,6 +90,24 @@ export function towardsNext(headers, local) {
   return sent;
 }
 
+/** Cloudflare's test site key, whose widget loads anywhere and passes everyone. */
+export const TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA";
+
+/**
+ * The fixture settings as served, to use rather than picture: the clock
+ * runs and there are no analytics. The browser draws Cloudflare's own
+ * Turnstile with its test key, as the storyboard's stand-in for its script
+ * isn't there, and the fixture's key makes the real widget fail and every
+ * form behind it wait. The server's check is the fixture's, which passes
+ * the test key's token.
+ */
+export function servedEnv(env) {
+  const served = { ...env, NEXT_PUBLIC_TURNSTILE_SITE_KEY: TURNSTILE_TEST_SITE_KEY };
+  delete served.FIXTURE_NOW;
+  delete served.ANALYTICS;
+  return served;
+}
+
 /** A response's Set-Cookie headers without Secure, so a browser keeps them over plain http. */
 export function withoutSecure(cookies) {
   return cookies?.map((cookie) => cookie.replace(/;\s*Secure(?=;|$)/gi, ""));
@@ -255,10 +273,7 @@ async function main(args) {
   const outbox = join(tmpdir(), `pauseai-serve-outbox-${hash}`);
   // Read in the worktree, so it's that branch's.
   const { fixtureEnv, TEST_MP_EMAIL } = await import(join(dir, "lib", "server", "fixtures", "fixture-env.mjs"));
-  const env = { ...process.env, ...fixtureEnv({ outboxDir: outbox, origin: link.slice(0, -1) }) };
-  // The clock runs, and no analytics: it's to use, not to picture.
-  delete env.FIXTURE_NOW;
-  delete env.ANALYTICS;
+  const env = servedEnv({ ...process.env, ...fixtureEnv({ outboxDir: outbox, origin: link.slice(0, -1) }) });
   // The services asked for for real, with any key of theirs from this shell rather than the fixture's.
   if (asked.real) {
     env.REAL_SERVICES = asked.real.join(",");
