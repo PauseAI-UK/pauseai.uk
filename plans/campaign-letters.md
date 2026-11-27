@@ -48,31 +48,50 @@ it").
 
 ## What's stored
 
-The draft is kept on the campaign's row, and published versions in a
-table of their own, where they're only ever added, never changed. That
-way "a version never changes once published" is true of the table
-itself, rather than something the code has to be careful about.
-
-`campaigns` gains the draft, all empty while there isn't one:
-
-- `draft_subject` and `draft_body` (the letter, as a mailing's body is
-  kept: JSON with fields and parts only some get);
-- `draft_version`, which goes up with each save, so that when two staff
-  edit at once the second save is refused rather than overwriting the
-  first, as with mailings;
-- `draft_updated_at` and `draft_updated_by`.
-
-`campaign_letters` is new, with a row for each published version:
+`campaign_letters` is new. A row is one of a campaign's letters, as
+staff write it: a published version, or the draft staff are working on.
 
 - `id`;
 - `campaign`, the campaign's slug, deleted with the campaign;
-- `subject` and `body`;
-- `published_at`, and `published_by`, the staff member's email (empty for
-  the two versions the migration copies from the code).
+- `subject` and `body` (the letter, as a mailing's body is kept: JSON
+  with fields and parts only some get);
+- `version`, which goes up with each save of a draft, so that when two
+  staff edit at once the second save is refused rather than overwriting
+  the first, as with mailings;
+- `updated_at` and `updated_by`, the last save;
+- `published_at` and `published_by`, the staff member's email, both
+  empty on the draft. The two versions the migration copies from the
+  code have a `published_at` but no `published_by`.
+
+A campaign has at most one draft (a unique index on `campaign` where
+`published_at` is empty). Publishing stamps the draft with
+`published_at` and `published_by`, and from then on the database refuses
+any change to that row. Editing again starts a new draft, a copy of the
+latest version.
 
 `letters_from_supporters` gains `campaign_letter_id`, the version the
-letter started from, empty for letters from before. A campaign still
-can't be deleted while it has letters, as every letter points at it.
+letter started from, empty for letters from before. It only ever points
+at a published version: the server checks that when it takes a letter,
+and the draft can't be sent from, as the form never sees it. A campaign
+still can't be deleted while it has letters, as every letter points at
+it.
+
+For example, the Sobel bill's campaign after staff have published one
+change and started on another:
+
+| id | campaign | subject | published_at | published_by |
+|---|---|---|---|---|
+| 1 | support-sobel-bill | Request to support the Artificial Superintelligence Bill | 2026-12-01 09:00 | (from the code) |
+| 4 | support-sobel-bill | Request to support the Artificial Superintelligence Bill | 2026-12-03 14:20 | jane.smith@example.com |
+| 7 | support-sobel-bill | Please attend the debate on the Artificial Superintelligence Bill | | |
+
+Row 7 is the draft. Supporters start from row 4, and the letters they
+send have `campaign_letter_id` 4.
+
+What isn't stored, and is worked out each time: which version is
+current (the latest published), how many letters each version got
+(counted from the letters), and whether a campaign is open (it has a
+published version).
 
 The migration copies the two campaigns' letters from the code as their
 first versions, written out as JSON, with the Sobel bill's thank-you
