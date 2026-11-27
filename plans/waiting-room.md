@@ -37,6 +37,72 @@ community's link to those who look real, holding the rest for staff.
 
 Someone who never replies gets no reminder.
 
+**A join is the button's message, matched loosely.** WhatsApp puts the
+typed message in their message box, where they can change it before
+sending. So a first message with the button's code, such as `(parents)`,
+or asking to join, starts the waiting room. Anything else that answers no
+text of ours is emailed to staff, as any such message is now, so one that
+was rewritten past matching isn't lost.
+
+**Everyone who comes through becomes a supporter**, linked by their number
+as the community's CSV import links its members, and by the email they
+give, if any, to anyone we already have under it. What they give goes on
+their record: profile name, email, postcode and where they came from.
+
+**Half a postcode is the usual answer.** In the old waiting room, people
+asked for "your postcode or the name of your MP" gave its first half
+("E15") or named their MP, and nobody gave an email. A first half is kept
+as any postcode is: supporters' places already place one roughly, through
+postcodes.io's outcodes, as they do for paper sign-ups. The check pulls
+out a first half as well as a full postcode, and an MP's name not at all.
+
+**The check was tried** on twenty made-up replies shaped like the old
+waiting room's: sincere ones long and short, in English and French, and
+greetings, emoji, adverts, a crypto channel, gibberish and abuse. Claude
+Haiku 5.5 at low effort judged all of them as a person would, four runs
+out of four, and pulled out every full postcode and email.
+
+**Missing details don't hold anyone up.** Someone who passes gets the link
+at once, whatever else they gave. If there was no full postcode, a line
+under the link asks for it, so we can tell them when there's a chance to
+contact their MP. A later message with a postcode or email updates their
+record.
+
+**Staff change the community's link on the waiting room page**, under
+the Supporters permission, and it takes effect at once: it's kept in the
+database, not in Netlify's settings. The page says when it was last
+changed and by whom, and the audit log keeps each change. It's reset when
+there's a reason, such as spam in the community or the link seen in
+public, not on a timetable.
+
+**It starts unlinked, at `/whatsapp/beta`.** The waiting room is built
+and tried there while every button still leads to `/whatsapp`, which says
+the waiting room is down. Once it works, `/whatsapp` becomes it.
+
+**The old waiting room group is gone.** No code knows it; only the docs
+do, as where the community's CSV import gets its consent, and their words
+change when this ships. The CSV import itself is left as it is for now.
+
+**Messages after the first reply.** While held, a second message gets
+one "Thanks, someone will check and get back to you soon", and joins what
+staff see. Once they're in, nothing is said back: a postcode or email
+updates their record, the message shows on the waiting room page, and
+anything else that answers no text of ours is emailed to staff as now. A
+second join message from someone already in gets the link again. Once
+dismissed, nothing is said back and nothing reaches the LLM or staff;
+their messages are kept for their record.
+
+**Staff see the whole chat** on the person's waiting room entry and their
+supporter page, drawn as a broadcast copy's conversation is
+(`ChatWall` and `ChatBubble`, `app/(staff)/staff/_components/broadcasts/TextBubble.tsx`):
+theirs at the left, ours at the right in green.
+
+**The LLM is lenient.** Any sincere reply from a person passes, however
+short: "worried about AI", "a friend told me about you". It holds what's
+empty or junk: "hi" alone, adverts, links to other groups, gibberish. It
+says why it held one, for staff. It's Claude Haiku, through the Anthropic
+API the site already uses. If it can't be reached, the reply is held.
+
 The WhatsApp API can't add anyone to a community, nor invite them to one:
 it doesn't know communities at all, and groups it makes are capped at 8
 people (Meta's Groups API docs). So the link is sent as a message, and the
@@ -69,26 +135,4 @@ Mocked up: https://claude.ai/artifact/P8TCoTdXUwt1oX5ZnjvKYk
 
 ## The tables
 
-To be written once the questions below are answered, and agreed before
-any migration.
-
-## Open questions
-
-1. **Telling a join from other messages.** Our number also gets replies to
-   broadcasts. Is a join only a message that starts with the button's typed
-   text? What if a supporter we already text writes "I'd like to join"?
-2. **What the LLM judges.** What counts as a real person: any sincere
-   sentence, or something about AI? Which model? If the LLM is down, is the
-   reply held for staff?
-3. **Missing details.** If the reply has a reason but no postcode or email,
-   or only half a postcode, does the bot ask once more, or let them in
-   without?
-4. **Messages after the first reply.** What someone hears if they write
-   again while held ("we're checking"), after they're in, or after being
-   dismissed (nothing).
-5. **Rotating the link.** Who resets the community's invite link, how
-   often, and how the site learns the new one. Today that's an admin's
-   phone, then `WHATSAPP_INVITE_URL` in Netlify and a redeploy.
-6. **The old ways in.** Whether the waiting room group closes, and whether
-   the CSV import of the community's members stays, for people added other
-   ways.
+To be written next, and agreed before any migration.
