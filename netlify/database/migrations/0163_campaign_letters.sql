@@ -7,7 +7,7 @@
 -- the sender's name, and parts only for MPs with an answer to an ask.
 -- `version` counts a draft's saves, so a save from a page that's fallen
 -- behind is refused. Publishing stamps the draft with `published_at` and
--- `published_by`, and a published row never changes after. The versions
+-- `published_by`, and what a published row says never changes after. The versions
 -- this migration copies from the code have no `published_by`.
 CREATE TABLE campaign_letters (
   id           bigserial PRIMARY KEY,
@@ -25,7 +25,8 @@ CREATE TABLE campaign_letters (
 -- A campaign has one draft at most.
 CREATE UNIQUE INDEX campaign_letters_one_draft ON campaign_letters (campaign) WHERE published_at IS NULL;
 
--- A published version is what letters started from, so it never changes.
+-- A published version is what letters started from, so what it says never
+-- changes: its campaign, subject and letter.
 CREATE FUNCTION campaign_letters_published_fixed() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -33,7 +34,10 @@ BEGIN
 END;
 $$;
 CREATE TRIGGER campaign_letters_published_fixed BEFORE UPDATE ON campaign_letters
-  FOR EACH ROW WHEN (OLD.published_at IS NOT NULL) EXECUTE FUNCTION campaign_letters_published_fixed();
+  FOR EACH ROW WHEN (
+    OLD.published_at IS NOT NULL
+    AND (NEW.campaign, NEW.subject, NEW.body) IS DISTINCT FROM (OLD.campaign, OLD.subject, OLD.body)
+  ) EXECUTE FUNCTION campaign_letters_published_fixed();
 
 -- The version a supporter's letter started from, of the letter's own
 -- campaign; none for letters from before there were versions.

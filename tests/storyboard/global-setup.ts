@@ -81,6 +81,8 @@ export default async function globalSetup(): Promise<void> {
            col.column_name, '${migrating}');
        END LOOP;
      END $$;
+     -- The campaigns' letters the migrations publish, at the real clock's time, with no default to follow.
+     UPDATE campaign_letters SET published_at = fixture.now() WHERE published_by IS NULL;
      UPDATE staff_accounts SET gmail_connected_at = CASE WHEN gmail_token IS NOT NULL THEN fixture.now() END
       WHERE added_by = 'migration';`,
   );

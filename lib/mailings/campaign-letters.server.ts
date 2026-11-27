@@ -1,12 +1,12 @@
 import "server-only";
 import { listAsks, type Ask } from "@/lib/asks/records.server";
-import { unpublishable, type CampaignLetter, type UnpublishableReason } from "@/lib/email-your-mp";
+import { campaignBySlug, unpublishable, type CampaignLetter, type UnpublishableReason } from "@/lib/email-your-mp";
 import { checkMailingDoc, greetingLetter, type MailingDoc, type MailingRecipientValues } from "./doc";
 import type { SaveResult } from "./drafts.server";
 import type { MailingChoice } from "./fields";
 import { answerChoices } from "./recipients.server";
 import { mailingPoliticians } from "@/lib/politicians/records.server";
-import { query, type Queryable } from "@/lib/server/db.server";
+import { query, transaction, type Queryable } from "@/lib/server/db.server";
 
 // Each campaign's letter, as staff write it (campaign_letters): the
 // versions published, the latest of which supporters start from, and the
@@ -30,14 +30,14 @@ function checked(row: CampaignLetterRow): CampaignLetterRow {
   return { ...row, body: checkMailingDoc(row.body)! };
 }
 
-/** The version supporters start from: the campaign's latest published; none before its first. */
-export async function publishedLetter(campaign: string): Promise<CampaignLetter | undefined> {
+/** The version supporters start from: the campaign's latest published; null before its first. */
+export async function publishedLetter(campaign: string): Promise<CampaignLetter | null> {
   const [row] = await query<CampaignLetterRow>(
     `SELECT ${COLUMNS} FROM campaign_letters WHERE campaign = $1 AND published_at IS NOT NULL
      ORDER BY published_at DESC, id DESC LIMIT 1`,
     [campaign],
   );
-  return row && { id: row.id, subject: row.subject, body: checkMailingDoc(row.body)! };
+  return row ? { id: row.id, subject: row.subject, body: checkMailingDoc(row.body)! } : null;
 }
 
 /** A published version of the campaign's letter, by its ID; none for a draft, or another campaign's. */
@@ -71,6 +71,12 @@ export async function publishedVersions(campaign: string): Promise<{ versions: P
     ),
   ]);
   return { versions: versions.map((row) => ({ ...row, body: checkMailingDoc(row.body)! })), before };
+}
+
+/** Whether a campaign in the code has a draft open; for one not in the code, whose letter isn't staff's, undefined. */
+export async function hasDraft(campaign: string): Promise<boolean | undefined> {
+  if (!campaignBySlug(campaign)) return undefined;
+  return (await campaignDraft(campaign)) !== undefined;
 }
 
 /** The campaign's draft, if staff have one open. */
@@ -139,19 +145,19 @@ export async function publishCampaignDraft(
   version: number,
   by: string,
 ): Promise<SaveResult | { saved: false; reason: UnpublishableReason }> {
-  const [draft] = await query<CampaignLetterRow>(
-    `SELECT ${COLUMNS} FROM campaign_letters WHERE id = $1 AND version = $2 AND published_at IS NULL`,
-    [id, version],
-  );
-  if (!draft) return notSaved(id);
-  const reason = unpublishable(checked(draft));
-  if (reason) return { saved: false, reason };
-  const [row] = await query<{ version: number }>(
-    `UPDATE campaign_letters SET published_at = now(), published_by = $3
-     WHERE id = $1 AND version = $2 AND published_at IS NULL RETURNING version`,
-    [id, version, by],
-  );
-  return row ? { saved: true, version: row.version } : notSaved(id);
+  return transaction(async (db) => {
+    // Locked, so no save comes between checking it and publishing it.
+    const [draft] = await query<CampaignLetterRow>(
+      `SELECT ${COLUMNS} FROM campaign_letters WHERE id = $1 AND version = $2 AND published_at IS NULL FOR UPDATE`,
+      [id, version],
+      db,
+    );
+    if (!draft) return notSaved(id, db);
+    const reason = unpublishable(checked(draft));
+    if (reason) return { saved: false, reason };
+    await query("UPDATE campaign_letters SET published_at = now(), published_by = $2 WHERE id = $1", [id, by], db);
+    return { saved: true, version };
+  });
 }
 
 /** Throws the draft away; whether there was one to. A published version is never deleted. */

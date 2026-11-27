@@ -86,6 +86,17 @@ describe("CampaignLetterWriter", () => {
     await vi.waitFor(() => expect(actions.publish).toHaveBeenCalledWith(7, 4));
   });
 
+  it("saves what's typed in the letter, and shows it in the preview", async () => {
+    const actions = await renderWriter();
+    const letter = page.getByRole("textbox", { name: mailingsCopy.mailingPages.letter });
+    await letter.click();
+    await userEvent.keyboard("{Control>}{End}{/Control} Hello again.");
+    await vi.waitFor(() => expect(actions.save).toHaveBeenCalled(), WAIT);
+    const [, , changes] = actions.save.mock.calls[0] as unknown as [number, number, { body: unknown }];
+    expect(JSON.stringify(changes.body)).toContain("Hello again.");
+    await expect.element(preview().getByText("Hello again.", { exact: false })).toBeVisible();
+  });
+
   it("won't publish without a subject, and says so", async () => {
     await renderWriter({ draft: { ...exampleCampaignDraft, subject: "" } });
     await expect.element(publish()).toBeDisabled();

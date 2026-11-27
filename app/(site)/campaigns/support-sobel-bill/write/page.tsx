@@ -23,7 +23,7 @@ export default async function Page() {
   const letter = await publishedLetter("support-sobel-bill");
   return (
     <LetterStep title={copy.write.title}>
-      <LetterWrite campaignSlug="support-sobel-bill" letter={letter ?? null} />
+      <LetterWrite campaignSlug="support-sobel-bill" letter={letter} />
     </LetterStep>
   );
 }

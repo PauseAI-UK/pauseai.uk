@@ -4423,7 +4423,7 @@ CREATE INDEX whatsapp_templates_default_variant ON public.whatsapp_templates USI
 -- Name: campaign_letters campaign_letters_published_fixed; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER campaign_letters_published_fixed BEFORE UPDATE ON public.campaign_letters FOR EACH ROW WHEN ((old.published_at IS NOT NULL)) EXECUTE FUNCTION public.campaign_letters_published_fixed();
+CREATE TRIGGER campaign_letters_published_fixed BEFORE UPDATE ON public.campaign_letters FOR EACH ROW WHEN (((old.published_at IS NOT NULL) AND (((new.campaign IS DISTINCT FROM old.campaign) OR (new.subject IS DISTINCT FROM old.subject)) OR (new.body IS DISTINCT FROM old.body)))) EXECUTE FUNCTION public.campaign_letters_published_fixed();
 
 --
 -- Name: ask_statuses ask_statuses_ask_ask_kind_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

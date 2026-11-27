@@ -4,6 +4,7 @@ import { query } from "@/lib/server/db.server";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./doc";
 import {
   campaignDraft,
+  hasDraft,
   campaignLetterChangesFrom,
   campaignWriterData,
   discardCampaignDraft,
@@ -47,7 +48,7 @@ describeWithDatabase("campaign letters", () => {
     expect((await publishedLetter(BILL))!.id).toBe(first.id);
     await publishCampaignDraft(draft.id, draft.version + 1, "jane@pauseai.uk");
     expect(await publishedLetter(BILL)).toMatchObject({ id: draft.id, subject: "Newer" });
-    expect(await publishedLetter("pauseai-info-liability")).toBeUndefined();
+    expect(await publishedLetter("pauseai-info-liability")).toBeNull();
   });
 
   it("finds a published version by its ID, only for its own campaign, and never a draft", async () => {
@@ -74,6 +75,13 @@ describeWithDatabase("campaign letters", () => {
     // Opened again, by anyone, it's the same draft.
     expect((await openDraft(BILL, "sam@pauseai.uk", "Dear")).id).toBe(draft.id);
     expect((await campaignDraft(BILL))!.id).toBe(draft.id);
+  });
+
+  it("says whether a campaign in the code has a draft open, and nothing for one that isn't", async () => {
+    expect(await hasDraft(BILL)).toBe(false);
+    await openDraft(BILL, "jane@pauseai.uk", "Dear");
+    expect(await hasDraft(BILL)).toBe(true);
+    expect(await hasDraft("pauseai-info-liability")).toBeUndefined();
   });
 
   it("opens a campaign with no letter yet on a greeting to the MP, with no subject", async () => {
@@ -133,6 +141,11 @@ describeWithDatabase("campaign letters", () => {
     await expect(query("UPDATE campaign_letters SET subject = 'Changed' WHERE id = $1", [draft.id])).rejects.toThrow(
       /is published/,
     );
+    await expect(query("UPDATE campaign_letters SET body = '{}' WHERE id = $1", [draft.id])).rejects.toThrow(
+      /is published/,
+    );
+    // Its times can be set, as the storyboard's fixed clock does.
+    await query("UPDATE campaign_letters SET published_at = '2026-10-16T12:00:00Z' WHERE id = $1", [draft.id]);
     expect(await campaignDraft(BILL)).toBeUndefined();
   });
 

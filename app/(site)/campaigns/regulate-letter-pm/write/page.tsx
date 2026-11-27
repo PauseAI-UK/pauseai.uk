@@ -23,7 +23,7 @@ export default async function Page() {
   const letter = await publishedLetter("regulate-letter-pm");
   return (
     <LetterStep title={copy.write.title}>
-      <LetterWrite campaignSlug="regulate-letter-pm" letter={letter ?? null} />
+      <LetterWrite campaignSlug="regulate-letter-pm" letter={letter} />
     </LetterStep>
   );
 }

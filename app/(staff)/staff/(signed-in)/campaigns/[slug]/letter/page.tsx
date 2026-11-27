@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { campaignWriterData, openDraft } from "@/lib/mailings/campaign-letters.server";
@@ -29,7 +28,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function CampaignLetterPage({ params }: Params) {
   const { email } = await requireStaff("supporters");
   const { slug } = await params;
-  if (!campaignBySlug(slug)) notFound();
+  found(campaignBySlug(slug));
   const campaign = found(await getCampaignSummary(slug));
   const [draft, data] = await Promise.all([
     openDraft(slug, email, mailingsCopy.mailingPages.greeting),
