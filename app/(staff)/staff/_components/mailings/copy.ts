@@ -60,7 +60,7 @@ export const mailingsCopy = {
     title: (campaign: string) => `Editing the letter for ${campaign}`,
     write: "Write",
     preview: "Preview of what a constituent is given",
-    noMps: "⁂ There are no MPs to preview the letter for.",
+    noMps: "There are no MPs to preview the letter for.",
     // The preview signs the letter with a made-up sender, as each supporter's own name and address go there.
     exampleSender: "Jane Smith",
     exampleAddress: ["1 High Street", "AB1 2CD"],
@@ -68,8 +68,9 @@ export const mailingsCopy = {
     publish: "Publish the letter",
     // Why it can't be published, under the button.
     refusals: {
-      "no-subject": "⁂ It needs a subject.",
-      "no-letter": "⁂ It needs a letter.",
+      // As the mailings' Schedule button says them.
+      "no-subject": wordsTheServerUses.mailingPages.problems["no-subject"],
+      "no-letter": wordsTheServerUses.mailingPages.problems["no-letter"],
       "not-draft": "⁂ Someone else has just published this draft.",
       gone: "⁂ Someone else has just deleted this draft.",
     },
