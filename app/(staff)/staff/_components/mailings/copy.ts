@@ -65,8 +65,8 @@ export const mailingsCopy = {
     exampleSender: "Jane Smith",
     exampleAddress: ["1 High Street", "AB1 2CD"],
     exampleNote: "⁂ The name and address at the end are an example. Each supporter's own go there.",
-    publishTitle: "⁂ Publish",
-    publish: "⁂ Publish the letter",
+    publishTitle: "Publish",
+    publish: "Publish the letter",
     // Why it can't be published, under the button.
     refusals: {
       "no-subject": "⁂ It needs a subject.",
