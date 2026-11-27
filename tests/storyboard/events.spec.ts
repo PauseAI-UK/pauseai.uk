@@ -177,6 +177,43 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   await frame(page, "Jane Fixture's page");
 });
 
+test("An event's page", async ({ page, request, flowDatabase }) => {
+  story(
+    "Each event's name on the events page leads to a page of its own. For staff who see supporters, it lists everyone registered on Luma, with their status, and the postcode, phone and link they came by where any guest has one.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase, ["supporters"]);
+  await page.goto(`${BASE}/staff/events`);
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Protest at Parliament" })
+    .getByRole("link", { name: "PauseAI London: Protest at Parliament" })
+    .click();
+  await expect(page.getByRole("heading", { level: 1, name: "PauseAI London: Protest at Parliament" })).toBeVisible();
+  const guests = page.getByRole("region", { name: eventsCopy.event.guests });
+  await expect(guests.locator("tbody tr")).toHaveCount(5);
+  await expect(guests.locator("thead th")).toHaveText([
+    eventsCopy.event.columns.name,
+    eventsCopy.event.columns.status,
+    eventsCopy.event.columns.registered,
+    eventsCopy.event.columns.changed,
+    eventsCopy.event.columns.postcode,
+    eventsCopy.event.columns.phone,
+    eventsCopy.event.columns.cameFrom,
+  ]);
+  await expect(guests.getByRole("row").filter({ hasText: "Dee Clined" })).toContainText(
+    eventsCopy.event.statuses.declined,
+  );
+  await frame(page, "The protest's page");
+
+  story(
+    "The button over the guests makes a new broadcast by email to those registered who may hear our updates, the declined left out, and opens it to write.",
+  );
+  await guests.getByRole("button", { name: /^Broadcast to/ }).click();
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+  await frame(page, "The new broadcast to the protest's guests");
+});
+
 /**
  * A busy calendar, all made up, on the fixed clock's 16 October 2026: every kind
  * of list by owner and by tag, one owner past the fold, events with no owner

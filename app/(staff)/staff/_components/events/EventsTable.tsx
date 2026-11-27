@@ -8,6 +8,7 @@ import {
   EVENT_SORTS,
   EVENTS_PAGE_SIZE,
   EVENT_GROUPINGS,
+  eventHref,
   ownerNeeded,
   type EventsFound,
   type EventSort,
@@ -121,7 +122,7 @@ export function Missing({ needed, children }: { needed: boolean; children: strin
  * Who owns an event, by their address, which StaffMember breaks before its
  * @, so the column takes little room, leaving it to the hosts.
  */
-function Owner({ owner, needed }: { owner: string | null; needed: boolean }) {
+export function Owner({ owner, needed }: { owner: string | null; needed: boolean }) {
   if (!owner) return <Missing needed={needed}>{copy.noOwner}</Missing>;
   return (
     <span className={styles.owner}>
@@ -131,7 +132,7 @@ function Owner({ owner, needed }: { owner: string | null; needed: boolean }) {
 }
 
 /** An event's hosts, by name, in a line that wraps between them, each leading to their supporter's page once linked; never their email. */
-function Hosts({ hosts }: { hosts: EventHost[] }) {
+export function Hosts({ hosts }: { hosts: EventHost[] }) {
   return (
     <span className={styles.hosts}>
       {hosts.map((host, i) => {
@@ -150,7 +151,7 @@ function Hosts({ hosts }: { hosts: EventHost[] }) {
 }
 
 /** The link to an event's Google Doc, opening in a new tab, or a dash: many events never have one. */
-function Doc({ doc }: { doc: string | null }) {
+export function Doc({ doc }: { doc: string | null }) {
   if (!doc) return <Muted>–</Muted>;
   return <ExternalLink href={doc}>{copy.doc}</ExternalLink>;
 }
@@ -158,7 +159,7 @@ function Doc({ doc }: { doc: string | null }) {
 /**
  * The events list's columns, in the order of a list read by time
  * (docs/style-guide.md, "Lists"): the day it starts; its name, leading to
- * it on Luma, marked when it's been taken off Luma; where it is, and its
+ * its page, marked when it's been taken off Luma; where it is, and its
  * Luma tags, which often say where too; how many are going; its hosts on
  * Luma, for staff who see supporters (`hosts`); then what we add, which
  * its Edit button changes, beside it: its owner and its Google Doc. On the
@@ -197,7 +198,7 @@ function eventColumns(
       words: "name",
       cell: (event) => (
         <span className={styles.name}>
-          <ExternalLink href={event.url}>{event.name}</ExternalLink>
+          <StaffLink href={eventHref(event.id)}>{event.name}</StaffLink>
           {event.removed && <Tag>{copy.removed}</Tag>}
         </span>
       ),

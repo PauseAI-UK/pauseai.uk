@@ -1198,6 +1198,7 @@ that drives it or why nothing does.
   - its Edit bubble, with an owner chosen and its Google Doc pasted, saved, and the email to the owner;
   - the Past tab, latest first, sorted by how many went, and searched;
   - for staff who see supporters, each event's hosts, searched by a host's name, and a host's supporter page with the events they host;
+  - an event's page, from its name, with its guests on Luma, and its button making a broadcast to them;
   - on a busy calendar, the lists by owner, No owner first, with a list's fold opened and an event given an owner from its line;
   - the lists by tag, with an event in two lists, each with its own Edit;
   - the lists by owner without online events, on Future then Past;

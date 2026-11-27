@@ -83,7 +83,7 @@ describe("EventsTable", () => {
     const protest = row("Protest at Parliament");
     await expect
       .element(protest.getByRole("link", { name: "PauseAI London: Protest at Parliament" }))
-      .toHaveAttribute("href", "https://luma.com/evt-protest");
+      .toHaveAttribute("href", "/staff/events/evt-protest");
     await expect
       .element(protest.getByRole("link", { name: copy.doc }))
       .toHaveAttribute("href", "https://docs.google.com/document/d/example-protest-plan/edit");

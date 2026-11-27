@@ -383,7 +383,7 @@
   }
 }
 
-/* A supporter's or a politician's band, a step above what's under it. */
+/* A supporter's, a politician's or an event's band, a step above what's under it. */
 .band {
   margin-bottom: var(--space-6);
 }

@@ -6,6 +6,7 @@
 import { eventColumnsGallery } from "@/app/(staff)/staff/_components/events/EventColumns.gallery";
 import { eventEditGallery } from "@/app/(staff)/staff/_components/events/EventEdit.gallery";
 import { eventFiltersGallery } from "@/app/(staff)/staff/_components/events/EventFilters.gallery";
+import { eventRecordGallery } from "@/app/(staff)/staff/_components/events/EventRecord.gallery";
 import { eventsTableGallery } from "@/app/(staff)/staff/_components/events/EventsTable.gallery";
 import type { Group } from "../_components/types";
 import { pressFindsGallery } from "@/app/(staff)/staff/_components/press/PressFinds.gallery";
@@ -44,6 +45,7 @@ export const staffMailingsEvents: Group = {
     missing,
     eventColumns,
     ...eventFiltersGallery,
+    ...eventRecordGallery,
     ...pressFindsGallery,
     ...eventEditGallery,
     eventsIntro,

@@ -34,6 +34,11 @@ export type EventList = { title: string; events: StaffEvent[] };
 /** How many of a list's events show, the rest folded. */
 export const EVENT_LIST_SHOWS = 5;
 
+/** Event `id`'s staff page. */
+export function eventHref(id: string): string {
+  return `/staff/events/${encodeURIComponent(id)}`;
+}
+
 /** The Owner filter's choice for events with no owner. */
 export const NO_OWNER = "none";
 /** The Place filter's choice for events online, which have no city. */

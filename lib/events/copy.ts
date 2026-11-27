@@ -132,6 +132,40 @@ All events: ${link}`,
           )}\n\nAs the owner, you make sure the event is exceptional:\n- Be chronically early: arrive before anyone else to get everything ready, and leave last\n- Spot early what could go wrong, like an entrance that's hard to find\n- Make sure enough people come\n- Have everyone leave feeling it was better than they expected`,
     },
   },
+  // An event's page (/staff/events/<id>): the event, its guests on Luma, and the button to email them. Its facts'
+  // labels are the events list's columns.
+  event: {
+    // The fact that links to the event's page on luma.com, and the link's words.
+    luma: "⁂ On Luma",
+    lumaLink: "⁂ Open in Luma",
+    // Each guest's status on Luma, in the table; and in the counts at the band's right, after how many.
+    statuses: {
+      approved: "⁂ Going",
+      pending_approval: "⁂ Awaiting approval",
+      waitlist: "⁂ Waitlisted",
+      declined: "⁂ Declined",
+    },
+    counted: {
+      approved: "⁂ going",
+      pending_approval: "⁂ awaiting approval",
+      waitlist: "⁂ waitlisted",
+      declined: "⁂ declined",
+    },
+    // The card of guests, for staff who see supporters: its title, and what it says when Luma lists no one.
+    guests: "⁂ Guests",
+    noGuests: "⁂ No one has registered on Luma yet.",
+    // The table's headings. Postcode and phone are the guest's answers to the event's questions on Luma, and Came from
+    // is the utm_source of the link they came by; each shows only when a guest has one.
+    columns: {
+      name: "⁂ Name",
+      status: "⁂ Luma status",
+      registered: "⁂ Registered",
+      changed: "⁂ Last changed",
+      postcode: "⁂ Postcode",
+      phone: "⁂ Phone",
+      cameFrom: "⁂ Came from",
+    },
+  },
 };
 
 // What went wrong without stopping the work (lib/problems.ts). All but the last are on the Luma import's run, so

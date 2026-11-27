@@ -1,6 +1,7 @@
 import type { StaffEvent } from "@/lib/events/staff-events-list.server";
 import {
   EVENT_LIST_SHOWS,
+  eventHref,
   eventListColumns,
   eventsByOwner,
   eventsByTag,
@@ -19,6 +20,7 @@ import Empty from "../ui/Empty";
 import ExternalLink from "../ui/ExternalLink";
 import Grid, { Card, Column } from "../ui/Grid";
 import Rows, { Row } from "../ui/Rows";
+import StaffLink from "../ui/StaffLink";
 import StaffMember from "../ui/StaffMember";
 import { staffDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
@@ -99,7 +101,7 @@ function List({
         </span>
       }
     >
-      <ExternalLink href={event.url}>{event.name}</ExternalLink>
+      <StaffLink href={eventHref(event.id)}>{event.name}</StaffLink>
     </Row>
   );
   return (
