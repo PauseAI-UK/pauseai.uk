@@ -58,7 +58,7 @@ export const mailingsCopy = {
   // Writing a campaign's letter (/staff/campaigns/<slug>/letter): its draft, a preview for an MP, and publishing it.
   campaignLetter: {
     title: (campaign: string) => `⁂ The letter for ${campaign}`,
-    write: "⁂ Write",
+    write: "Write",
     preview: "⁂ What a constituent starts from",
     noMps: "⁂ There are no MPs to preview the letter for.",
     // The preview signs the letter with a made-up sender, as each supporter's own name and address go there.
@@ -94,6 +94,8 @@ export const mailingsCopy = {
     publicPage: "Public page",
     seePublicPage: "See it",
     version: "Version of the letter",
+    // Beside the latest version's line, opening the list of every version.
+    earlierVersions: (n: number) => `⁂ Earlier versions (${n})`,
     versionLine: (from: string | null, n: number) => `${from ? `From ${from}: ` : ""}${count(n, "letter", "letters")}`,
     // The letters from before staff could edit a campaign's letter, as a version in the list.
     beforeVersions: (n: number) => `⁂ Before versions: ${count(n, "letter", "letters")}`,

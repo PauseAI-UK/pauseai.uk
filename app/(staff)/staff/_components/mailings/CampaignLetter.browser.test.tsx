@@ -19,7 +19,7 @@ describe("CampaignLetter", () => {
     expect(page.getByRole("link").query()).toBeNull();
   });
 
-  it("chooses among versions, each with its subject and text, names as chips and parts by who they're for", async () => {
+  it("shows the latest version, and chooses among the earlier ones, each with its subject and text, names as chips and parts by who they're for", async () => {
     await render(
       <CampaignLetter
         changedHref="/changed"
@@ -31,6 +31,9 @@ describe("CampaignLetter", () => {
     await says(exampleVersions[0].subject);
     await says(copy.fields.salutation);
     await says(copy.fields.sender);
+    // The latest, with the earlier ones behind a link.
+    expect(page.getByRole("combobox").query()).toBeNull();
+    await page.getByRole("button", { name: copy.earlierVersions(2) }).click();
     await page.getByRole("combobox").selectOptions("1");
     await says(exampleVersions[1].subject);
     await says("signed ControlAI's letter to the Prime Minister");
@@ -42,6 +45,7 @@ describe("CampaignLetter", () => {
   it("with one version, says how many it has, and with no one changing the wording, no link", async () => {
     await render(<CampaignLetter changedHref="/changed" versions={exampleVersions.slice(1, 2)} changed={0} />);
     expect(page.getByRole("combobox").query()).toBeNull();
+    expect(page.getByRole("button").query()).toBeNull();
     expect(document.body.textContent).toContain(copy.versionLine("18 Jun 2026", 8));
     const { rerender } = await render(
       <CampaignLetter
