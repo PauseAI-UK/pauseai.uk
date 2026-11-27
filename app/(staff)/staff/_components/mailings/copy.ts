@@ -59,7 +59,7 @@ export const mailingsCopy = {
   campaignLetter: {
     title: (campaign: string) => `⁂ The letter for ${campaign}`,
     write: "Write",
-    preview: "⁂ What a constituent starts from",
+    preview: "Preview of what a constituent is given",
     noMps: "⁂ There are no MPs to preview the letter for.",
     // The preview signs the letter with a made-up sender, as each supporter's own name and address go there.
     exampleSender: "Jane Smith",
