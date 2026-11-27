@@ -40,7 +40,7 @@ export const accountsCopy = {
     } as Record<string, string>,
     columns: {
       email: "Email",
-      name: "⁂ Name",
+      name: "Name",
       permissions: "Permissions",
       added: "Added",
       lastLogin: "Last login",
