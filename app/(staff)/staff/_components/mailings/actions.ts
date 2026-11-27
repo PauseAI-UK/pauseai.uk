@@ -32,6 +32,13 @@ import {
   type PickChange,
 } from "@/lib/mailings/drafts.server";
 import { politicianAudience } from "@/lib/mailings/recipients.server";
+import {
+  campaignLetterChangesFrom,
+  discardCampaignDraft,
+  publishCampaignDraft,
+  saveCampaignDraft,
+} from "@/lib/mailings/campaign-letters.server";
+import { campaignBySlug } from "@/lib/email-your-mp";
 import { mailingAudience } from "@/lib/mailings/records.server";
 import { answerLetterReply, markNothingToDo } from "@/lib/mailings/replies.server";
 import { looksLikeEmail } from "@/lib/email-address";
@@ -385,4 +392,51 @@ export async function answerLetterReplyNow(
   if (!result.sent) return refused(result.reason);
   revalidatePath("/staff/mailings", "layout");
   return { ok: true };
+}
+
+/** A campaign in the code, by its slug, as its letter's page passes it: thrown when it isn't one (own). */
+function ownCampaign(slug: unknown): string {
+  if (typeof slug !== "string" || !campaignBySlug(slug))
+    throw new Error("A campaign letter's action came without its campaign");
+  return slug;
+}
+
+/** Saves the changes to a campaign's draft letter, if no one else has saved it since `version`. */
+export async function saveCampaignLetter(
+  id: number,
+  version: number,
+  changes: unknown,
+): Promise<FormResult<"conflict" | "not-draft" | "gone", { version: number }>> {
+  const { email } = await requireStaff("supporters");
+  const parsed = campaignLetterChangesFrom(changes);
+  if (!parsed) throw new Error("A campaign letter's save came with changes that aren't a letter's");
+  const result = await saveCampaignDraft(own(id, "ID"), own(version, "version"), parsed, email);
+  return result.saved ? { ok: true, version: result.version } : refused(result.reason);
+}
+
+/**
+ * Publishes campaign `slug`'s draft at `version`, so supporters start from
+ * it, then goes to the campaign's page. Refused if it's been saved since,
+ * published or discarded, or has no subject or letter.
+ */
+export async function publishCampaignLetter(
+  slug: string,
+  id: number,
+  version: number,
+): Promise<FormResult<"conflict" | "not-draft" | "gone" | "no-subject" | "no-letter">> {
+  const { email } = await requireStaff("supporters");
+  const campaign = ownCampaign(slug);
+  const result = await publishCampaignDraft(own(id, "ID"), own(version, "version"), email);
+  if (!result.saved) return refused(result.reason);
+  revalidatePath(`/staff/campaigns/${campaign}`);
+  redirect(`/staff/campaigns/${campaign}`);
+}
+
+/** Throws away campaign `slug`'s draft letter, the form's `id`, then goes to the campaign's page. */
+export async function discardCampaignLetter(slug: string, form: FormData): Promise<FormResult<never>> {
+  await requireStaff("supporters");
+  const campaign = ownCampaign(slug);
+  await discardCampaignDraft(ownId(form));
+  revalidatePath(`/staff/campaigns/${campaign}`);
+  redirect(`/staff/campaigns/${campaign}`);
 }

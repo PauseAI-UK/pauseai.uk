@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { campaignVersions, getCampaignSummary } from "@/lib/mailings/campaigns.server";
 import { listLetters } from "@/lib/letters/records.server";
+import { campaignDraft } from "@/lib/mailings/campaign-letters.server";
+import { listAsks } from "@/lib/asks/records.server";
+import { campaignBySlug } from "@/lib/email-your-mp";
+import { answerLabels } from "@/lib/mailings/fields";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { lettersSearch, type LettersSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
@@ -18,16 +22,32 @@ export async function generateMetadata({ params }: Pick<Params, "params">): Prom
   return { title: found(await getCampaignSummary((await params).slug)).title };
 }
 
-/** A campaign: its counts, each version of its letter, and its letters, searched and filtered. */
+/**
+ * A campaign: its counts, each version of its letter, with a way to edit it
+ * for a campaign in the code, and its letters, searched and filtered.
+ */
 export default async function CampaignPage({ params, searchParams }: Params) {
   await requireStaff("supporters");
   const { slug } = await params;
   const campaign = found(await getCampaignSummary(slug));
   const { filter, ...search } = lettersSearch({ ...(await searchParams), campaign: slug });
-  const [letters, { versions, changed }] = await Promise.all([listLetters(filter), campaignVersions(slug)]);
+  const [letters, { versions, changed }, asks, draft] = await Promise.all([
+    listLetters(filter),
+    campaignVersions(slug),
+    listAsks(),
+    campaignBySlug(slug) ? campaignDraft(slug) : null,
+  ]);
   return (
     <Page kind="record" under="campaigns" here={campaign.title}>
-      <CampaignView campaign={campaign} versions={versions} changed={changed} letters={letters} search={search} />
+      <CampaignView
+        campaign={campaign}
+        versions={versions}
+        changed={changed}
+        conditions={answerLabels(asks)}
+        draft={draft === null ? undefined : draft !== undefined}
+        letters={letters}
+        search={search}
+      />
     </Page>
   );
 }

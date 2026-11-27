@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { site } from "@/lib/content/site";
-import { fillLetter, letterIdOf, lookUpTestMp, openLookup, sendLetter } from "./letter-steps";
+import { BILL_THANKS, fillLetter, letterIdOf, lookUpTestMp, openLookup, sendLetter, SUBJECTS } from "./letter-steps";
 import { MPS_PROXY, sentEmail } from "./letters-inbox-steps";
 import { WEBHOOK_AUTH } from "./postmark-steps";
 import { fakeTurnstile } from "./turnstile-steps";
@@ -49,7 +49,7 @@ test("Jane writes to her MP (ZZ99ZZ)", { tag: "@phone" }, async ({ page, flowDat
   await frame(page, "The form to find your MP");
   story("Find my MP finds the test MP, and drafts the campaign's letter to them.");
   await lookUp(page);
-  await expect(page.getByLabel(copy.form.subjectLabel)).toHaveValue(campaigns[0].subject);
+  await expect(page.getByLabel(copy.form.subjectLabel)).toHaveValue(SUBJECTS[campaigns[0].slug]);
   await frame(page, "The letter, drafted");
   story("She adds her email and checks her letter. It's shown as it will go, signed with her name and address.");
   await fillAndPreview(page, sender);
@@ -285,7 +285,7 @@ test("The letter is kept", async ({ page }) => {
   await expect(letter.getByText("Sam Jones", { exact: true })).toBeVisible();
   await expect(letter).not.toContainText("Jane Smith");
   await expect(letter).not.toContainText("My own words.");
-  await expect(page.getByLabel(copy.form.subjectLabel)).toHaveValue(campaigns[0].subject);
+  await expect(page.getByLabel(copy.form.subjectLabel)).toHaveValue(SUBJECTS[campaigns[0].slug]);
   await expect(page.getByLabel(copy.form.emailLabel)).toHaveValue("");
   await frame(page, "Sam's letter");
 });
@@ -358,7 +358,7 @@ test("An MP who has signed (ZZ99ZS)", async ({ page }) => {
 
   await expect(page).toHaveURL(`${BASE}/campaigns/${campaigns[1].slug}/write`);
   await expect(page.getByRole("heading", { name: "Signy McTestface MP" })).toBeVisible();
-  await expect(page.getByLabel(copy.form.subjectLabel)).toHaveValue(campaigns[1].subject);
+  await expect(page.getByLabel(copy.form.subjectLabel)).toHaveValue(SUBJECTS[campaigns[1].slug]);
   await frame(page, "The bill's letter");
 });
 
@@ -372,7 +372,7 @@ test("An MP who backs the bill (ZZ99ZB)", async ({ page }) => {
   await expect(page).toHaveURL(`${BASE}/campaigns/${campaigns[1].slug}/write`);
   await expect(page.getByRole("heading", { name: "Backy McTestface MP" })).toBeVisible();
   await expect(page.getByRole("link", { name: copy.sobelBill.signedNote.link })).toBeVisible();
-  await expect(page.getByText(copy.sobelBill.letterThanks)).toBeVisible();
+  await expect(page.getByText(BILL_THANKS)).toBeVisible();
   await frame(page, "The bill's letter, with thanks");
 });
 

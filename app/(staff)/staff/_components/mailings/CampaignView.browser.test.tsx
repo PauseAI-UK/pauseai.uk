@@ -46,6 +46,30 @@ describe("CampaignView's public page", () => {
   });
 });
 
+describe("CampaignView's letter", () => {
+  const view = (draft?: boolean) => (
+    <CampaignView
+      campaign={{ ...exampleCampaign, slug: campaigns[0].slug }}
+      versions={exampleVersions}
+      changed={0}
+      draft={draft}
+      letters={{ letters: [], total: 0, pages: 1, pageSize: 100 }}
+      search={emptyLettersSearch}
+    />
+  );
+
+  it("leads to editing a campaign's letter, or to the draft open, and for one not in the code, nowhere", async () => {
+    const edit = (name: string) => page.getByRole("link", { name });
+    const { rerender } = await render(view(false));
+    await expect.element(edit(copy.editLetter)).toHaveAttribute("href", `/staff/campaigns/${campaigns[0].slug}/letter`);
+    await rerender(view(true));
+    await expect.element(edit(copy.carryOn)).toHaveAttribute("href", `/staff/campaigns/${campaigns[0].slug}/letter`);
+    await rerender(view());
+    expect(edit(copy.editLetter).query()).toBeNull();
+    expect(edit(copy.carryOn).query()).toBeNull();
+  });
+});
+
 describe("CampaignView", () => {
   const letters = [
     exampleLetter,

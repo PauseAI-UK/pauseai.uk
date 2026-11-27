@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { campaigns, copy } from "@/lib/content/email-your-mp";
+import { campaigns } from "@/lib/content/email-your-mp";
+import { exampleLetters } from "@/app/(site)/campaigns/_components/draft.examples";
 import {
   addressLines,
   campaignBySlug,
@@ -10,14 +11,18 @@ import {
   trackedCampaigns,
   draftLetter,
   isDone,
+  letterValues,
   signatureAddress,
+  unpublishable,
 } from "./email-your-mp";
-import { docFromMarkup, toHtml, toText } from "@/lib/letters/format";
+import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
+import { toHtml, toText } from "@/lib/letters/format";
 
 const [letterToPm, bill] = campaigns;
 const ADDRESS = ["1 High St", "SW1A 1AA"];
 const details = {
   salutation: "Ms Dummy",
+  mpName: "Diane Dummy MP",
   constituency: "Hackney North",
   senderName: "Jane Smith",
   statuses: {},
@@ -70,29 +75,40 @@ describe("campaigns", () => {
 });
 
 describe("letters", () => {
-  it("starts each campaign's letter with the MP's details", () => {
-    for (const campaign of campaigns) {
-      const draft = draftLetter(campaign, details, ADDRESS);
-      expect(draft.content.slice(0, -1)).toEqual(docFromMarkup(campaign.letter(details)).content);
-      expect(toText(draft)).toContain("Ms Dummy");
-      expect(toText(draft)).toContain("Hackney North");
-    }
+  it("fills a campaign's letter in with the MP's details and the sender's name", () => {
+    const draft = toText(draftLetter(exampleLetters[letterToPm.slug].body, details, ADDRESS));
+    expect(draft).toContain("Dear Ms Dummy,");
+    expect(draft).toContain("I live in Hackney North.");
+    expect(letterValues(details).values).toEqual({
+      salutation: "Ms Dummy",
+      name: "Diane Dummy MP",
+      constituency: "Hackney North",
+      sender: "Jane Smith",
+    });
   });
 
-  it("thanks an MP who signed ControlAI's letter, in the bill's letter only, and still asks them to the debate", () => {
-    const signed = { ...details, statuses: { "controlai-letter": "signed" as const } };
-    expect(toText(draftLetter(bill, signed, ADDRESS))).toContain(copy.sobelBill.letterThanks);
-    expect(toText(draftLetter(bill, signed, ADDRESS))).toContain("second reading debate");
-    expect(toText(draftLetter(bill, details, ADDRESS))).not.toContain(copy.sobelBill.letterThanks);
-    expect(toText(draftLetter(letterToPm, signed, ADDRESS))).not.toContain(copy.sobelBill.letterThanks);
+  it("keeps a part only for MPs with an answer for those who gave it, and none for an ask with no answer", () => {
+    const body = exampleLetters[bill.slug].body;
+    const signed = { ...details, statuses: { "controlai-letter": "signed" as const, "frontier-ai-letter": undefined } };
+    expect(letterValues(signed).meets).toEqual(["controlai-letter:signed"]);
+    expect(toText(draftLetter(body, signed, ADDRESS))).toContain("Thank you for signing.");
+    expect(toText(draftLetter(body, signed, ADDRESS))).toContain("Please come to the debate.");
+    expect(toText(draftLetter(body, details, ADDRESS))).not.toContain("Thank you for signing.");
   });
 
   it("ends each draft with the sender's name, then their address, a line each", () => {
     for (const campaign of campaigns) {
-      const draft = draftLetter(campaign, details, ADDRESS);
+      const draft = draftLetter(exampleLetters[campaign.slug].body, details, ADDRESS);
       expect(toText(draft).endsWith("\n\nJane Smith\n\n1 High St\nSW1A 1AA")).toBe(true);
       expect(toHtml(draft).endsWith("<p>Jane Smith</p>\n<p>1 High St<br>SW1A 1AA</p>")).toBe(true);
     }
+  });
+
+  it("publishes a draft only with a subject and a letter", () => {
+    const { body } = exampleLetters[bill.slug];
+    expect(unpublishable({ subject: "Come", body })).toBeUndefined();
+    expect(unpublishable({ subject: " ", body })).toBe("no-subject");
+    expect(unpublishable({ subject: "Come", body: EMPTY_MAILING_DOC })).toBe("no-letter");
   });
 
   it("ends the address with the postcode, unless it's already there", () => {

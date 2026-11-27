@@ -1,4 +1,6 @@
 import type { CampaignSummary, CampaignVersion } from "@/lib/mailings/campaigns.server";
+import { campaignTextDoc } from "@/lib/mailings/campaign-versions";
+import type { MailingBlock } from "@/lib/mailings/doc";
 
 // Fake data for the pages of campaigns, for their tests and the gallery.
 
@@ -49,19 +51,38 @@ export const exampleCampaignEmpty: CampaignSummary = {
 
 export const exampleVersions: CampaignVersion[] = [
   {
-    key: "newer",
+    key: "2",
     from: new Date("2026-09-23T02:00:00Z"),
+    by: "jane.smith@pauseai.uk",
     letters: 4,
     subject: "Request to co-sign letter on frontier AI risks",
-    text: "Dear {salutation}\n\nI'm a resident of {constituency} and a supporter of **PauseAI**.\n\n{name}\n\n{postcode}",
+    body: campaignTextDoc(
+      "Dear {salutation}\n\nI'm a resident of {constituency} and a supporter of **PauseAI**.\n\n{name}\n\n{postcode}",
+    ),
   },
   {
-    key: "older",
+    key: "1",
     from: new Date("2026-06-18T02:00:00Z"),
+    by: null,
     letters: 8,
     subject: "Please sign the letter",
-    text: "Dear {salutation}\n\nPlease sign the letter.\n\n{name}",
+    body: {
+      type: "doc",
+      content: [
+        ...campaignTextDoc("Dear {salutation}").content,
+        {
+          type: "onlyFor",
+          attrs: { condition: "controlai-letter:signed" },
+          content: campaignTextDoc("Thank you for signing ControlAI's letter.").content as MailingBlock[],
+        },
+        ...campaignTextDoc("Please sign the letter.\n\n{name}").content,
+      ],
+    },
   },
+  { key: "before", from: null, by: null, letters: 3, subject: "", body: null },
 ];
+
+/** Who the example letters' parts are for. */
+export const exampleConditions = { "controlai-letter:signed": "signed ControlAI's letter to the Prime Minister" };
 
 export const exampleChanged = 6;

@@ -1,8 +1,9 @@
 import { docFromMarkup, type Inline } from "@/lib/letters/format";
 import type { MailingDoc, MailingInline } from "./doc";
 
-// A campaign's text as its page shows it: its names as a mailing's merge
-// fields are, as chips.
+// A campaign's text from pauseai.info's old form, as its page shows it: its
+// names as a campaign letter's merge fields, as chips, the sender's {name}
+// as "sender".
 
 const NAME = /\{(salutation|constituency|name|postcode)\}/g;
 
@@ -13,7 +14,7 @@ function fieldsIn(node: Inline): MailingInline[] {
   let at = 0;
   for (const match of node.text.matchAll(NAME)) {
     if (match.index > at) nodes.push({ ...node, text: node.text.slice(at, match.index) });
-    nodes.push({ type: "field", attrs: { field: match[1] } });
+    nodes.push({ type: "field", attrs: { field: match[1] === "name" ? "sender" : match[1] } });
     at = match.index + match[0].length;
   }
   if (at < node.text.length) nodes.push({ ...node, text: node.text.slice(at) });

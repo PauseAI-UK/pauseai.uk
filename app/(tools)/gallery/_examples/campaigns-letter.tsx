@@ -19,6 +19,7 @@ import {
   LetterPreviewPlainExample,
   LetterSentExample,
   LetterWriteExample,
+  LetterWriteNotOpenExample,
   LetterWriteSignedExample,
   TurnstileExample,
 } from "./campaigns-letter.client";
@@ -99,6 +100,14 @@ export const campaignsLetter: Group = {
           render: () => (
             <div className="container">
               <LetterWriteSignedExample />
+            </div>
+          ),
+        },
+        {
+          label: "A campaign whose letter isn't published yet",
+          render: () => (
+            <div className="container">
+              <LetterWriteNotOpenExample />
             </div>
           ),
         },

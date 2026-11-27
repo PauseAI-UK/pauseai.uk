@@ -13,6 +13,15 @@ import { fakeTurnstile } from "./turnstile-steps";
 // Redirects to the first campaign.
 const TOOL_PAGE = "/campaigns";
 
+/** Each campaign's subject, as the migrations publish its first letter (campaign_letters), by its slug. */
+export const SUBJECTS: Record<string, string> = {
+  [campaigns[0].slug]: "Request to co-sign letter on frontier AI risks",
+  [campaigns[1].slug]: "Request to support the Artificial Superintelligence Bill",
+};
+
+/** The bill's letter's part for an MP who signed ControlAI's letter, as the migrations publish it. */
+export const BILL_THANKS = "Thank you for signing the ControlAI letter to the Prime Minister in support of the Bill.";
+
 /** Opens the tool and fills in the name, Jane Smith unless told otherwise, and a postcode, without looking it up yet. */
 export async function openLookup(
   page: Page,

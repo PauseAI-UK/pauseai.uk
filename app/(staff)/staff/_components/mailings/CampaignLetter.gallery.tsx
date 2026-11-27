@@ -2,7 +2,7 @@
 // (app/(tools)/gallery/_examples/staff-letters.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import CampaignLetter from "./CampaignLetter";
-import { exampleChanged, exampleVersions } from "./CampaignPages.examples";
+import { exampleChanged, exampleConditions, exampleVersions } from "./CampaignPages.examples";
 import StaffPage from "../ui/StaffPage";
 
 export const campaignLetterGallery: Example[] = [
@@ -14,7 +14,33 @@ export const campaignLetterGallery: Example[] = [
         label: "Several versions, and how much people changed them",
         render: () => (
           <StaffPage as="div">
-            <CampaignLetter changedHref="#changed" versions={exampleVersions} changed={exampleChanged} />
+            <CampaignLetter
+              changedHref="#changed"
+              versions={exampleVersions}
+              changed={exampleChanged}
+              conditions={exampleConditions}
+            />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "A version with a part only for some MPs",
+        render: () => (
+          <StaffPage as="div">
+            <CampaignLetter
+              changedHref="#changed"
+              versions={exampleVersions.slice(1, 2)}
+              changed={0}
+              conditions={exampleConditions}
+            />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "Letters from before staff could edit the letter",
+        render: () => (
+          <StaffPage as="div">
+            <CampaignLetter changedHref="#changed" versions={exampleVersions.slice(2)} changed={0} />
           </StaffPage>
         ),
       },

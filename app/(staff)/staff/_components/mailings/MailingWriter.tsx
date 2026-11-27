@@ -10,13 +10,11 @@ import { useLeaving } from "@/components/ui/useLeaving";
 import { useSave } from "@/components/ui/useSave";
 import {
   checkMailingDoc,
-  conditionsIn,
   EMPTY_MAILING_DOC,
   GREETING_FIELDS,
   greetingLetter,
   isBlankMailing,
   letterFor,
-  NOT_CONDITION,
   type MailingDoc,
 } from "@/lib/mailings/doc";
 import { answerLabels } from "@/lib/mailings/fields";
@@ -33,7 +31,7 @@ import { INVITED, NEVER_ASKED } from "@/lib/asks/asks";
 import { londonWhen } from "@/lib/staff-time";
 import type { FormResult } from "@/lib/form-result";
 import type { WrittenMailing } from "@/lib/mailings/drafts.server";
-import type { PreviewRecipient, WriterData } from "@/lib/mailings/pages.server";
+import type { WriterData } from "@/lib/mailings/pages.server";
 import {
   DraftTitle,
   DueSection,
@@ -50,11 +48,10 @@ import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
+import { useRecipientChoice } from "./RecipientChoice";
 import { BandFact, Facts } from "../ui/Band";
 import Grid, { Card } from "../ui/Grid";
 import Bubble from "@/components/ui/Bubble";
-import NotIcon from "../ui/NotIcon";
-import { partButton, partButtonWords } from "./PartBox";
 import Strip from "../ui/Strip";
 import Numbered from "../ui/Numbered";
 import { helpButtonClass } from "../ui/HelpButton";
@@ -546,13 +543,10 @@ export default function MailingWriter({
 }
 
 /**
- * Each recipient's email, as they'll get it. Over it, a button for each
- * condition the letter's parts use, pressed for those who meet it, unpressed
- * for those who don't, each press choosing the first recipient with the
- * answers pressed; then the choice of every recipient, which sets the
- * buttons to theirs. With no one with the answers pressed, no email, as
- * there's no one to fill it in for. Under it, a test copy, sent to
- * yourself, once it has a subject and a letter.
+ * Each recipient's email, as they'll get it, chosen as useRecipientChoice
+ * says. With no one with the answers pressed, no email, as there's no one
+ * to fill it in for. Under it, a test copy, sent to yourself, once it has
+ * a subject and a letter.
  */
 function Preview({
   data,
@@ -582,10 +576,6 @@ function Preview({
   const testToId = useId();
   // As its From line will show it: in the name chosen, or the Gmail's own, if it has one.
   const fromLine = named(fromName || data.senders.find((sender) => sender.email === sentFrom)?.name, sentFrom!);
-  const findLabel = useId();
-  const [chosen, setChosen] = useState(data.recipients[0]?.id);
-  // The answers pressed, since someone was last chosen; else theirs.
-  const [wanted, setWanted] = useState<Record<string, boolean>>({});
   // How the last test copy went, as the line under the button says it, and whether it went.
   const [sent, setSent] = useState<{ line: string; went: boolean }>();
   const [send, sending, broke] = useSave(sendTest, {
@@ -596,67 +586,18 @@ function Preview({
       else setSent({ line: result ? refusals.test[result.reason] : copy.testFailed, went: false });
     },
   });
+  const { recipient, choice } = useRecipientChoice({
+    recipients: data.recipients,
+    body,
+    labels: answerLabels(data.asks),
+    chosen: () => setSent(undefined),
+  });
   // A send that threw, or never arrived, reads as one that couldn't be sent.
   const test = broke ? { line: copy.testFailed, went: false } : sent;
-  const first = data.recipients[0];
-  if (!first) return <p>{copy.noOne}</p>;
-  const shown = data.recipients.find((r) => r.id === chosen) ?? first;
-  const used = [
-    ...new Set(conditionsIn(body).map((c) => (c.startsWith(NOT_CONDITION) ? c.slice(NOT_CONDITION.length) : c))),
-  ];
-  const meets = Object.fromEntries(used.map((c) => [c, wanted[c] ?? shown.meets.includes(c)]));
-  const fits = (r: PreviewRecipient, answers: Record<string, boolean>) =>
-    used.every((c) => r.meets.includes(c) === answers[c]);
-  const recipient = fits(shown, meets) ? shown : undefined;
-  const labels = answerLabels(data.asks);
-  const toggle = (condition: string) => {
-    const answers = { ...meets, [condition]: !meets[condition] };
-    setWanted(answers);
-    const match = data.recipients.find((r) => fits(r, answers));
-    if (match) setChosen(match.id);
-    setSent(undefined);
-  };
+  if (data.recipients.length === 0) return <p>{copy.noOne}</p>;
   return (
     <>
-      {used.length > 0 && (
-        <div className={styles.find}>
-          <p id={findLabel} className={styles.label}>
-            {copy.findRecipient}
-          </p>
-          <ul className={styles.toggles} aria-labelledby={findLabel}>
-            {used.map((condition) => (
-              <li key={condition}>
-                <button
-                  type="button"
-                  aria-pressed={meets[condition]}
-                  className={partButton(!meets[condition])}
-                  onClick={() => toggle(condition)}
-                >
-                  {!meets[condition] && <NotIcon />}
-                  <span className={partButtonWords}>{labels[condition] ?? condition}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <Field label={copy.chooseRecipient} className={styles.whoShown}>
-        <Select
-          value={recipient?.id ?? ""}
-          onChange={(event) => {
-            setChosen(Number(event.target.value));
-            setWanted({});
-            setSent(undefined);
-          }}
-        >
-          {!recipient && <option value="" disabled />}
-          {data.recipients.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.constituency ? `${r.name} · ${r.constituency}` : r.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      {choice}
       {recipient ? (
         <div className={styles.email}>
           <dl className={styles.headers}>

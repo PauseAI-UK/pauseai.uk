@@ -1,6 +1,4 @@
 import { campaigns } from "@/lib/content/email-your-mp";
-import { draftLetter } from "@/lib/email-your-mp";
-import { toText } from "@/lib/letters/format";
 import type { LetterSummary, PauseaiLetterDetails, SupporterLetterDetails } from "@/lib/letters/records.server";
 import type { LettersSearch } from "@/lib/staff-search";
 
@@ -67,14 +65,22 @@ export const exampleSupporterLetterDetails: SupporterLetterDetails = {
 
 const LETTERS_INBOX = "fixture-letters@pauseai.uk";
 
-/** The campaign's whole letter, as the form drafts it for Jane to the test MP. */
-const PROXIED_DRAFT = toText(
-  draftLetter(pm, { salutation: "Mr McTestface", constituency: "Testshire", senderName: "Jane Smith", statuses: {} }, [
-    "1 High Street",
-    "Testville",
-    "ZZ9 9ZZ",
-  ]),
-);
+/** The campaign's whole letter, as the form drafted it for Jane to the test MP, and as the letter keeps it. */
+const PROXIED_DRAFT = `Dear Mr McTestface,
+
+I'm a resident of Testshire and a supporter of PauseAI, a civic movement focused on averting the risks of superhuman AI. I am very concerned that AI development is racing ahead without adequate protection for the public.
+
+Please could you add your name to PauseAI's open letter (attached) in support of frontier AI legislation?
+
+I would also like you to arrange a short meeting with me to discuss this important matter.
+
+Thank you for your consideration,
+
+Jane Smith
+
+1 High Street
+Testville
+ZZ9 9ZZ`;
 
 /** What Jane sent: the request for a meeting cut, a paragraph of her own added, and a word changed. */
 const PROXIED_SENT = PROXIED_DRAFT.replace(

@@ -5,7 +5,14 @@ import { campaigns, type Campaign, type LetterDetails, type MpStatuses } from "@
 import type { SpamReason } from "@/lib/content/spam-check";
 import type { FormResult } from "@/lib/form-result";
 import type { QueueReason } from "@/lib/letters/sending.server";
-import { docFromMarkup, type Inline, type LetterDoc } from "@/lib/letters/format";
+import type { Inline, LetterDoc } from "@/lib/letters/format";
+import {
+  answerCondition,
+  isBlankMailing,
+  letterFor,
+  type MailingDoc,
+  type MailingRecipientValues,
+} from "@/lib/mailings/doc";
 import { normalisePostcode } from "@/lib/postcodes";
 import type { Place } from "@/lib/site-events";
 
@@ -87,12 +94,46 @@ export function campaignToMoveTo(campaign: Campaign, statuses: MpStatuses): Camp
 }
 
 /**
- * The letter the form starts with: the campaign's, which ends with the
- * sender's name, then a paragraph of their address, a line each. All of it
- * is theirs to edit, a town added, say, and it's sent as they leave it.
+ * A campaign's letter as staff publish it (campaign_letters): the subject,
+ * and the letter, with the MP's fields and the sender's name
+ * (CAMPAIGN_FIELDS), and parts only for MPs with an answer to an ask.
  */
-export function draftLetter(campaign: Campaign, details: LetterDetails, address: string[]): LetterDoc {
-  const body = docFromMarkup(campaign.letter(details));
+export type CampaignLetter = { id: number; subject: string; body: MailingDoc };
+
+/** Why a campaign's draft letter can't be published as it is: no subject, or no letter. */
+export type UnpublishableReason = "no-subject" | "no-letter";
+
+/** What stops a campaign's draft letter being published, if anything. */
+export function unpublishable(draft: { subject: string; body: MailingDoc }): UnpublishableReason | undefined {
+  if (!draft.subject.trim()) return "no-subject";
+  if (isBlankMailing(draft.body)) return "no-letter";
+  return undefined;
+}
+
+/** The merge fields a campaign's letter can have: the MP's, then the sender's name. */
+export const CAMPAIGN_FIELDS = ["salutation", "name", "constituency", "sender"] as const;
+
+/** What a campaign's letter is filled in with for one sender to one MP. */
+export function letterValues(details: LetterDetails): MailingRecipientValues {
+  return {
+    values: {
+      salutation: details.salutation,
+      name: details.mpName,
+      constituency: details.constituency,
+      sender: details.senderName,
+    },
+    meets: Object.entries(details.statuses).flatMap(([ask, status]) => (status ? [answerCondition(ask, status)] : [])),
+  };
+}
+
+/**
+ * The letter the form starts with: the campaign's, filled in for the MP,
+ * which ends with the sender's name, then a paragraph of their address, a
+ * line each. All of it is theirs to edit, a town added, say, and it's sent
+ * as they leave it.
+ */
+export function draftLetter(letter: MailingDoc, details: LetterDetails, address: string[]): LetterDoc {
+  const body = letterFor(letter, letterValues(details));
   const lines = address.flatMap((line, i): Inline[] => [
     ...(i > 0 ? [{ type: "hardBreak" } as const] : []),
     { type: "text", text: line },

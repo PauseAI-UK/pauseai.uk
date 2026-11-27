@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Select } from "@/components/ui/Controls";
 import { Field } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
-import { campaignTextDoc } from "@/lib/mailings/campaign-versions";
 import type { CampaignVersion } from "@/lib/mailings/campaigns.server";
 import { staffDate } from "@/lib/staff-time";
 import MailEmail from "./MailEmail";
@@ -18,21 +17,25 @@ const copy = mailingsCopy.campaigns;
 /**
  * "The letter" of a campaign's page: what people were given, a version
  * chosen from the list if there's been more than one, with its subject and
- * its text, its names as chips. Beside how many letters there are, a link to
+ * its text, its fields as chips and its parts only for some MPs boxed, by
+ * `conditions`' labels. Beside how many letters there are, a link to
  * those that changed the wording, in all versions.
  */
 export default function CampaignLetter({
   versions,
   changed,
   changedHref,
+  conditions = {},
 }: {
   versions: CampaignVersion[];
   changed: number;
   changedHref: string;
+  conditions?: Record<string, string>;
 }) {
   const [key, setKey] = useState(versions[0]?.key ?? "");
   const version = versions.find((one) => one.key === key);
-  const line = (one: CampaignVersion) => copy.versionLine(one.from && staffDate(one.from), one.letters);
+  const line = (one: CampaignVersion) =>
+    one.body ? copy.versionLine(one.from && staffDate(one.from), one.letters) : copy.beforeVersions(one.letters);
   return (
     <div className={styles.letter}>
       <div className={styles.head}>
@@ -51,17 +54,17 @@ export default function CampaignLetter({
         )}
         {changed > 0 && <StaffLink href={changedHref}>{copy.changedLink(changed)}</StaffLink>}
       </div>
-      {version ? (
+      {version?.body ? (
         <MailEmail
           from={<Muted>{copy.fromEach}</Muted>}
           to={<Muted>{mailingsCopy.mailingPages.toEach}</Muted>}
           subject={version.subject}
         >
-          <MailingLetter doc={campaignTextDoc(version.text)} fields={copy.fields} conditions={{}} />
+          <MailingLetter doc={version.body} fields={copy.fields} conditions={conditions} />
         </MailEmail>
       ) : (
         <p>
-          <Muted>{copy.noText}</Muted>
+          <Muted>{version ? copy.ownDrafts : copy.noText}</Muted>
         </p>
       )}
     </div>

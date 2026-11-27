@@ -9,10 +9,13 @@ import { cache } from "react";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS, formVersionAt } from "@/lib/content/pauseai-info-form";
 import { query } from "@/lib/server/db.server";
+import { publishedVersions } from "@/lib/mailings/campaign-letters.server";
+import { campaignTextDoc } from "./campaign-versions";
+import type { MailingDoc } from "./doc";
 
 // A campaign is like a mailing, from supporters rather than PauseAI: its list
 // and its page's counts, and each version of its text with how many letters
-// were written from it (lib/mailings/campaign-versions.ts turns them into documents).
+// were written from it.
 
 export type CampaignSummary = {
   slug: string;
@@ -63,25 +66,45 @@ export const getCampaignSummary = cache(async function getCampaignSummary(
   return campaign;
 });
 
-/** A version of a campaign's text, with how many letters were written from it. */
-export type CampaignVersion = { key: string; from: Date | null; letters: number; subject: string; text: string };
+/**
+ * A version of a campaign's letter, with how many letters were written
+ * from it. `body` is none for the letters from before staff could edit
+ * the letter, each of which keeps its own draft.
+ */
+export type CampaignVersion = {
+  key: string;
+  from: Date | null;
+  by: string | null;
+  letters: number;
+  subject: string;
+  body: MailingDoc | null;
+};
 
-/** A campaign's versions, counted from its letters' dates, and how many of its letters changed the wording. */
+/**
+ * A campaign's versions, newest first, and how many of its letters changed
+ * the wording. A campaign in the code has the versions staff published,
+ * then any letters from before them; one from pauseai.info's old form, its
+ * form's versions, counted from its letters' dates.
+ */
 export async function campaignVersions(slug: string): Promise<{ versions: CampaignVersion[]; changed: number }> {
   const rows = await query<{ at: Date; own: number | null }>(
     `SELECT l.created_at AS at, s.own_words AS own FROM letters_from_supporters s JOIN letters l USING (id) WHERE s.campaign = $1`,
     [slug],
   );
   const changed = rows.filter(({ own }) => (own ?? 0) > 0).length;
-  const code = campaignBySlug(slug);
-  if (code) {
-    const text = code.letter({
-      salutation: "{salutation}",
-      constituency: "{constituency}",
-      senderName: "{name}",
-      statuses: {},
-    });
-    return { versions: [{ key: slug, from: null, letters: rows.length, subject: code.subject, text }], changed };
+  if (campaignBySlug(slug)) {
+    const { versions, before } = await publishedVersions(slug);
+    const published = versions.map((version) => ({
+      key: String(version.id),
+      from: version.publishedAt,
+      by: version.publishedBy,
+      letters: version.letters,
+      subject: version.subject,
+      body: version.body,
+    }));
+    const earlier =
+      before > 0 ? [{ key: "before", from: null, by: null, letters: before, subject: "", body: null }] : [];
+    return { versions: [...published, ...earlier], changed };
   }
   const counted = new Map<string, number>();
   for (const { at } of rows) {
@@ -92,9 +115,10 @@ export async function campaignVersions(slug: string): Promise<{ versions: Campai
     .map((version) => ({
       key: version.commit,
       from: new Date(version.committedAt),
+      by: null,
       letters: counted.get(version.commit)!,
       subject: version.subject,
-      text: version.text,
+      body: campaignTextDoc(version.text),
     }))
     .reverse();
   return { versions, changed };

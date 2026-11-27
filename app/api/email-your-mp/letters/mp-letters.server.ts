@@ -6,6 +6,7 @@ import { refused } from "@/lib/form-result";
 import { draftHash, ownWords } from "@/lib/letters/changes";
 import { checkDoc, isBlank, toText, type LetterDoc } from "@/lib/letters/format";
 import { query, transaction } from "@/lib/server/db.server";
+import { publishedLetter, publishedVersion } from "@/lib/mailings/campaign-letters.server";
 import { findMp } from "@/lib/politicians/find-mp.server";
 import { sendLetter } from "@/lib/letters/sending.server";
 import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
@@ -32,6 +33,8 @@ export type LetterForm = {
   letter: LetterDoc | undefined;
   /** The hash of the draft the form began with (draftHash), to tell whether the server's rebuild of it is the same. */
   draftHash: string;
+  /** The version of the campaign's letter the form began with (campaign_letters), if it says. */
+  campaignLetterId?: number;
   consent: boolean;
   nickname: string;
   turnstileToken: string;
@@ -53,6 +56,7 @@ export function parseLetterForm(body: unknown): LetterForm {
     subject: text(data.subject),
     letter: checkDoc(data.letter),
     draftHash: text(data.draftHash),
+    ...(Number.isSafeInteger(data.campaignLetterId) && { campaignLetterId: data.campaignLetterId as number }),
     consent: data.consent === true,
     nickname: text(data.nickname),
     turnstileToken: text(data.turnstileToken),
@@ -101,6 +105,11 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
   if (isOurAddress(form.email)) return refused("our-address");
   const campaign = campaignBySlug(form.campaign);
   if (!campaign) return refused("unknown-campaign");
+  // The version the form began with, or for a form that doesn't say, the latest.
+  const version =
+    (form.campaignLetterId !== undefined && (await publishedVersion(campaign.slug, form.campaignLetterId))) ||
+    (await publishedLetter(campaign.slug));
+  if (!version) return refused("unknown-campaign");
 
   const found = await findMp(form.postcode);
   const mp = found.ok ? found.mp : undefined;
@@ -110,9 +119,10 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
   // The draft the form began with, rebuilt as it made it, and what the sender changed.
   const draft = toText(
     draftLetter(
-      campaign,
+      version.body,
       {
         salutation: mp.salutation,
+        mpName: mp.name,
         constituency: mp.constituency,
         senderName: form.name,
         statuses: await statusesOf(mp.id),
@@ -151,8 +161,8 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
       await politicianProxy(mp, db);
       await query(
         `INSERT INTO letters_from_supporters (id, entry_id, campaign, subject, proxy_id, letter, draft, draft_approximate,
-           own_words, copy_state)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'queued')`,
+           own_words, copy_state, campaign_letter_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'queued', $10)`,
         [
           id,
           entry.id,
@@ -163,6 +173,7 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
           draft,
           draftHash(draft) !== form.draftHash,
           ownWords(draft, toText(letter)),
+          version.id,
         ],
         db,
       );

@@ -4,10 +4,12 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { saveDraft, saveLookup } from "./draft.client";
-import { exampleLookup, exampleMp } from "./draft.examples";
+import { exampleLetters, exampleLookup, exampleMp } from "./draft.examples";
 import LetterWrite from "./LetterWrite";
 
 const [letterToPm, bill] = campaigns;
+const toPm = exampleLetters[letterToPm.slug];
+const toBill = exampleLetters[bill.slug];
 const MP = exampleMp;
 const LOOKUP = exampleLookup;
 
@@ -18,32 +20,33 @@ const editor = () => page.getByRole("textbox", { name: copy.form.letterLabel, ex
 describe("LetterWrite", () => {
   it("shows the MP found, and the campaign's letter to them, from the sender", async () => {
     saveLookup(LOOKUP);
-    await render(<LetterWrite campaignSlug={letterToPm.slug} />);
+    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
     await expect.element(page.getByRole("heading", { name: "Polly Placeholder" })).toBeVisible();
     await expect.element(page.getByText(MP.email)).toBeVisible();
-    await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue(letterToPm.subject);
+    await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue(toPm.subject);
     await expect.element(editor().getByText("Dear Ms Placeholder,")).toBeVisible();
     await expect.element(page.getByText("1 High St", { exact: false })).toHaveTextContent("1 High StSW1A 1AA");
   });
 
-  it("says so above the bill's letter when the MP signed ControlAI's letter, and nowhere else", async () => {
+  it("says so above the bill's letter when the MP signed ControlAI's letter, with the letter's part for them, and nowhere else", async () => {
     saveLookup({ ...LOOKUP, campaign: bill.slug, statuses: { [CONTROLAI_LETTER_ASK]: "signed" } });
-    const signed = await render(<LetterWrite campaignSlug={bill.slug} />);
+    const signed = await render(<LetterWrite campaignSlug={bill.slug} letter={toBill} />);
     await expect.element(page.getByText(copy.sobelBill.signedNote.after, { exact: false })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.sobelBill.signedNote.link }))
       .toHaveAttribute("href", "https://controlai.org/uk-pm-letter");
-    await expect.element(editor().getByText(copy.sobelBill.letterThanks)).toBeVisible();
+    await expect.element(editor().getByText("Thank you for signing.")).toBeVisible();
     await signed.unmount();
 
     saveLookup({ ...LOOKUP, campaign: bill.slug });
-    const unsigned = await render(<LetterWrite campaignSlug={bill.slug} />);
+    const unsigned = await render(<LetterWrite campaignSlug={bill.slug} letter={toBill} />);
     await expect.element(editor()).toBeVisible();
     await expect.element(page.getByText(copy.sobelBill.signedNote.after, { exact: false })).not.toBeInTheDocument();
+    await expect.element(editor().getByText("Thank you for signing.")).not.toBeInTheDocument();
     await unsigned.unmount();
 
     saveLookup({ ...LOOKUP, statuses: { [CONTROLAI_LETTER_ASK]: "signed" } });
-    await render(<LetterWrite campaignSlug={letterToPm.slug} />);
+    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
     await expect.element(editor()).toBeVisible();
     await expect.element(page.getByText(copy.sobelBill.signedNote.after, { exact: false })).not.toBeInTheDocument();
   });
@@ -59,18 +62,25 @@ describe("LetterWrite", () => {
       draftHash: "0badcafe",
       nickname: "",
     });
-    await render(<LetterWrite campaignSlug={letterToPm.slug} />);
+    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
     await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue("Kept subject");
     await expect.element(editor().getByText("Kept letter")).toBeVisible();
   });
 
   it("says to find the MP first, without a lookup for this campaign, and links to the form", async () => {
     saveLookup({ ...LOOKUP, campaign: bill.slug });
-    await render(<LetterWrite campaignSlug={letterToPm.slug} />);
+    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
     await expect.element(page.getByText(copy.write.none)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.preview.backToForm }))
       .toHaveAttribute("href", `/campaigns/${letterToPm.slug}#email-your-mp`);
+    await expect.element(page.getByLabelText(copy.form.subjectLabel)).not.toBeInTheDocument();
+  });
+
+  it("says the campaign isn't open yet, before staff have published its letter", async () => {
+    saveLookup(LOOKUP);
+    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={null} />);
+    await expect.element(page.getByText(copy.write.notOpen)).toBeVisible();
     await expect.element(page.getByLabelText(copy.form.subjectLabel)).not.toBeInTheDocument();
   });
 });

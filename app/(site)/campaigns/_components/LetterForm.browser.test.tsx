@@ -4,13 +4,15 @@ import { page, userEvent } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { navigation } from "@/tests/browser/navigation";
 import { readDraft, type Draft } from "./draft.client";
-import { exampleMp } from "./draft.examples";
+import { exampleLetters, exampleMp } from "./draft.examples";
 import LetterForm from "./LetterForm";
 
 const [letterToPm, bill] = campaigns;
 const MP = exampleMp;
+const toPm = exampleLetters[letterToPm.slug];
 const PROPS = {
   campaign: letterToPm,
+  letter: toPm,
   mp: MP,
   statuses: {},
   senderName: "Jane Smith",
@@ -32,15 +34,15 @@ async function fillAndPreview(email = "jane@example.com") {
 }
 
 describe("LetterForm", () => {
-  it("drafts the letter for the MP, ending with their name, address and postcode, all editable", async () => {
+  it("drafts the campaign's letter for the MP, ending with their name, address and postcode, all editable", async () => {
     await render(<LetterForm {...PROPS} />);
-    await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue(letterToPm.subject);
+    await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue(toPm.subject);
     await expect.element(editor().getByText("Dear Ms Placeholder,")).toBeVisible();
     await expect
-      .element(editor().getByText(/^I'm a resident of Cities of London and Westminster and a supporter of/))
+      .element(editor().getByText(/^I live in Cities of London and Westminster\. Please sign the/))
       .toBeVisible();
     // The campaign letter's bold.
-    expect(editor().getByText("PauseAI", { exact: true }).element().tagName).toBe("STRONG");
+    expect(editor().getByText("open letter", { exact: true }).element().tagName).toBe("STRONG");
     // The letter ends with the name, then the lookup's address and postcode, a line each.
     await expect.element(editor().getByText("Jane Smith", { exact: true })).toBeVisible();
     const address = editor().element().lastElementChild!;
@@ -53,7 +55,7 @@ describe("LetterForm", () => {
   });
 
   it("leaves out attachments when there are none", async () => {
-    await render(<LetterForm {...PROPS} campaign={bill} />);
+    await render(<LetterForm {...PROPS} campaign={bill} letter={exampleLetters[bill.slug]} />);
     await expect.element(page.getByText(copy.form.attachments)).not.toBeInTheDocument();
   });
 
@@ -74,8 +76,9 @@ describe("LetterForm", () => {
       address: "1 High St",
       subject: "My subject",
       letter: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "My letter" }] }] },
-      // The draft it began with, the campaign's, not what was written over it.
+      // The draft it began with, the campaign's, not what was written over it, and its version.
       draftHash: expect.stringMatching(/^[0-9a-f]{8}$/),
+      campaignLetterId: toPm.id,
       nickname: "",
     });
   });

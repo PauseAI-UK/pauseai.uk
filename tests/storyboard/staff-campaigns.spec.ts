@@ -4,7 +4,7 @@ import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { sentLetterId } from "./letter-steps";
+import { sentLetterId, SUBJECTS } from "./letter-steps";
 import { addFilter } from "./list-steps";
 import { logIn } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
@@ -48,7 +48,7 @@ test("Campaigns", async ({ page, flowDatabase }) => {
   );
   await page.getByRole("link", { name: campaigns[0].title, exact: true }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(campaigns[0].title);
-  await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(campaigns[0].subject);
+  await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(SUBJECTS[campaigns[0].slug]);
   await frame(page, "A campaign's page");
 
   story("Each count shows only the letters it counts: the sent count, the letters that went.");

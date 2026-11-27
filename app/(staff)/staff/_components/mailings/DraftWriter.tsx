@@ -34,11 +34,14 @@ export type SaveRefusal = Exclude<SaveResult, { saved: true }>["reason"];
 /** What a draft has attached once a file is added or taken off, and the version that made. */
 export type Attached = { version: number; attachments: MailingAttachmentSummary[] };
 
-/** The Server Actions saving a draft takes, which the page hands in. */
+/**
+ * The Server Actions saving a draft takes, which the page hands in: a draft
+ * that can have files has the two for them.
+ */
 export type DraftActions = {
   save: (id: number, version: number, changes: unknown) => Promise<FormResult<SaveRefusal, { version: number }>>;
-  attach: (form: FormData) => Promise<FormResult<SaveRefusal | "too-big", Attached>>;
-  detach: (id: number, version: number, attachmentId: number) => Promise<FormResult<SaveRefusal, Attached>>;
+  attach?: (form: FormData) => Promise<FormResult<SaveRefusal | "too-big", Attached>>;
+  detach?: (id: number, version: number, attachmentId: number) => Promise<FormResult<SaveRefusal, Attached>>;
 };
 
 /**
@@ -86,17 +89,20 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
   );
 }
 
-/** Where a draft's changes wait across a reload, while the page is too old to save them. */
-const unsavedKey = (id: number) => `draft-unsaved-${id}`;
+/**
+ * Where a draft's changes wait across a reload, while the page is too old
+ * to save them: by its kind, a mailing's "draft" or another table's, and its ID.
+ */
+const unsavedKey = (kind: string, id: number) => `${kind}-unsaved-${id}`;
 
 /** What's kept across a reload: the changes, and the version they're changes to. */
 type Unsaved = { version: number; changes: Record<string, unknown> };
 
 /** A draft's changes kept for it before a reload, if they're to the version it has now; taken, so they're kept once. */
-function takeUnsaved(id: number, version: number): Record<string, unknown> | null {
+function takeUnsaved(kind: string, id: number, version: number): Record<string, unknown> | null {
   try {
-    const kept = sessionStorage.getItem(unsavedKey(id));
-    sessionStorage.removeItem(unsavedKey(id));
+    const kept = sessionStorage.getItem(unsavedKey(kind, id));
+    sessionStorage.removeItem(unsavedKey(kind, id));
     if (!kept) return null;
     const unsaved = JSON.parse(kept) as Unsaved;
     if (unsaved.version !== version) return null;
@@ -126,19 +132,23 @@ function takeUnsaved(id: number, version: number): Record<string, unknown> | nul
  * again, takes them back and saves them, and `restored` goes up by one, for
  * an editor that reads its words only once to be made anew.
  */
-export function useDraftWriter<Changes extends { dueAt: Date | null }>({
+export function useDraftWriter<Changes extends object>({
+  kind = "draft",
   id,
   version: firstVersion,
   initial,
   fresh,
-  attachments: firstAttachments,
+  attachments: firstAttachments = [],
   actions,
 }: {
+  /** What it's a draft of, as its ID is kept by across a reload: a mailing's "draft" unless it says. */
+  kind?: string;
   id: number;
   version: number;
   initial: Changes;
   fresh: Partial<Changes>;
-  attachments: MailingAttachmentSummary[];
+  /** Its files, for a draft that can have them. */
+  attachments?: MailingAttachmentSummary[];
   actions: DraftActions;
 }) {
   const version = useRef(firstVersion);
@@ -170,7 +180,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
       if (!outdated.current) return;
       try {
         sessionStorage.setItem(
-          unsavedKey(id),
+          unsavedKey(kind, id),
           JSON.stringify({ version: version.current, changes: pending.current } satisfies Unsaved),
         );
       } catch {
@@ -183,7 +193,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
       window.removeEventListener("pagehide", leaving);
       unkeep();
     };
-  }, [id]);
+  }, [kind, id]);
 
   function flush(): Promise<void> {
     if (saving.current) {
@@ -288,7 +298,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
       form.set("id", String(id));
       form.set("version", String(version.current));
       form.set("file", file);
-      const result = await actions.attach(form).catch(() => null);
+      const result = await actions.attach!(form).catch(() => null);
       if (result === null) return setFileProblem(copy.attachFailed);
       if (!attached(result)) return;
     }
@@ -297,13 +307,13 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   /** Takes a file off. One that can't be, as the request never arrived or the server threw, is said under the files. */
   async function detach(file: number) {
     setFileProblem("");
-    const result = await actions.detach(id, version.current, file).catch(() => null);
+    const result = await actions.detach!(id, version.current, file).catch(() => null);
     if (result === null) return setFileProblem(staffVocabulary.notDone);
     attached(result);
   }
 
   useEffect(() => {
-    const unsaved = takeUnsaved(id, firstVersion);
+    const unsaved = takeUnsaved(kind, id, firstVersion);
     if (unsaved) {
       change(unsaved as Partial<Changes>);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- once, on load, from sessionStorage, which the server render couldn't read
@@ -315,8 +325,9 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
 
   useEffect(() => {
     const check = () => {
-      const due = latest.current.dueAt;
-      if (due && due < earliestRun()) change({ dueAt: earliestRun() } as Partial<Changes>);
+      // A draft with a time to go at, as a mailing has.
+      const due = (latest.current as { dueAt?: Date | null }).dueAt;
+      if (due && due < earliestRun()) change({ dueAt: earliestRun() } as unknown as Partial<Changes>);
     };
     check();
     const timer = setInterval(check, CHECK_EVERY);

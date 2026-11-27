@@ -95,6 +95,7 @@ export default function LetterPreview({ campaignSlug, turnstileSiteKey }: Props)
         subject: letter.subject,
         letter: letter.letter,
         draftHash: letter.draftHash,
+        campaignLetterId: letter.campaignLetterId,
         consent,
         nickname: letter.nickname,
         turnstileToken,

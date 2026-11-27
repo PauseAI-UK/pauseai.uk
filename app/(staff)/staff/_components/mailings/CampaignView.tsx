@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
 import { campaignNamed, campaignPath } from "@/lib/content/campaigns";
@@ -95,6 +96,10 @@ export type CampaignPageProps = {
   campaign: CampaignSummary;
   versions: CampaignVersion[];
   changed: number;
+  /** Who a part of a letter is for, by its condition (answerLabels()), for a letter with parts. */
+  conditions?: Record<string, string>;
+  /** For a campaign in the code, whose letter staff write: whether it has a draft open. */
+  draft?: boolean;
   letters: { letters: LetterSummary[]; total: number; pages: number; pageSize: number };
   search: LettersSearch;
 };
@@ -112,7 +117,15 @@ function PublicPage({ campaign }: { campaign: CampaignSummary }) {
  * what it asks and when, with its counts; how many answered its ask; then "The letter" beside
  * "Letters", as "The email" is beside "Recipients".
  */
-export default function CampaignView({ campaign, versions, changed, letters, search }: CampaignPageProps) {
+export default function CampaignView({
+  campaign,
+  versions,
+  changed,
+  conditions,
+  draft,
+  letters,
+  search,
+}: CampaignPageProps) {
   const path = `/staff/campaigns/${campaign.slug}`;
   const { page, ...filters } = search;
   void page;
@@ -160,11 +173,24 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
         </Grid>
       )}
       <Grid>
-        <Card span={3} look="aside" title={copy.theLetter} id="campaign-letter">
+        <Card
+          span={3}
+          look="aside"
+          title={copy.theLetter}
+          id="campaign-letter"
+          action={
+            draft !== undefined && (
+              <ButtonLink variant="ghost" size="small" href={`${path}/letter`}>
+                {draft ? copy.carryOn : copy.editLetter}
+              </ButtonLink>
+            )
+          }
+        >
           <CampaignLetter
             versions={versions}
             changed={changed}
             changedHref={filtersPath(path, { ...filters, tab: "changed" })}
+            conditions={conditions}
           />
         </Card>
         <Card span={3} as="div">

@@ -31,8 +31,8 @@ const DATABASE_HOOK = 60_000;
 /**
  * The tables not truncated before each test: those whose rows the migrations
  * seed, which tests read and leave alone (the asks and campaigns, and their
- * statuses), and those emptied by a DELETE instead: the mailings, of only
- * those a test wrote, and the WhatsApp templates and their variants, as
+ * statuses), and those emptied by a DELETE instead: the mailings, and the
+ * campaigns' letters, of only those a test wrote, and the WhatsApp templates and their variants, as
  * truncating them would take the imported mailings that refer to them. Every
  * other table in the database is truncated, but the press survey's one row,
  * how far it has searched, which is set back to where the migration starts
@@ -42,6 +42,7 @@ const SEEDED = [
   "ask_kind_statuses",
   "asks",
   "campaigns",
+  "campaign_letters",
   "mailings",
   "whatsapp_templates",
   "whatsapp_template_variants",
@@ -78,6 +79,8 @@ export function useTestDatabase() {
     await query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
     // The mailings written here; the imported ones come with the migrations.
     await query("DELETE FROM mailings WHERE body IS NOT NULL");
+    // The campaigns' letters written here: the migrations' are published by no one.
+    await query("DELETE FROM campaign_letters WHERE published_at IS NULL OR published_by IS NOT NULL");
     // A mailing left, as one a test took its words from, lets go of its template, which goes next.
     await query("UPDATE mailings SET template_id = NULL WHERE template_id IS NOT NULL");
     await query("DELETE FROM whatsapp_templates");

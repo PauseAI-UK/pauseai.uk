@@ -50,13 +50,48 @@ describeWithDatabase("campaigns", () => {
     expect(all.find((c) => c.slug === "support-sobel-bill")?.letters).toBe(0);
   });
 
-  it("gives a site campaign its one text, with its names to fill in", async () => {
+  it("gives a site campaign the versions staff published, newest first, each with its letters, then those from before", async () => {
     const polly = await addTestPolitician();
-    await addTestLetter({ politicianId: polly, campaign: "regulate-letter-pm" });
+    const [first] = await query<{ id: number }>(
+      "SELECT id::int AS id FROM campaign_letters WHERE campaign = 'regulate-letter-pm'",
+    );
+    const [{ id: newer }] = await query<{ id: number }>(
+      `INSERT INTO campaign_letters (campaign, subject, body, published_at, published_by)
+       VALUES ('regulate-letter-pm', 'Newer', '{"type":"doc","content":[]}', now() + interval '1 minute', 'jane@pauseai.uk')
+       RETURNING id::int AS id`,
+    );
+    // A draft isn't a version.
+    await query(
+      `INSERT INTO campaign_letters (campaign, subject, body) VALUES ('regulate-letter-pm', 'Draft', '{"type":"doc","content":[]}')`,
+    );
+    const letter = async (version: number | null) => {
+      const id = await addTestLetter({ politicianId: polly, campaign: "regulate-letter-pm" });
+      await query("UPDATE letters_from_supporters SET campaign_letter_id = $2 WHERE id = $1", [id, version]);
+    };
+    await letter(newer);
+    await letter(first.id);
+    await letter(first.id);
+    await letter(null);
     const { versions } = await campaignVersions("regulate-letter-pm");
-    expect(versions).toHaveLength(1);
-    expect(versions[0]).toMatchObject({ key: "regulate-letter-pm", from: null, letters: 1 });
-    expect(versions[0].text).toContain("{salutation}");
+    expect(versions.map((v) => [v.key, v.letters, v.subject, v.by])).toEqual([
+      [String(newer), 1, "Newer", "jane@pauseai.uk"],
+      [String(first.id), 2, "Request to co-sign letter on frontier AI risks", null],
+      ["before", 1, "", null],
+    ]);
+    expect(versions[1].body?.content[0]).toEqual({
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Dear " },
+        { type: "field", attrs: { field: "salutation" } },
+        { type: "text", text: "," },
+      ],
+    });
+    expect(versions[2].body).toBeNull();
+  });
+
+  it("gives a site campaign with no letters from before versions none for them", async () => {
+    const { versions } = await campaignVersions("support-sobel-bill");
+    expect(versions.map((v) => [v.letters, v.from === null])).toEqual([[0, false]]);
   });
 
   it("gives an old campaign each version live when its letters were written, newest first, and how much was their own", async () => {
