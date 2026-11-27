@@ -566,6 +566,20 @@ nothing to picture or to run, it runs nothing. `--plan` says which flows a
 review would picture and run, and why, and runs none. `--full` runs every
 flow regardless.
 
+A review that pictures far more flows than the change could alter is a
+sign of how the code is laid out, not only of the map. When `npm run reach
+-- --branch` shows a changed file reaching hundreds of flows through real
+imports, ask why so much pulls it in. Often a module holds two concerns,
+one that many pages need and one that few do, such as a feature's sorts
+beside its search logic, or a page's words in a copy file the server
+reads. Split them, so the next change to the narrow part reaches only its
+own flows. Do it on the branch, even when the split itself reaches as many
+flows this time: what it saves is every later review's. Where the split is
+too big for the branch, give it a line in
+`investments/storyboard-reach-imports.md`. Don't move code just to dodge
+the review, though. Putting one definition in two places, or reverting a
+real fix, to keep a file out of the diff leaves the code worse.
+
 A flow that main's own merges changed isn't pictured, unless this branch's
 change reaches it too: nothing of it is this branch's to review. So a
 rebase onto a newer main runs only what the branch's own change reaches,
