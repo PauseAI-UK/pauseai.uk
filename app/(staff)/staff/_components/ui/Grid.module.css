@@ -60,6 +60,18 @@
   .s4 {
     grid-column: span 4;
   }
+
+  /* As tall as the record beside it, for its first card to stay in view
+     down all of it; the cards after pass under that one. */
+  .keepFirst {
+    align-self: stretch;
+  }
+
+  .keepFirst > :first-child {
+    position: sticky;
+    z-index: 1;
+    top: var(--space-4);
+  }
 }
 
 /* A column of cards, one under another, a grid's gap apart. */

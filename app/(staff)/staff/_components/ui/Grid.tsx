@@ -65,10 +65,25 @@ export type CardLook = "record" | "aside" | "log";
 /**
  * An item of a `Grid` that's a column of cards, one under another, each
  * as tall as what's in it: the asides beside a record (a letter's ask and
- * history). Its cards say no span.
+ * history). Its cards say no span. `keepFirst` keeps its first card in
+ * view as the page scrolls down the record beside it, the rest passing
+ * under it: a letter's ask, beside a long thread. Where the grid is one
+ * column, the record isn't beside it, so it scrolls as the page does.
  */
-export function Column({ span, children }: { span: Span; children: ReactNode }) {
-  return <div className={`${styles.column} ${SPANS[span]}`}>{children}</div>;
+export function Column({
+  span,
+  keepFirst = false,
+  children,
+}: {
+  span: Span;
+  keepFirst?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={[styles.column, SPANS[span], keepFirst && styles.keepFirst].filter(Boolean).join(" ")}>
+      {children}
+    </div>
+  );
 }
 
 /**
