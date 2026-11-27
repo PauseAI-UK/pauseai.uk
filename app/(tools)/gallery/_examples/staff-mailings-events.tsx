@@ -27,7 +27,7 @@ import { answerableReplyGallery } from "@/app/(staff)/staff/_components/mailings
 import { mailingReplyThreadGallery } from "@/app/(staff)/staff/_components/mailings/MailingReplyThread.gallery";
 
 // The events' examples, in the order the group shows them.
-const [eventsTable, eventTabs, eventGroups, missing, eventsIntro] = eventsTableGallery;
+const [eventsTable, eventTabs, eventGroups, missing, eventsIntro, owner, hosts, doc] = eventsTableGallery;
 const [eventsList, eventColumns] = eventColumnsGallery;
 
 export const staffMailingsEvents: Group = {
@@ -43,6 +43,9 @@ export const staffMailingsEvents: Group = {
     eventGroups,
     eventsList,
     missing,
+    owner,
+    hosts,
+    doc,
     eventColumns,
     ...eventFiltersGallery,
     ...eventRecordGallery,

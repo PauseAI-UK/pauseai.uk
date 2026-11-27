@@ -49,9 +49,13 @@ function sortKeys(code: string): string[] {
   return keys;
 }
 
-/** Each string an object gives for a key that's a column with its table's alias (`name: "n.name"`): a sort map's columns. */
+/**
+ * Each string an object gives for a key that's a column with its table's
+ * alias (`name: "n.name"`): a sort map's columns. An email address, with
+ * its @, is never one.
+ */
 function mappedColumns(code: string): string[] {
-  return [...code.matchAll(/\b\w+:\s*(["'`])([^"'`\n$]*\b[a-z]\w*\.\w+[^"'`\n$]*)\1/g)].map((match) => match[2]);
+  return [...code.matchAll(/\b\w+:\s*(["'`])([^"'`\n$@]*\b[a-z]\w*\.\w+[^"'`\n$@]*)\1/g)].map((match) => match[2]);
 }
 
 const uncollated = (code: string) =>
@@ -89,5 +93,6 @@ describe("name sorts", () => {
     expect(uncollated("ORDER BY m.from_name, first.at, surname")).toEqual([]);
     expect(uncollated(`{ name: "n.name ${COLLATED}", party: "p.party", key: "name" }`)).toEqual([]);
     expect(uncollated("{ title: `${march.name} in ${march.city}` }")).toEqual([]);
+    expect(uncollated('{ email: "no.name@example.com" }')).toEqual([]);
   });
 });
