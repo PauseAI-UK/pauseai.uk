@@ -40,8 +40,6 @@ export const eventsCopy = {
     // The table's headings; the owner's and Google Doc's are `owner` and `doc` below. Going is how many registered
     // and were approved. Hosts are its hosts on Luma, for staff who see supporters.
     columns: { when: "When", name: "Event", tags: "Tags", place: "Place", going: "Going", hosts: "Hosts" },
-    // A host Luma has no name for, in the Hosts column.
-    noHostName: "No name on Luma",
     // The list's search box, and its filters but Owner's: each Luma tag; each city, and Online; and taken off Luma
     // (`removed`), which finds only those, as they're left out otherwise.
     filters: {

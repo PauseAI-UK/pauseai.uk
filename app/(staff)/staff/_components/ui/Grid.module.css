@@ -105,8 +105,9 @@
   font-size: var(--text-lg);
 }
 
-/* A title with its action at the right; a form the action opens takes
-   the line under them. */
+/* A title with its action at the right; a form the action opens, with
+   fields to fill in, takes the line under them. A form that's only a
+   button, such as Broadcast to N supporters, stays at the right. */
 .head {
   display: flex;
   flex-wrap: wrap;
@@ -115,7 +116,7 @@
   justify-content: space-between;
 }
 
-.action:has(form) {
+.action:has(form :is(input:not([type="hidden"]), textarea, select)) {
   flex-basis: 100%;
 }
 

@@ -52,31 +52,32 @@ describe("EventRecord", () => {
     );
     await expect.element(page.getByRole("heading", { name: words.guests })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Email" })).toBeVisible();
+    // Who they are, then how they stand, with the dates that date it.
     expect(headings()).toEqual([
       words.columns.name,
-      words.columns.status,
-      words.columns.registered,
-      words.columns.changed,
       words.columns.postcode,
       words.columns.phone,
       words.columns.cameFrom,
+      words.columns.status,
+      words.columns.registered,
+      words.columns.changed,
     ]);
     expect(cells("Jane Smith")).toEqual([
       "Jane Smith",
-      words.statuses.approved,
-      "20 Oct 2026",
-      "20 Oct 2026",
       "SW1A 1AA",
       "07700 900123",
       "newsletter",
+      words.statuses.approved,
+      "20 Oct 2026",
+      "20 Oct 2026",
     ]);
     // Linked to their supporter, or not yet.
     expect(row("Jane Smith").querySelector("a")!.getAttribute("href")).toBe("/staff/supporters/12");
     expect(row("John Smith").querySelector("a")).toBeNull();
     // No name on Luma: their email.
-    expect(cells("no.name@example.com")[1]).toBe(words.statuses.pending_approval);
-    expect(cells("Ann Lee")[3]).toBe("28 Oct 2026");
-    expect(cells("Sam Jones")[6]).toBe("brixton");
+    expect(cells("no.name@example.com")[4]).toBe(words.statuses.pending_approval);
+    expect(cells("Ann Lee")[6]).toBe("28 Oct 2026");
+    expect(cells("Sam Jones")[3]).toBe("brixton");
   });
 
   it("leaves out the postcode, phone and Came from columns when no guest has one", async () => {

@@ -76,10 +76,11 @@ function GuestName({ guest }: { guest: Guest }) {
 }
 
 /**
- * The guests Luma lists for the event, in a table: each one's name, their
- * status on Luma, when they registered and when that last changed; then
- * their postcode, phone and the link they came by, each column only when
- * a guest has one, as only some events ask.
+ * The guests Luma lists for the event, in a table, its columns in the
+ * lists' order (docs/style-guide.md, "Lists"): who each one is, their
+ * name, then their postcode, phone and the link they came by, each of
+ * those only when a guest has one, as only some events ask; then their
+ * status on Luma, with when they registered and when that last changed.
  */
 function GuestsTable({ guests }: { guests: Guest[] }) {
   const shown = OPTIONAL.filter((column) => guests.some((guest) => guest[column]));
@@ -93,12 +94,12 @@ function GuestsTable({ guests }: { guests: Guest[] }) {
       <thead>
         <tr>
           <th>{words.columns.name}</th>
-          <th>{words.columns.status}</th>
-          <th>{words.columns.registered}</th>
-          <th>{words.columns.changed}</th>
           {shown.map((column) => (
             <th key={column}>{words.columns[column]}</th>
           ))}
+          <th>{words.columns.status}</th>
+          <th>{words.columns.registered}</th>
+          <th>{words.columns.changed}</th>
         </tr>
       </thead>
       <tbody>
@@ -107,14 +108,14 @@ function GuestsTable({ guests }: { guests: Guest[] }) {
             <td>
               <GuestName guest={guest} />
             </td>
+            {shown.map((column) => (
+              <td key={column}>{cell[column](guest)}</td>
+            ))}
             <td>
               <Tag tone={TONES[guest.status]}>{words.statuses[guest.status]}</Tag>
             </td>
             <td>{staffDate(guest.registeredAt)}</td>
             <td>{staffDate(guest.changedAt)}</td>
-            {shown.map((column) => (
-              <td key={column}>{cell[column](guest)}</td>
-            ))}
           </tr>
         ))}
       </tbody>

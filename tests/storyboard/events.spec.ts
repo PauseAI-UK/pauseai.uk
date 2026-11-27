@@ -142,7 +142,7 @@ test("Event hosts", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/events`);
   const protest = page.getByRole("row").filter({ hasText: "Protest at Parliament" });
   const hosts = protest.getByRole("cell").nth(5);
-  await expect(hosts).toHaveText(`Jane Fixture, Sam Fixture, ${copy.noHostName}`);
+  await expect(hosts).toHaveText(`Jane Fixture, Sam Fixture, ${supportersCopy.supporters.noName}`);
   await expect(page.getByRole("row").filter({ hasText: "Leicester" }).getByRole("cell").nth(5)).toHaveText(
     "Alex Fixture",
   );
@@ -194,12 +194,12 @@ test("An event's page", async ({ page, request, flowDatabase }) => {
   await expect(guests.locator("tbody tr")).toHaveCount(5);
   await expect(guests.locator("thead th")).toHaveText([
     eventsCopy.event.columns.name,
-    eventsCopy.event.columns.status,
-    eventsCopy.event.columns.registered,
-    eventsCopy.event.columns.changed,
     eventsCopy.event.columns.postcode,
     eventsCopy.event.columns.phone,
     eventsCopy.event.columns.cameFrom,
+    eventsCopy.event.columns.status,
+    eventsCopy.event.columns.registered,
+    eventsCopy.event.columns.changed,
   ]);
   await expect(guests.getByRole("row").filter({ hasText: "Dee Clined" })).toContainText(
     eventsCopy.event.statuses.declined,

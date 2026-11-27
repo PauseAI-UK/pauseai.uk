@@ -23,6 +23,7 @@ import Tabs from "../ui/Tabs";
 import styles from "./EventsTable.module.css";
 import ExternalLink from "../ui/ExternalLink";
 import { eventsCopy } from "./copy";
+import { supportersCopy } from "@/lib/supporters/copy";
 
 const PATH = EVENTS_LIST.path;
 const copy = eventsCopy.events;
@@ -133,7 +134,7 @@ export function Hosts({ hosts }: { hosts: EventHost[] }) {
   return (
     <span className={styles.hosts}>
       {hosts.map((host, i) => {
-        const name = host.name || <Muted>{copy.noHostName}</Muted>;
+        const name = host.name || supportersCopy.supporters.noName;
         return (
           <Fragment key={i}>
             {i > 0 && ", "}
