@@ -1,7 +1,6 @@
 # Parliament lobbying days
 
-This plan is a draft. The choices still to make are marked O, so they
-can be answered by ID.
+This plan is a draft.
 
 ## What a lobbying day is
 
@@ -56,21 +55,21 @@ version it started from.
 
 ## What the MP said
 
-Each letter needs an outcome: no reply yet, will meet, won't meet, or
-something else (a caseworker will meet them instead, say).
+Each lobbying day's campaign has an ask, as other campaigns do: an
+event ask, such as "Meet constituents in Parliament on 2 March 2027".
+Its answers are the event ask's own: going, declined or other (a
+caseworker will meet them instead, say). An MP counts as invited once
+a supporter's letter has gone to them, as for every ask
+(`lib/asks/invited.ts`). Their answer shows wherever an ask's does: on
+the MP's page, the asks pages, and the politicians list's Ask filter.
 
-O8. The outcome on each letter, so each supporter has their own. The
-MP's ask ("will meet constituents on the lobbying day") is worked out
-from their letters, and shows on the MP's page.
+The answer is the MP's, shared by everyone who wrote to them, which
+fits, as an MP who agrees to meet meets the group. If an MP will meet
+some constituents and not others, the answer's note says so.
 
-O9. The outcome as an ask on the MP alone. Simpler, but it loses who
-asked and who was answered.
-
-I recommend O8.
-
-In the first version, staff read each reply and set its outcome, in a
-list of replies waiting to be checked, as they do for replies to
-politician mailings. Later, Claude Haiku can read each reply as it
+In the first version, staff read each reply and set the MP's answer to
+the ask, from a list of replies waiting to be checked, as they do for
+replies to politician mailings. Later, Claude Haiku can read each reply as it
 comes in and suggest its outcome, for staff to confirm. That needs an
 Anthropic API key in the site's settings, and makes Anthropic a new
 processor of MPs' replies, which include constituents' details.
@@ -80,8 +79,9 @@ processor of MPs' replies, which include constituents' details.
 The broadcasts already have conditions for going to an event, and for
 having written to their MP on a campaign. They need:
 
-- a condition for what their MP said: no reply, will meet or won't
-  meet;
+- a condition on their MP's answer to an ask, found from the reader's
+  postcode: not answered, going, declined or other. Every ask can use
+  it, not just a lobbying day's;
 - a field for their MP's name;
 - a field for a link to write to their MP on a campaign, which staff
   pick when they put the field in. It opens that campaign's letter with
@@ -101,7 +101,7 @@ site could make the groups itself.
 
 ## Personal data
 
-The new things kept about a person are what their MP said in reply, and
-whether they live in the UK. Before anything is built, this section
+The new thing kept about a person is whether they live in the UK. An
+MP's answer is about the MP, as every ask's is. Before anything is built, this section
 will say what each does to `docs/data-protection.md`, to the privacy
 policy and to erasure.
