@@ -3,6 +3,7 @@
    chips and parts for only some recipients in a box; beside it, or under it
    where there's no room, the lozenges to put in. */
 .layout {
+  container: mailing-editor / inline-size;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -58,6 +59,15 @@
 /* Wide enough for a few fields' lozenges to a line, taken from the letter beside it. */
 .sidebar {
   flex: 0 1 20rem;
+}
+
+/* Too narrow for the letter (28rem) and the lozenges (15rem) side by side,
+   the lozenges go under the letter, its whole width, so they wrap across
+   it rather than stack in a column. */
+@container mailing-editor (max-width: 44rem) {
+  .sidebar {
+    flex-basis: 100%;
+  }
 }
 
 .sideHeading {
