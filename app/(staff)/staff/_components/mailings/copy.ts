@@ -101,8 +101,7 @@ export const mailingsCopy = {
       `${[from && `Published ${from}`, by && `by ${by}`].filter(Boolean).join(" ")}${from ? " · " : ""}${count(n, "letter", "letters")}`,
     // The letters from before staff could edit a campaign's letter, as a version in the list.
     beforeVersions: (n: number) => `Before versions: ${count(n, "letter", "letters")}`,
-    ownDrafts:
-      "⁂ These letters were written before staff could edit the letter. Each one keeps the draft it started from.",
+    ownDrafts: "We didn't keep the template for these letters. Each letter shows what was sent.",
     // Over the letter, for a campaign in the code: opening its draft, or going back to the one open.
     editLetter: "Edit the letter",
     carryOn: "Carry on with the draft",
