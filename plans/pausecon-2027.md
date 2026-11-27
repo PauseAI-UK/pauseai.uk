@@ -154,10 +154,9 @@ can fall out of step.
 
 ## Staff pages
 
-Events have a list on the staff site (`/staff/events`) but no page
-each. Each event gets a page of its own, showing who's going, with
-their answers where they used our form, and a button to email the
-people going, which opens a new broadcast with the event's filter set.
+Each event's staff page (#514) shows its guests and has a button to
+email them. PauseCon's own page (O16) builds on it, showing its five
+events together.
 
 Accommodation has two lists of its own, on PauseCon's page (O16):
 requests waiting for a decision, and people approved, with their
@@ -172,7 +171,8 @@ filter can keep "anyone going to any part of PauseCon".
 The broadcasts already have conditional blocks for "going to this
 event", so one email to everyone at PauseCon can tell those not going
 to Sunday about Sunday, and so on. Luma sends its own reminder for each
-event. The broadcasts need three more conditions, and the same as
+event. #517 plans broadcasts to an event's guests whatever lists
+they're on, which PauseCon's emails would use. The broadcasts need three more conditions, and the same as
 filters on the supporters list:
 
 - has asked for accommodation;

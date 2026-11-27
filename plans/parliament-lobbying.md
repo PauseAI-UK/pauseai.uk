@@ -49,13 +49,8 @@ inbox under an address of its own, so the MP never sees the supporter's
 email. Replies are passed on to the supporter, and we keep a copy, so
 the site sees every reply.
 
-Staff edit a campaign's subject and letter on the staff site. The rest
-stays in code: the campaign's page and its words, its attachments, and
-its place in the order. The letter editor is the broadcast writer's,
-with the MP's fields (their name, constituency, and what they've
-already done) where a broadcast has the reader's. The site measures how
-much of the letter a supporter changed, so each letter keeps which
-version it started from.
+Staff edit a campaign's subject and letter on the staff site (#516,
+open), so each lobbying day's letter is written by staff for that day.
 
 ## What the MP said
 
@@ -92,22 +87,12 @@ say so first.
 
 ## Emails
 
-The broadcasts already have conditions for going to an event, and for
-having written to their MP on a campaign. They need:
-
-- a condition on their MP's answer to an ask, found from the reader's
-  postcode: not answered, going, declined or other. Every ask can use
-  it, not just a lobbying day's;
-- a field for their MP's name;
-- a field for a link to write to their MP on a campaign, which staff
-  pick when they put the field in. It opens that campaign's letter with
-  their postcode filled in. The link is personal, so it carries a code
-  only the site can read, not the postcode.
-
-The link only works for someone whose postcode we know, so it goes in
-a conditional block for "has a postcode". The broadcasts' `has:`
-condition checks whether a reader has a field, so this may only need
-the postcode offered as one.
+The broadcasts already have conditions for going to an event and for
+having written to their MP on a campaign, and fields for the reader's
+MP and a link of their own to write to that MP on a campaign (#515).
+They need one more: a condition on the reader's MP's answer to an ask
+(not answered, going, declined or other). Every ask can use it, not
+just a lobbying day's.
 
 ## The day itself
 
