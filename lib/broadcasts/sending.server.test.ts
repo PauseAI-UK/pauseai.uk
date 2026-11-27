@@ -4,14 +4,20 @@ import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { query } from "@/lib/server/db.server";
 import { staffTime } from "@/lib/staff-time";
 import { addFollower, addTemplate, addVariant, EVENT_WORDS, variantsOf } from "@/tests/broadcast-fixtures";
-import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
+import {
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  refuseWrites,
+  useTestDatabase,
+} from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { forgetNumbers } from "./channels.server";
 import { recordGmail } from "@/tests/gmail-sends";
 import { notifications, NOTIFICATIONS, type Notification } from "@/tests/notifications";
 import { createBroadcastDraft, resumeBroadcast } from "./drafts.server";
 import { sendDueBroadcasts, startDueBroadcasts, stopTextsOn } from "./sending.server";
-import { registeredFor } from "./broadcasts";
+import { HAS_MP, MP_NAME, mpLink, registeredFor } from "./broadcasts";
 import { keepPicture } from "./text-pictures.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
@@ -171,6 +177,45 @@ describeWithDatabase("sending broadcasts", () => {
       { action: "start mailing" },
       { action: "finish mailing" },
     ]);
+  });
+
+  it("puts their MP's name and a link to write to them, by the copy's own token, in an email's part for those with an MP", async () => {
+    await query(
+      `INSERT INTO postcode_places (postcode, latitude, longitude, place, country, constituency, constituency_checked)
+       VALUES ('M11AE', 53.4794, -2.2353, 'Manchester', 'england', 'Manchester Central', true)`,
+    );
+    await addTestPolitician({ name: "Lucy Powell", constituency: "Manchester Central" });
+    const gmail = recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { postcode: "M1 1AE" });
+    await addFollower("usr-sam", "sam@example.com", "Sam Jones");
+    await pulled();
+    const id = await broadcast();
+    const field = (name: string) => ({ type: "field", attrs: { field: name } });
+    const ask = {
+      type: "onlyFor",
+      attrs: { condition: HAS_MP },
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Write to " },
+            field(MP_NAME),
+            { type: "text", text: ": " },
+            field(mpLink("support-sobel-bill")),
+          ],
+        },
+      ],
+    };
+    await query("UPDATE mailings SET body = $2 WHERE id = $1", [
+      id,
+      JSON.stringify({ ...EVENT_WORDS, content: [...EVENT_WORDS.content, ask] }),
+    ]);
+    await startDueBroadcasts();
+    expect(await sendDueBroadcasts(LATER, 1)).toMatchObject({ sent: 2, failed: 0 });
+    const to = (who: string) => gmail.find((email) => email.headers.get("to")!.includes(who))!;
+    const token = /\/api\/unsubscribe\/([\w-]+)>/.exec(to("jane@").headers.get("list-unsubscribe")!)![1];
+    expect(to("jane@").text).toContain(`Write to Lucy Powell: https://pauseai.uk/write/${token}/support-sobel-bill`);
+    expect(to("sam@").text).not.toContain("Write to");
   });
 
   it("sends by Postmark 180ms apart, so 20,000 an hour at most, as Postmark asks", async () => {
@@ -1455,6 +1500,61 @@ describeWithDatabase("sending texts", () => {
           { type: "body", parameters: [{ type: "text", parameter_name: "first_name", text: "Sam" }] },
         ],
       });
+    });
+
+    it("sends those with an MP the version for them, with their MP's name and a link by their copy's own token", async () => {
+      await query(
+        `INSERT INTO postcode_places (postcode, latitude, longitude, place, country, constituency, constituency_checked)
+         VALUES ('M11AE', 53.4794, -2.2353, 'Manchester', 'england', 'Manchester Central', true)`,
+      );
+      await addTestPolitician({ name: "Lucy Powell", constituency: "Manchester Central" });
+      await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+      await addFollower("usr-sam", "sam@example.com", "Sam Jones", { phone: "+447700900124", postcode: "M1 1AE" });
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      const field = (name: string) => ({ type: "field", attrs: { field: name } });
+      const variant = await addVariant("Write to your MP", {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Write to " },
+                field(MP_NAME),
+                { type: "text", text: " at " },
+                field(mpLink("support-sobel-bill")),
+                { type: "text", text: " today." },
+              ],
+            },
+          ],
+        },
+      });
+      await query("UPDATE whatsapp_template_variants SET meta_name = 'write_' || id WHERE id = $1", [variant]);
+      await query(
+        `UPDATE whatsapp_templates SET condition = $2, conditional_variant_id = $3
+         WHERE id = (SELECT template_id FROM mailings WHERE id = $1)`,
+        [id, HAS_MP, variant],
+      );
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+      const to = (number: string) => sent.find((one) => one.to === number)!.template;
+      const [{ hash }] = await query<{ hash: string }>(
+        "SELECT link_token_hash AS hash FROM broadcast_messages WHERE address = '+447700900124'",
+      );
+      const body = to("447700900124").components.find((one) => (one as { type: string }).type === "body") as {
+        parameters: { parameter_name: string; text: string }[];
+      };
+      const link = body.parameters.find((one) => one.parameter_name === "mp_link_support_sobel_bill")!.text;
+      expect(body.parameters.find((one) => one.parameter_name === "mp_name")?.text).toBe("Lucy Powell");
+      const token = /^https:\/\/pauseai\.uk\/write\/([\w-]+)\/support-sobel-bill$/.exec(link)![1];
+      // Only the token's hash is kept; Jane, with no MP, gets the text's own, and no token.
+      expect(hash).toBe(hashOf(token));
+      expect(to("447700900123").name).toMatch(/^march_day_\d+$/);
+      expect(
+        await query("SELECT link_token_hash IS NULL AS none FROM broadcast_messages WHERE address = '+447700900123'"),
+      ).toEqual([{ none: true }]);
     });
 
     it("sends each version's picture by its address on the site, the text's own and the second version's", async () => {

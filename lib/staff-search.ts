@@ -43,7 +43,7 @@ import {
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { staffBack } from "@/lib/staff-back";
 import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/events/list-terms";
-import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters/supporters";
+import { ANY_MP, isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters/supporters";
 
 /** Which of a campaign's letters its counts can show: those in one state, or whose text was changed. */
 export const LETTER_TABS = [...LETTER_STATES, "changed"] as const;
@@ -325,6 +325,7 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
     values.filter((value) => Object.hasOwn(staffVocabulary.countries, value)),
   );
   const [mps, notMps] = anyAndNone(search.mp, (values) => values.flatMap((value) => politicianId(value) ?? []));
+  const [anyMp, noMp] = anyAndNone(search.mp, (values) => values.filter((value) => value === ANY_MP));
   const miles = NEAR_MILES.find((n) => String(n) === search.within) ?? NEAR_MILES[1];
   const campaign = campaignNamed(search.campaign);
   const filter: SupporterFilter = {
@@ -336,11 +337,19 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
     wrote: campaign ? search.wrote !== "no" : undefined,
     country: countries,
     mp: mps,
+    hasMp: anyMp && true,
     near: search.near.trim() ? { text: search.near.trim(), miles } : undefined,
     firstDays: listWindow(search.first),
     registeredDays: listWindow(search.registered),
     unsubscribedDays: listWindow(search.unsubscribed),
-    not: notOf({ activity: notBadges, contact: notStates, event: notEvents, country: notCountries, mp: notMps }),
+    not: notOf({
+      activity: notBadges,
+      contact: notStates,
+      event: notEvents,
+      country: notCountries,
+      mp: notMps,
+      hasMp: noMp && true,
+    }),
     sort: sorting.key,
     dir: sorting.dir,
     page: pageNumber(search.page),

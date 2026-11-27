@@ -1,17 +1,78 @@
-/* The menu of who a part is for, under its button (PartBox's partButton), in
-   a menu's box (Menu): the asks, then the answers to the one chosen. */
-
-/* An ask, which opens its answers. */
-.toAsk::after {
-  content: " ›" / "";
-  color: var(--text-secondary);
+/* The menu of who a part is for, under its button (PartBox's partButton):
+   a box asking who gets the paragraph, and, once a group is opened, a box
+   of its choices beside it, to its left, as the button is at the page's
+   right. The popover itself is only what holds the two. */
+.pop {
+  margin: var(--space-2) 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
 }
 
-.back {
-  color: var(--text-secondary);
+.pop:popover-open {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
 }
 
-.askTitle {
-  margin: var(--space-1) var(--space-2);
+/* Hung from its button's bottom right, reaching left, where the browser can anchor it; above it when there's no room below. */
+@supports (position-area: bottom) {
+  .pop {
+    position-area: bottom span-left;
+    position-try-fallbacks: flip-block;
+  }
+}
+
+/* Each box: a menu's, but in place in the popover rather than anchored itself. */
+.pop .box {
+  width: 22rem;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.pop .side {
+  width: 21rem;
+}
+
+/* Each box's title: what its button says, or the group whose choices it holds. */
+.question,
+.sideTitle {
+  margin: 0 var(--space-2) var(--space-2);
+  color: var(--text);
   font-weight: 600;
+}
+
+/* A group's name reads on from the menu's title in its list, so starts small; over its own choices, it's a heading. */
+.sideTitle::first-letter {
+  text-transform: uppercase;
+}
+
+/* A group: its name, then how many choices it opens, and a › for where they open. */
+.group {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.group[aria-expanded="true"] {
+  background: var(--surface-2);
+}
+
+.choice {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count,
+.covers {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: var(--note-font-size);
+}
+
+/* A group's count, not a choice's: its choices open beside the menu. */
+.count::after {
+  content: " ›" / "";
 }

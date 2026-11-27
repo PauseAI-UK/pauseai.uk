@@ -345,6 +345,7 @@ describe("supportersSearch", () => {
     wrote: "",
     nation: [],
     mp: [],
+    hasmp: "",
     near: "",
     within: "",
     first: "",
@@ -397,6 +398,9 @@ describe("supportersSearch", () => {
       dir: "desc",
       page: 3,
     });
+    // Has an MP, or has none.
+    expect(supportersSearch({ hasmp: "yes" }).filter).toMatchObject({ hasMp: true });
+    expect(supportersSearch({ hasmp: "no" }).filter).toMatchObject({ not: { hasMp: true } });
     expect(all.q).toBe(" jane ");
     expect(all.activity).toEqual(["registered", "member", "!letter"]);
     expect(all.contact).toEqual(["email:events:unsubscribed", "!email:newsletter:yes"]);

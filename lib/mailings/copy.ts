@@ -23,16 +23,19 @@ export const mailingsCopy = {
     lacking: (n: number) => `${count(n, "recipient has", "recipients have")} none, so it can't be used`,
     // Over the two menus of who a part of the letter is for.
     partsHeading: "Conditional parts",
-    // The menu that puts the paragraphs at the cursor in a part only those who gave an answer get.
-    addOnlyFor: "+ Only for those who…",
-    // The menu that puts them in a part everyone but those who gave an answer gets.
-    except: "Except those who…",
-    // In the menu of an ask's answers, back to the asks.
-    backToAsks: "‹ Asks",
+    // At the top of a group of fields' menu, such as the campaigns a link to write to their MP can be for.
+    fieldGroupIn: (group: string) => `${group} about`,
+    // The two menus that put the paragraph at the cursor in a part: one only some get, titled the same as its
+    // button, and one everyone but some get, titled in full.
+    wayOnly: "Only those who…",
+    wayExcept: "Everyone except…",
+    wayExceptTitle: "Everyone except those who…",
+    // After a group of choices, such as the campaigns: how many it opens.
+    choiceCount: (n: number) => `${n} to choose from`,
     // Instead of them, when no recipient has answered an ask.
     noConditions: "None available, because no recipient has answered an ask.",
     // After each: how many recipients gave that answer.
-    covers: (n: number) => `${n}`,
+    covers: (n: number) => (n === 0 ? "no one yet" : count(n, "recipient", "recipients")),
     // On the box round such a part: who gets it.
     onlyForLabel: (who: string) => `Only for those who ${who}`,
     // On the box round a part all but some get: who doesn't.

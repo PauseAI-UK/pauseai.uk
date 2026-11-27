@@ -280,10 +280,12 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
     );
   }
   if (filter.country) conditions.push(sql`s.country = ANY(${filter.country})`);
-  if (filter.mp) {
+  // Any MP is one of the MP filter's values, so it finds those with any MP, whichever others are chosen.
+  if (filter.mp || filter.hasMp) {
     conditions.push(
       sql`s.basis = 'postcode' AND upper(replace(s.given, ' ', '')) IN (SELECT pp.postcode FROM postcode_places pp
-         JOIN (${sql.raw(MP_CHOICES)}) p ON p.constituency = pp.constituency WHERE p.id = ANY(${filter.mp}))`,
+         JOIN (${sql.raw(MP_CHOICES)}) p ON p.constituency = pp.constituency
+         ${filter.hasMp ? sql`` : sql`WHERE p.id = ANY(${filter.mp})`})`,
     );
   }
   return conditions;
@@ -451,9 +453,9 @@ export async function listSupporters(
   const total = counted ? counted[0].total : rows.length;
   const theirs = await permissionsOfRows(rows);
   const ids = rows.map((row) => row.id);
-  // For the columns the Event and Campaign filters add: the page's registrations for the events chosen, and when
-  // each first wrote in the campaign.
-  const [registrations, letters] = await Promise.all([
+  // For the columns the Event, Campaign and MP filters add: the page's registrations for the events chosen, when
+  // each first wrote in the campaign, and each one's MP.
+  const [registrations, letters, mps] = await Promise.all([
     filter.event
       ? query<{ id: number; event: string; status: string }>(
           `SELECT k.supporter_id::int AS id, e.name AS event, g.approval_status AS status
@@ -471,6 +473,15 @@ export async function listSupporters(
           [ids, filter.campaign],
         )
       : [],
+    filter.mp || filter.hasMp
+      ? query<{ id: number; name: string; constituency: string }>(
+          `SELECT p.supporter_id::int AS id, m.name, m.constituency FROM supporter_place p
+           JOIN postcode_places pp ON pp.postcode = upper(replace(p.given, ' ', ''))
+           JOIN (${MP_CHOICES}) m ON m.constituency = pp.constituency
+           WHERE p.basis = 'postcode' AND p.supporter_id = ANY($1)`,
+          [ids],
+        )
+      : [],
   ]);
   return {
     supporters: rows.map((row) => ({
@@ -481,6 +492,9 @@ export async function listSupporters(
       }),
       // The filter found only those who wrote in it, so every row has a letter.
       ...(filter.campaign && filter.wrote && { wroteAt: letters.find((l) => l.id === row.id)!.at }),
+      ...((filter.mp || filter.hasMp) && {
+        mp: mps.find((m) => m.id === row.id) ?? null,
+      }),
     })),
     total,
     pages: Math.max(1, Math.ceil(total / SUPPORTERS_PAGE_SIZE)),

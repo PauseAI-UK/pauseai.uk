@@ -280,7 +280,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       filter: { params: {} },
     });
     expect(data).toMatchObject({ count: 0, me: JO, templates: [] });
-    expect(data.fields.map((field) => field.lacking)).toEqual([0, 0]);
+    expect(data.fields.map((field) => field.lacking)).toEqual([0, 0, 0, 0, 0]);
     // Each condition a part can be for, as a draft's, covering no one yet.
     expect(data.conditions.length).toBeGreaterThan(0);
     expect(data.conditions.every((condition) => condition.covers === 0)).toBe(true);

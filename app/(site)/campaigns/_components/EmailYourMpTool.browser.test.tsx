@@ -99,6 +99,33 @@ describe("EmailYourMpTool", () => {
     expect(navigation.pushed).toEqual([]);
   });
 
+  it("opens with the name and postcode a broadcast's link gave after its #, over what it went with, and clears them", async () => {
+    saveLookup({ campaign: bill.slug, name: "Old", address: "1 High St", postcode: "X", mp: MP, statuses: {} });
+    const before = window.location.href;
+    window.history.replaceState(null, "", "?from=email#name=Jane+Smith&postcode=M1+1AE");
+    await render(<EmailYourMpTool campaignSlug={bill.slug} />);
+    await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("Jane Smith");
+    await expect.element(page.getByLabelText(copy.lookup.postcodeLabel)).toHaveValue("M1 1AE");
+    // The address they type themselves.
+    await expect.element(page.getByLabelText(copy.lookup.addressLabel)).toHaveValue("");
+    expect(window.location.hash).toBe("");
+    expect(window.location.search).toBe("?from=email");
+    window.history.replaceState(null, "", before);
+  });
+
+  it("opens with just the postcode, or just the name, where the link gave only one", async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, "", "#postcode=M1+1AE");
+    const { unmount } = await render(<EmailYourMpTool campaignSlug={bill.slug} />);
+    await expect.element(page.getByLabelText(copy.lookup.postcodeLabel)).toHaveValue("M1 1AE");
+    await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("");
+    await unmount();
+    window.history.replaceState(null, "", "#name=Jane");
+    await render(<EmailYourMpTool campaignSlug={bill.slug} />);
+    await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("Jane");
+    window.history.replaceState(null, "", before);
+  });
+
   it("moves on from the PM letter to the bill even when the MP signed ControlAI's letter, as nobody has done the bill's", async () => {
     respond = async () =>
       Response.json({ ok: true, mp: MP, statuses: { [letterToPm.ask!]: "signed", "controlai-letter": "signed" } });

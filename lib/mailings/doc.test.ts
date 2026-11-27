@@ -145,6 +145,17 @@ describe("letterFor", () => {
     expect(toText(filled)).toBe("> As Jo (https://pauseai.uk/) said");
   });
 
+  it("links a field whose value is a web address to it, unless the field is in a link of its own", () => {
+    const address = "https://pauseai.uk/write/tok/support-sobel-bill";
+    const values = { values: { link: address }, meets: [] };
+    expect(letterFor(doc(p(field("link"))), values).content).toEqual([
+      p({ type: "text", text: address, marks: [{ type: "link", attrs: { href: address } }] }),
+    ]);
+    expect(letterFor(doc(p({ ...field("link"), marks: [LINK] })), values).content).toEqual([
+      p({ type: "text", text: address, marks: [LINK] }),
+    ]);
+  });
+
   it("keeps a field's value without marks as plain text, and an empty paragraph", () => {
     expect(letterFor(doc(p(field("name")), p()), { values: { name: "Jo" }, meets: [] })).toEqual({
       type: "doc",

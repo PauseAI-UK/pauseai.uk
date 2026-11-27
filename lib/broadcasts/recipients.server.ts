@@ -2,7 +2,23 @@ import "server-only";
 import type { MailingChoice } from "@/lib/mailings/fields";
 import type { MailingRecipientValues } from "@/lib/mailings/doc";
 import { supportersSearch, type StoredFilter } from "@/lib/staff-search";
-import { firstNameOf, hasField, BROADCAST_FIELDS, registeredFor, wroteIn, type BroadcastTerms } from "./broadcasts";
+import {
+  BROADCAST_FIELDS,
+  FIELD_WORDS,
+  firstNameOf,
+  HAS_MP,
+  hasField,
+  MP_FIELDS,
+  MP_CONSTITUENCY,
+  MP_NAME,
+  mpLinkCampaign,
+  registeredFor,
+  wroteIn,
+  type BroadcastTerms,
+} from "./broadcasts";
+import { MP_CHOICES } from "@/lib/supporters/mp-choices.server";
+import { normalisePostcode } from "@/lib/postcodes";
+import { campaignNamed } from "@/lib/content/campaigns";
 import type { ContactPermission, Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import type { SupporterRow } from "@/lib/supporters/supporters";
@@ -43,7 +59,7 @@ export type BroadcastPart = Required<Pick<MailingChoice, "id" | "label" | "group
   Pick<MailingChoice, "searchable">;
 
 /**
- * Every part a broadcast's words can be only for: those who wrote to their
+ * Every part a broadcast's words can be only for: those with an MP; those who wrote to their
  * MP in each campaign, by title; and those who registered for each of our
  * events, newest first, as the Event filter offers them.
  */
@@ -54,6 +70,7 @@ export async function broadcastParts(): Promise<BroadcastPart[]> {
     supporterChoices(),
   ]);
   return [
+    { id: HAS_MP, label: conditions.hasMp, group: conditions.mpGroup, option: conditions.hasMpOption },
     ...campaigns.map((campaign) => ({
       id: wroteIn(campaign.slug),
       label: conditions.wrote(campaign.title),
@@ -102,15 +119,45 @@ async function newestEmails(ids: number[]): Promise<Map<number, string[]>> {
   return new Map(rows.map((row) => [row.id, row.emails]));
 }
 
-/** A supporter's merge values, each field's fallback for those without it, and the conditions they meet: a field they have, or a part they're in. */
-function recipientValues(row: SupporterRow, parts: string[]): MailingRecipientValues {
+/** The postcode that places a supporter, which finds their MP; null for one placed some other way, or not at all. */
+function placingPostcode(row: Pick<SupporterRow, "place">): string | null {
+  return row.place?.basis === "postcode" ? row.place.given : null;
+}
+
+/**
+ * The name of the MP of each of these postcodes, as the supporters' pages
+ * find it: the MP in office for its constituency. By the postcode as
+ * postcode_places keeps it, in capitals with no spaces.
+ */
+async function mpsOf(postcodes: string[]): Promise<Map<string, TheirMp>> {
+  const rows = await query<{ postcode: string } & TheirMp>(
+    `SELECT pp.postcode, m.name, m.constituency FROM postcode_places pp JOIN (${MP_CHOICES}) m ON m.constituency = pp.constituency
+     WHERE pp.postcode = ANY(SELECT upper(replace(p, ' ', '')) FROM unnest($1::text[]) p)`,
+    [postcodes],
+  );
+  return new Map(rows.map(({ postcode, ...mp }) => [postcode, mp]));
+}
+
+/** A supporter's MP, as their merge values say them. */
+type TheirMp = { name: string; constituency: string };
+
+/**
+ * A supporter's merge values, each field's fallback for those without it, and
+ * the conditions they meet: a field they have, or a part they're in. Their
+ * MP's name and constituency, with `mp` the MP of the postcode that places them;
+ * the links to write to them are made as each copy goes (withWriteLinks).
+ */
+function recipientValues(row: SupporterRow, parts: string[], mp: TheirMp | undefined): MailingRecipientValues {
   const given: Record<(typeof BROADCAST_FIELDS)[number], string | null | undefined> = {
     firstName: firstNameOf(row.name),
     name: row.name?.trim(),
   };
   return {
-    values: Object.fromEntries(BROADCAST_FIELDS.map((field) => [field, given[field] || copy.fallbacks[field]])),
-    meets: [...BROADCAST_FIELDS.filter((field) => given[field]).map(hasField), ...parts],
+    values: {
+      ...Object.fromEntries(BROADCAST_FIELDS.map((field) => [field, given[field] || copy.fallbacks[field]])),
+      ...(mp && { [MP_NAME]: mp.name, [MP_CONSTITUENCY]: mp.constituency }),
+    },
+    meets: [...BROADCAST_FIELDS.filter((field) => given[field]).map(hasField), ...(mp ? [HAS_MP] : []), ...parts],
   };
 }
 
@@ -139,7 +186,13 @@ export async function audienceSizes(broadcasts: { filter: StoredFilter; terms: B
 export async function supporterAudience(filter: StoredFilter, terms: BroadcastTerms): Promise<SupporterAudience> {
   const { supporters } = await listSupporters(supportersSearch(filter.params).filter, null);
   const ids = supporters.map((row) => row.id);
-  const [parts, inParts, emails] = await Promise.all([broadcastParts(), partsOf(ids), newestEmails(ids)]);
+  const postcodes = supporters.flatMap((row) => placingPostcode(row) ?? []);
+  const [parts, inParts, emails, mps] = await Promise.all([
+    broadcastParts(),
+    partsOf(ids),
+    newestEmails(ids),
+    mpsOf(postcodes),
+  ]);
   const recipients: SupporterRecipient[] = [];
   const { topics } = terms;
   for (const row of supporters) {
@@ -149,7 +202,12 @@ export async function supporterAudience(filter: StoredFilter, terms: BroadcastTe
     // One copy each, to the newest of their addresses or numbers that said yes: the list has their numbers newest first.
     const newestFirst = terms.channel === "email" ? emails.get(row.id)! : row.phones;
     const address = newestFirst.find((one) => yeses.some((yes) => yes.address === one))!;
-    const values = recipientValues(row, inParts.get(row.id) ?? []);
+    const postcode = placingPostcode(row);
+    const values = recipientValues(
+      row,
+      inParts.get(row.id) ?? [],
+      postcode ? mps.get(normalisePostcode(postcode)) : undefined,
+    );
     const theirs = topics.filter((topic) => yeses.some((one) => one.address === address && one.topic === topic));
     recipients.push({ id: row.id, name, address, place: row.place?.name ?? null, topics: theirs, ...values });
   }
@@ -167,12 +225,23 @@ export function broadcastChoices(
 ): Pick<SupporterAudience, "fields" | "conditions"> {
   const covering = (id: string) => recipients.filter((recipient) => recipient.meets.includes(id)).length;
   return {
-    fields: BROADCAST_FIELDS.map((id) => ({
-      id,
-      label: copy.fieldWords[id],
-      lacking: recipients.length - covering(hasField(id)),
-      fallback: true,
-    })),
+    fields: [
+      ...BROADCAST_FIELDS.map((id) => ({
+        id,
+        label: FIELD_WORDS[id],
+        lacking: recipients.length - covering(hasField(id)),
+        fallback: true,
+      })),
+      // With no fallback, but usable all the same: scheduling stops while someone with no MP would see one.
+      ...MP_FIELDS.map((id) => ({
+        id,
+        label: FIELD_WORDS[id],
+        lacking: recipients.length - covering(HAS_MP),
+        onlyInPart: true,
+        // A link for each campaign is one lozenge, whose menu picks the campaign.
+        ...(mpLinkCampaign(id) && { group: copy.mpFieldWords.linkGroup, option: campaignNamed(mpLinkCampaign(id)!)!.title }),
+      })),
+    ],
     conditions: parts.map((part) => ({ ...part, covers: covering(part.id) })),
   };
 }

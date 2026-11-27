@@ -157,7 +157,7 @@ export const SUPPORTERS_LIST = defineStaffList({
     wrote: "one",
     /** Nations, as staffVocabulary.countries keys. */
     nation: "many",
-    /** MPs' politician IDs. */
+    /** MPs' politician IDs, or "any" for any MP. */
     mp: "many",
     /** A postcode, the first half of one, or a town; and how many miles from it. */
     near: "one",

@@ -9,6 +9,8 @@ import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { caretAt, caretInLink, editor, newParagraphAboveSignOff, paste, toolbar } from "./editor-steps";
 import { reload, wholePage } from "./settle";
+import { runSql } from "@/scripts/fresh-database.mjs";
+import { importLuma } from "./supporter-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Write to your MP", part: "Public site", order: 20 };
@@ -96,6 +98,34 @@ test("Jane writes to her MP (ZZ99ZZ)", { tag: "@phone" }, async ({ page, flowDat
   expect(copied.ReplyTo).toBe(`"Testy McTestface MP (via PauseAI)" <${MPS_PROXY}>`);
   expect(copied.TextBody).toContain(copy.letterCopy("Testy McTestface MP"));
   await emailFrame(page, copied, "Jane's copy");
+});
+
+test("A broadcast's link to write to your MP", async ({ page, request, flowDatabase }) => {
+  story(
+    "Jane got an email from us with a link to write to her MP. It carries a code of her copy's, not her details, and opens the campaign's form with her name and postcode filled in.",
+  );
+  // Jane Fixture, as the Luma import makes her, with the postcode she registered with.
+  await importLuma(request, BASE);
+  const token = `flow-write-${test.info().testId.replace(/\W/g, "").slice(-10)}`;
+  runSql(
+    flowDatabase,
+    `WITH m AS (
+       INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state)
+       VALUES ('Write to your MP', 'Write to your MP', 'supporters', 'email', 'newsletter', '{"list": "supporters", "params": {}}',
+         '{"type": "doc", "content": []}', 'jo@pauseai.uk', 'hello@pauseai.uk', 'PauseAI UK', now() - interval '1 day', 'sent')
+       RETURNING id)
+     INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, merge_values, link_token_hash, topics, sent_at)
+     SELECT m.id, (SELECT supporter_id FROM supporter_links WHERE luma_user_id = 'usr-fixture-1'), 'jane.fixture@example.com',
+       'delivered', '{"name": "Jane Fixture", "values": {}, "meets": []}', encode(sha256(convert_to('${token}', 'UTF8')), 'hex'),
+       '{newsletter}', now() - interval '1 day' FROM m`,
+  );
+  await page.goto(`${BASE}/write/${token}/${campaigns[1].slug}`);
+  // Her details are taken off the address once the form has them.
+  await expect(page).toHaveURL(`${BASE}/campaigns/${campaigns[1].slug}`);
+  await expect(page.getByLabel(copy.lookup.nameLabel)).toHaveValue("Jane Fixture");
+  await expect(page.getByLabel(copy.lookup.postcodeLabel)).toHaveValue("M1 1AE");
+  await expect(page.getByLabel(copy.lookup.addressLabel)).toHaveValue("");
+  await frame(page, "The form, with her name and postcode");
 });
 
 test("Going back to the form", async ({ page }) => {

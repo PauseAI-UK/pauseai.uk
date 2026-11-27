@@ -134,6 +134,8 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
   const states = contactStates(search);
   const named = (events?.length ?? 0) > 1;
   const wrote = Boolean(campaignNamed(search.campaign)) && search.wrote !== "no";
+  // The MP filter finding those with an MP, any or those chosen, rather than leaving them out.
+  const [mpFound] = anyAndNone(valuesOf(search.mp), (values) => values);
   const sort = SUPPORTERS_LIST.sort(search);
   const heading = (key: SupporterSort, label: string) => (
     <SortHeading
@@ -229,6 +231,13 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
           ))}
         </ul>
       ),
+    },
+    Boolean(mpFound) && {
+      key: "mp",
+      label: copy.columns.mp,
+      text: (s) => (s.mp ? staffVocabulary.mpChoice(s.mp.name, s.mp.constituency) : ""),
+      // Their name alone, as the column is narrow: the constituency on hovering it, and in the download.
+      cell: (s) => s.mp && <span title={s.mp.constituency}>{s.mp.name}</span>,
     },
     {
       key: "letters",

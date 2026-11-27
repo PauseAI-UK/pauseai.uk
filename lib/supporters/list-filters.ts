@@ -7,7 +7,7 @@ import type { SupporterChoices, SupportersPage } from "./records.server";
 import { WINDOW_OPTIONS } from "@/lib/time-windows";
 import { SUPPORTERS_LIST } from "@/lib/staff-lists";
 import { staffDate } from "@/lib/staff-time";
-import { NEAR_MILES, SUPPORTER_BADGES } from "./supporters";
+import { ANY_MP, NEAR_MILES, SUPPORTER_BADGES } from "./supporters";
 import { supportersCopy } from "./copy";
 import { politiciansCopy } from "@/lib/politicians/copy";
 import { listFilters, choicesOf } from "@/lib/staff-list-filters";
@@ -108,7 +108,11 @@ export const SUPPORTER_FILTERS = listFilters(
         label: politiciansCopy.politician.roles.commons,
         oneEach: true,
         searchable: true,
-        options: mps.map((mp) => ({ value: String(mp.id), label: staffVocabulary.mpChoice(mp.name, mp.constituency) })),
+        // Any MP, as a broadcast with fields about the reader's MP needs, until something's typed; then the MPs.
+        options: [
+          { value: ANY_MP, label: copy.anyMp, untyped: true, leftOut: copy.noMp },
+          ...mps.map((mp) => ({ value: String(mp.id), label: staffVocabulary.mpChoice(mp.name, mp.constituency) })),
+        ],
       },
       nation: {
         label: politiciansCopy.politician.country,

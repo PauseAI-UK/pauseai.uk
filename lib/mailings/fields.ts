@@ -24,6 +24,8 @@ export type MailingChoice = {
   lacking?: number;
   /** A field with a word for those lacking a value, so it can be used all the same. */
   fallback?: boolean;
+  /** A field with no fallback, usable all the same in a part only for those who have it, as scheduling checks. */
+  onlyInPart?: boolean;
   covers?: number;
   /** For a condition: the ask it's an answer to, and the answer, as a menu offers them, ask then answer. */
   group?: string;

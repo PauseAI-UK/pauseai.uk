@@ -56,8 +56,11 @@ import { earliestRun, londonWhen, sendsAt, staffClock, staffDate, staffTime } fr
 import type { Channel } from "@/lib/supporters/contact-permissions";
 import {
   approvalProblems,
+  problemPlaces,
   rejectionWords,
   fakeRecipient,
+  FIELD_WORDS,
+  MP_NAME,
   hasField,
   hasWords,
   BROADCAST_START,
@@ -70,7 +73,6 @@ import {
   BROADCAST_SENDER,
   sendingDays,
   TEXT_SENDER_NAME,
-  type BroadcastScheduleProblem,
   type BroadcastSendBy,
 } from "@/lib/broadcasts/broadcasts";
 import {
@@ -91,7 +93,6 @@ import { DeleteDraft } from "../mailings/MailingButtons";
 import MailingEditor from "../mailings/MailingEditor";
 import ConditionMenu from "../mailings/ConditionMenu";
 import {
-  BUTTON_PROBLEMS,
   inOrder,
   MOST_PICTURE_BYTES,
   type TextButton,
@@ -220,33 +221,8 @@ function copyName(name: string, names: string[]): string {
   return copy.copyName(name, n);
 }
 
-/** What only new words can have wrong, said under Send for approval. */
-const NEW_WORDS_PROBLEMS: BroadcastScheduleProblem[] = [
-  "no-name",
-  "field-edge",
-  "fields-together",
-  "field-twice",
-  "same-words",
-  "versions-same-words",
-];
-
-/**
- * What's wrong with a text's header or buttons: said under Send for approval
- * while that's offered, and only by Schedule otherwise, as for a chosen
- * template whose place or picture is missing.
- */
-const TEMPLATE_PARTS_PROBLEMS: BroadcastScheduleProblem[] = [
-  "no-place",
-  "place-words",
-  "no-picture",
-  ...BUTTON_PROBLEMS,
-];
-
 /** How a draft's words stand: an email's own, or a text's template chosen, new words, or none yet. */
 type Words = "email" | "chosen" | "new" | "none";
-
-/** Each field's words, for fixed words to show it by, as the editor's chip does: First name, not firstName. */
-const FIELD_WORDS: Record<string, string> = { ...copy.fieldWords };
 
 /**
  * A quiet button pressed twice, as a delete is: the first press turns it
@@ -421,6 +397,7 @@ function BroadcastPreview({
   from,
   gmail,
   needs,
+  said,
   dueAt,
   sendTest,
   linkCard,
@@ -457,8 +434,10 @@ function BroadcastPreview({
   from: string;
   /** The connected Gmail an email goes from, which its test goes from too; none for Postmark. */
   gmail: string | null;
-  /** What it still needs before there's something to test, as the Send section says it. */
+  /** What it still needs before there's something to test, which stops Send test. */
   needs: string[];
+  /** What the preview says is wrong, under Send test (problemPlaces). */
+  said: string[];
   dueAt: Date | null;
   /** Sends `to` a test copy for a recipient meeting `meets`; says where it went, or nothing if it didn't go. */
   sendTest: (meets: string[], to: string) => Promise<string | undefined>;
@@ -582,7 +561,7 @@ function BroadcastPreview({
         </div>
         <Muted>{testNote}</Muted>
         <TestSent line={testLine} sent={!broke && Boolean(sent?.to)} />
-        <ProblemList problems={needs} />
+        <ProblemList problems={said} />
       </div>
     </>
   );
@@ -904,9 +883,9 @@ export default function BroadcastWriter({
     });
     setSide("only");
   };
-  // The open variant's ×: it's the broadcast for everyone, the other gone.
-  const keepOpen = () => {
-    if (side === "except") return write({ textVersion: null });
+  // The open variant's ×: it goes, and the other is the broadcast for everyone.
+  const removeOpen = () => {
+    if (side === "only") return write({ textVersion: null });
     const { body: kept, header, place, pictureId, buttons } = textVersion!;
     write({ body: kept, header, place, pictureId, buttons, textVersion: null });
     setOwnKey((n) => n + 1);
@@ -944,6 +923,8 @@ export default function BroadcastWriter({
     dueAt: values.dueAt,
     finishMinutes: values.finishMinutes,
     recipients: data.count,
+    withoutMp: data.fields.find((field) => field.id === MP_NAME)?.lacking ?? 0,
+    writing: words !== "none",
     unknown: data.unknown,
     byGmail: gmailChecked,
     connected: data.sender.connected,
@@ -969,17 +950,11 @@ export default function BroadcastWriter({
       ),
     },
   }).filter((problem) => problem !== "cannot-send");
-  // Greyed, before a Consent by the channel picked: that comes first, till one's picked. While Send for approval is
-  // there, what new words have wrong is said under it, not again by Schedule, and so is what's wrong with the
-  // header or buttons: Schedule says once to fix what's said there. With nothing to send, Schedule says it all.
+  // Each said once, in the first place down the page that says it (problemPlaces). Greyed, before a Consent by the
+  // channel picked: that comes first, till one's picked.
   const approving = toSubmit > 0;
-  const saidUnderApproval: string[] = approving ? [...NEW_WORDS_PROBLEMS, ...TEMPLATE_PARTS_PROBLEMS] : [];
-  const saidAbove = problems.some((problem) => saidUnderApproval.includes(problem));
-  const shownProblems = [
-    ...(blank && !picked ? ["no-consent" as const] : []),
-    ...(saidAbove ? ["fix-preview" as const] : []),
-    ...problems.filter((problem) => !saidUnderApproval.includes(problem)),
-  ];
+  const placed = problemPlaces(problems, approving);
+  const shownProblems = [...(blank && !picked ? ["no-consent" as const] : []), ...placed.send];
   // A text with a version WhatsApp hasn't approved yet: new words, or ones it's reviewing.
   const unapproved = !email && (words === "new" || Boolean(textVersion && !stands.only.approved));
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
@@ -1452,7 +1427,7 @@ export default function BroadcastWriter({
                       templates={toSubmit}
                       // Not while WhatsApp is reviewing either version's words, which making one the whole text
                       // would change.
-                      onForEveryone={reviewing ? undefined : keepOpen}
+                      onRemove={reviewing ? undefined : removeOpen}
                     >
                       {versionParts(side)}
                     </TextVersions>
@@ -1536,7 +1511,7 @@ export default function BroadcastWriter({
                       </Button>
                       {/* Why it can't go yet, under the button: fields where WhatsApp won't take them, the words
                           a template has already, and the rest. */}
-                      <ProblemList problems={approvalProblems(problems).map((problem) => copy.problems[problem])} />
+                      <ProblemList problems={placed.approval.map((problem) => copy.problems[problem])} />
                       {/* Why it didn't go: sending it broke, or what the site or WhatsApp said of it. */}
                       {(submitBroke || submitError) && <Alert>{submitBroke ? copy.submitBroke : submitError}</Alert>}
                     </div>
@@ -1545,9 +1520,8 @@ export default function BroadcastWriter({
                 subject={values.subject}
                 from={fromLine}
                 gmail={gmailChecked && data.sender.connected ? draft.sentFrom : null}
-                needs={problems
-                  .filter((problem) => TEST_NEEDS.includes(problem))
-                  .map((problem) => copy.problems[problem])}
+                needs={problems.filter((problem) => TEST_NEEDS.includes(problem))}
+                said={placed.preview.map((problem) => copy.problems[problem])}
                 dueAt={values.dueAt}
                 linkCard={actions.linkCard}
                 sendTest={async (meets, to) => {

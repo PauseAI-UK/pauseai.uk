@@ -731,6 +731,9 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ mp: [mp] })).toEqual(["Jane"]);
     expect(await names({ mp: [mp + 1] })).toEqual([]);
     expect(await names({ not: { mp: [mp] } })).toEqual(["Sam", "Pat", "Old"]);
+    // Has an MP finds those with any MP, and leaves them out.
+    expect(await names({ hasMp: true })).toEqual(["Jane"]);
+    expect(await names({ not: { hasMp: true } })).toEqual(["Sam", "Pat", "Old"]);
     // One out of office isn't their MP.
     await query("UPDATE notable_people SET status = 'retired' WHERE id = $1", [mp]);
     expect((await getSupporter(id))!.mp).toBeNull();

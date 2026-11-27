@@ -9,6 +9,8 @@ import {
   fakeRecipient,
   FIELDS_AS_WORDS,
   hasField,
+  HAS_MP,
+  EXAMPLE_LINK_CODE,
   type FakeRecipient,
   hasWords,
   broadcastScheduleProblems,
@@ -51,6 +53,7 @@ import {
 } from "@/lib/mailings/drafts.server";
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./channels.server";
 import { broadcastEmail, testLinks } from "./email-message.server";
+import { withWriteLinks } from "./write-links.server";
 import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import {
   createTemplate,
@@ -907,6 +910,8 @@ async function scheduleProblems(
     ...broadcast,
     sameWords: sameWords(broadcast.body, approvedWords),
     recipients: audience.recipients.length,
+    withoutMp: audience.recipients.filter((recipient) => !recipient.meets.includes(HAS_MP)).length,
+    writing: Boolean(broadcast.template),
     unknown,
     ...sender,
     approved: broadcast.variant?.status === "approved",
@@ -1148,7 +1153,7 @@ async function sendForApproval(template: ForApproval): Promise<TemplateNotTaken 
     const made = await createTemplate(backend.keys, {
       name: template.metaName,
       body: templateText(template.body),
-      examples: templateParams(template.body, fakeRecipient(BROADCAST_FIELDS.map(hasField), "text")),
+      examples: templateParams(template.body, fakeRecipient([...BROADCAST_FIELDS.map(hasField), HAS_MP], "text")),
       footer,
       ...(header && { header }),
       buttons: inOrder(template.buttons).map((button) =>
@@ -1456,18 +1461,21 @@ export async function reviewTemplate(variantId: number, review: TemplateReview):
  * recipient's permissions: an email by what the broadcast goes by, Postmark
  * or hello@'s Gmail, with its files and unsubscribe links that change
  * nothing (testLinks); a text by the backend, only on an approved template,
- * as WhatsApp sends no other. Undefined when it can't go.
+ * as WhatsApp sends no other. Its links to write to their MP are to this
+ * site, as a real copy's are, with a code no copy has, so they fill nothing
+ * in. Undefined when it can't go.
  */
 export async function sendBroadcastTest(
   broadcast: WrittenBroadcast,
   recipient: FakeRecipient,
   to: string,
 ): Promise<ChannelResult | undefined> {
+  const filled = withWriteLinks(recipient, EXAMPLE_LINK_CODE);
   if (broadcast.channel === "email") {
     const sender = { sentFrom: BROADCAST_SENDER.email, fromName: BROADCAST_SENDER.name };
     const message = broadcastEmail(
       { ...broadcast, ...sender },
-      { address: to, values: recipient },
+      { address: to, values: filled },
       testLinks(),
       await attachmentsOf(broadcast.id),
     );
@@ -1483,7 +1491,7 @@ export async function sendBroadcastTest(
   return textResult(
     await sendTemplate(backend.keys, backend.number.id, to, {
       name: template.metaName ?? template.name!,
-      params: templateParams(template.body, recipient),
+      params: templateParams(template.body, filled),
       ...(theirs.header === "location" && theirs.place && { place: theirs.place }),
       ...(theirs.header === "image" && theirs.pictureId && { picture: pictureAddress(theirs.pictureId) }),
     }),

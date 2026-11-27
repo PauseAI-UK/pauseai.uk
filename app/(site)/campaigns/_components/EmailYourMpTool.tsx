@@ -54,6 +54,21 @@ function testMpLine(mp: TestMp): string {
   return `${postcode} (${mp.name})${purpose.length ? `: ${purpose.join(", ")}` : ""}`;
 }
 
+/**
+ * The name and postcode a broadcast's link to write to their MP opens the
+ * page with, after its # (lib/broadcasts/write-links.server.ts), taken off
+ * the address once read, so a reload or a copied address doesn't carry them;
+ * undefined for an address with neither.
+ */
+function linkFill(): { name: string; postcode: string } | undefined {
+  const given = new URLSearchParams(window.location.hash.slice(1));
+  const name = given.get("name") ?? "";
+  const postcode = given.get("postcode") ?? "";
+  if (!name && !postcode) return undefined;
+  window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+  return { name, postcode };
+}
+
 export default function EmailYourMpTool({ campaignSlug, showTestMps }: Props) {
   const campaign = campaignBySlug(campaignSlug)!;
   const router = useRouter();
@@ -68,10 +83,17 @@ export default function EmailYourMpTool({ campaignSlug, showTestMps }: Props) {
 
   // Coming back from writing a letter: the form, as it was.
   // After the page loads, as the server can't see sessionStorage.
+  // Or from a broadcast's link to write to their MP, their name and postcode after the #, which is then cleared.
   useEffect(() => {
+    const given = linkFill();
+    if (given) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- once, on load, from the address's #, which the server never sees
+      setName(given.name);
+      setPostcode(given.postcode);
+      return;
+    }
     const last = readLookup();
     if (!last) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- once, on load, from sessionStorage, which the server render couldn't read
     setName(last.name);
     setAddress(last.address);
     setPostcode(last.postcode);

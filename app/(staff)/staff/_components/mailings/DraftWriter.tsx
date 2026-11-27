@@ -439,7 +439,7 @@ export function TestSent({ line, sent }: { line?: string; sent: boolean }) {
 }
 
 /** Of what stops a draft being scheduled, what stops a test copy too: there's nothing yet to test. */
-export const TEST_NEEDS: string[] = ["no-subject", "no-letter", "no-template"];
+export const TEST_NEEDS: string[] = ["no-subject", "no-letter", "no-template", "no-words"];
 
 /**
  * What stops the button over it, as errors: a red bullet each, in the

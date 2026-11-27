@@ -1016,6 +1016,7 @@ that drives it or why nothing does.
 - `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, fixture text where a page shows data. One flow checks every public page's same-site links, read from the HTML the server sends. The header's Groups menu, opened on a desktop.
 - `campaigns.spec.ts`: Email your MP, end to end:
   - the postcode, the letter, the preview and the sent page, and the letter the MP gets;
+  - a broadcast's link to write to your MP (`/write/[token]/[slug]`), which opens the form with the reader's name and postcode;
   - the editor's toolbar and a paste, where a link goes shown under it, and the letter as sent;
   - the draft kept through Edit, back and reload;
   - going back;
@@ -1155,6 +1156,7 @@ that drives it or why nothing does.
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed, and what's written after is saved;
   - the list's Broadcast button with a Consent filter;
   - an email written, from hello@ by Postmark, or by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
+  - an email asking readers to write to their MP, with their MP's name and a link to a campaign, which can't be scheduled till the ask is in a part for those with an MP, previewed with an MP and without;
   - a text on an approved template, chosen from the dropdown, each template's facts under its name;
   - a template's words edited as a new template, and an unused one deleted, from WhatsApp and the dropdown;
   - the site updated under an open draft: the dialog over the page, closed, then Reload;
@@ -1249,7 +1251,7 @@ that drives it or why nothing does.
   - notes on a supporter: one added with a link, then edited, an admin with no Delete on a colleague's old note, and one from today deleted, in the audit log;
   - the list after the Luma import, searched, filtered, filtered to nobody with its frame kept, cleared from the row that says so, and sorted;
   - those not at an event, chosen by Except, who declined it or never registered, then by its chip only those at it;
-  - an MP's constituents, by the MP filter, named in the page's title;
+  - an MP's constituents, by the MP filter, named in the page's title, and everyone with an MP, by Their MP;
   - a supporter's page with their MP and an opt-out from the webhook, then subscribed again, and the audit log, which records a download of the supporters but not a look at one's page;
   - a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept;
   - a letter writer reached from the letters page;

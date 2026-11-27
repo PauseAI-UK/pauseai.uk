@@ -17,6 +17,7 @@ import {
   type BroadcastTerms,
   type RecipientSort,
   type SendingPause,
+  withLinksAsWords,
 } from "./broadcasts";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import type { Topic } from "@/lib/supporters/contact-permissions";
@@ -580,6 +581,7 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
   return {
     ...row,
     body: checkMailingDoc(row.body)!,
+    merge: row.merge && withLinksAsWords(row.merge),
     events,
     replies,
     answers,

@@ -39,30 +39,32 @@ export function PartMark({ icon, title, children }: { icon: ReactNode; title: st
 
 /**
  * A part only some recipients get, in a green dashed box under who it's
- * for, or a grey one for all but some (`except`). With `onForEveryone`, a
- * × in its corner makes it for everyone.
+ * for, or a grey one for all but some (`except`). With `onRemove`, a ×
+ * in its corner that takes it away, named `removeLabel`.
  */
 export default function PartBox({
   label,
   except = false,
-  onForEveryone,
+  onRemove,
+  removeLabel,
   children,
 }: {
   label: string;
   except?: boolean;
-  onForEveryone?: () => void;
+  onRemove?: () => void;
+  removeLabel?: string;
   children: ReactNode;
 }) {
   return (
-    <div className={styles.box} data-except={except || undefined} data-closable={onForEveryone ? "" : undefined}>
+    <div className={styles.box} data-except={except || undefined} data-closable={onRemove ? "" : undefined}>
       <div className={styles.label}>{label}</div>
-      {onForEveryone && (
+      {onRemove && (
         <IconButton
           look="outline"
           className={styles.close}
-          aria-label={copy.forEveryone}
-          title={copy.forEveryone}
-          onClick={onForEveryone}
+          aria-label={removeLabel}
+          title={removeLabel}
+          onClick={onRemove}
         >
           <CrossIcon size={12} />
         </IconButton>

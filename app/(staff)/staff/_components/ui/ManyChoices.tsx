@@ -153,7 +153,11 @@ export default function ManyChoices({
           words(value),
         ],
   );
-  const named = (
+  // A choice with words of its own for being left out says them alone: "MP: none".
+  const leftOut = not && ticked.length === 1 ? options.find((one) => one.value === ticked[0])?.leftOut : undefined;
+  const named = leftOut ? (
+    `${label}: ${leftOut}`
+  ) : (
     <>
       {not ? <NotWords label={label} /> : `${label}: `}
       {chosenWords}

@@ -17,7 +17,7 @@ import {
   type StoredFilter,
 } from "@/lib/staff-search";
 import { notValue, pairedValue, valuesOf, type Params } from "@/lib/list-params";
-import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
+import { ANY_MP, NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { changeChoices } from "@/lib/oversight/audit-log.server";
 import { query } from "./db.server";
 import { eventChoices } from "@/lib/events/staff-events-list.server";
@@ -116,7 +116,7 @@ async function supporterValues(params: Params): Promise<Known> {
     campaign: valuesOf(params.campaign).filter((slug) => campaignNamed(slug)),
     wrote: ["no"],
     nation: Object.keys(staffVocabulary.countries),
-    mp: mps.map((row) => row.id),
+    mp: [ANY_MP, ...mps.map((row) => row.id)],
     near: "any",
     within: NEAR_MILES.map(String),
   };

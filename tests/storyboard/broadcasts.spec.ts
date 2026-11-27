@@ -22,7 +22,8 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-import { registeredFor } from "@/lib/broadcasts/broadcasts";
+import { HAS_MP, registeredFor } from "@/lib/broadcasts/broadcasts";
+import { CAMPAIGN_NAMES } from "@/lib/content/campaigns";
 import { emailCopy } from "@/lib/email/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
@@ -287,6 +288,49 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: mailingCopy.unschedule }).click();
   await expect(page.getByLabel(copy.subject)).toHaveValue("Events near you this month");
   await frame(page, "A draft again");
+});
+
+test("An email asking readers to write to their MP", async ({ page, request, flowDatabase }) => {
+  story(
+    "An email asks its readers to write to their own MP. The fields about their MP have nothing to fall back on, so they go only to those whose postcode finds one.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, EMAIL, EMAILABLE);
+  await page.getByLabel(copy.subject).fill("Write to your MP");
+  const words = page.getByRole("textbox", { name: copy.emailLabel });
+  await caretInEmpty(words, 1);
+  await page.keyboard.type("Could you write to ");
+  await page.getByRole("button", { name: copy.mpFieldWords.name, exact: true }).click();
+  await page.keyboard.type(" about the bill? ");
+  await savedAfter(page, () =>
+    page.getByRole("button", { name: copy.mpFieldWords.link(CAMPAIGN_NAMES[1].title), exact: true }).click(),
+  );
+  story("Some of those it goes to have no MP we know of, so it can't be scheduled as it is, and says why.");
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await expect(send.getByText(copy.problems["mp-field-without-mp"])).toBeVisible();
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "Not for those with no MP", { window: true });
+  story("They put the ask in a part only for those who have an MP.");
+  await words.getByText("Could you write to").click();
+  await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
+  await page.getByRole("menuitem", { name: copy.conditions.mpGroup }).click();
+  await savedAfter(page, () => page.getByRole("menuitem", { name: copy.conditions.hasMpOption }).click());
+  await expect(send.getByText(copy.problems["mp-field-without-mp"])).toHaveCount(0);
+  await words.scrollIntoViewIfNeeded();
+  await frame(page, "The ask, only for those with an MP", { window: true });
+  story(
+    "The preview's made-up reader has a made-up MP, and a link to the campaign. Without an MP, the ask isn't there.",
+  );
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await expect(preview.getByText("Could you write to Sam Taylor about the bill?", { exact: false })).toBeVisible();
+  await preview.scrollIntoViewIfNeeded();
+  await frame(page, "The preview, for someone with an MP", { window: true });
+  const hasMp = preview.getByRole("button", { name: copy.previewCases[HAS_MP] });
+  await hasMp.click();
+  await expect(hasMp).toHaveAttribute("aria-pressed", "false");
+  await expect(preview.getByText("Could you write to", { exact: false })).toHaveCount(0);
+  await frame(page, "The preview, for someone without one", { window: true });
 });
 
 test("A text on an approved template", async ({ page, request, flowDatabase }) => {

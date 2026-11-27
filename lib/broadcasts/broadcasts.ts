@@ -13,6 +13,8 @@ import { SENDING_DAYS, WAIT_DAYS } from "./days";
 import { now } from "@/lib/now";
 import { phoneWords } from "@/lib/phone";
 import { staffDate } from "@/lib/staff-time";
+import { CAMPAIGN_NAMES } from "@/lib/content/campaigns";
+import { site } from "@/lib/content/site";
 import { anyAndNone, valuesOf, type ParamValue } from "@/lib/list-params";
 import type { SortColumns } from "@/lib/staff-sort";
 import { broadcastsCopy } from "./copy";
@@ -279,17 +281,76 @@ export function sendingDays(recipients: number, remaining: number | null, daily:
   return 1 + Math.ceil((recipients - remaining) / daily);
 }
 
-/** The merge fields of a broadcast to supporters. No one has all of them, so each has a fallback. */
+/** The merge fields of a broadcast to supporters that everyone can be given: those without a value get its fallback. */
 export const BROADCAST_FIELDS = ["firstName", "name"] as const;
 
+/** The field of the reader's MP's name: the MP in office for the constituency of the postcode that places them. */
+export const MP_NAME = "mpName";
+
+/** The field of the reader's MP's constituency: the one the postcode that places them is in. */
+export const MP_CONSTITUENCY = "mpConstituency";
+
+/** What starts the field of a link to write to their MP in a campaign, before the campaign's slug. */
+const MP_LINK = "mpLink:";
+
+/** The field of a link for the reader to write to their MP in campaign `slug`, with their name and postcode filled in. */
+export function mpLink(slug: string): string {
+  return `${MP_LINK}${slug}`;
+}
+
+/** The campaign a field links to write to their MP in, by its slug; undefined for any other field. */
+export function mpLinkCampaign(field: string): string | undefined {
+  return field.startsWith(MP_LINK) ? field.slice(MP_LINK.length) : undefined;
+}
+
+/**
+ * The fields about the reader's MP: their name, then a link to write to them
+ * in each campaign. None has a fallback, as there's nothing to say in place
+ * of an MP, so they go only to those with one (mpFieldSeenWithoutMp).
+ */
+export const MP_FIELDS = [MP_NAME, MP_CONSTITUENCY, ...CAMPAIGN_NAMES.map((campaign) => mpLink(campaign.slug))];
+
+/** Whether a field is about the reader's MP, so has no fallback. */
+export function isMpField(field: string): boolean {
+  return field === MP_NAME || field === MP_CONSTITUENCY || mpLinkCampaign(field) !== undefined;
+}
+
+/** The condition that someone has an MP, which every field about their MP needs. */
+export const HAS_MP = `has:${MP_NAME}`;
+
 /** Each merge field's words, as a template's row and a title say it. */
-export const FIELD_WORDS: Record<string, string> = broadcastsCopy.broadcastPages.fieldWords;
+export const FIELD_WORDS: Record<string, string> = {
+  ...broadcastsCopy.broadcastPages.fieldWords,
+  [MP_NAME]: broadcastsCopy.broadcastPages.mpFieldWords.name,
+  [MP_CONSTITUENCY]: broadcastsCopy.broadcastPages.mpFieldWords.constituency,
+  ...Object.fromEntries(
+    CAMPAIGN_NAMES.map((campaign) => [
+      mpLink(campaign.slug),
+      broadcastsCopy.broadcastPages.mpFieldWords.link(campaign.title),
+    ]),
+  ),
+};
 
 /** A broadcast's merge fields filled in with their own words, `{first name}`, to show its words for everyone. */
 export const FIELDS_AS_WORDS: MailingRecipientValues = {
-  values: Object.fromEntries(BROADCAST_FIELDS.map((field) => [field, `{${FIELD_WORDS[field]}}`])),
+  values: Object.fromEntries(Object.entries(FIELD_WORDS).map(([field, words]) => [field, `{${words}}`])),
   meets: [],
 };
+
+/**
+ * A copy's merge values as its page shows them: for someone with an MP, each
+ * link to write to them as its words, `{Link to write to their MP: …}`, as
+ * a link is made with the copy's token as it goes, and only the token's hash
+ * is kept.
+ */
+export function withLinksAsWords(merge: MailingRecipientValues): MailingRecipientValues {
+  if (!merge.meets.includes(HAS_MP)) return merge;
+  const links = MP_FIELDS.filter((field) => mpLinkCampaign(field)).map((field) => [
+    field,
+    FIELDS_AS_WORDS.values[field],
+  ]);
+  return { ...merge, values: { ...merge.values, ...Object.fromEntries(links) } };
+}
 
 /** Titles people put before their name, without a full stop: "Dr Jane Smith" has no first name we can use. */
 const TITLES = new Set([
@@ -379,9 +440,9 @@ export function firstNameOf(name: string | null | undefined): string | undefined
   return allOneCase(first) ? capitalised(first) : first;
 }
 
-/** The condition that someone has a value for a field. */
+/** The condition that someone has a value for a field: for a field about their MP, that they have one. */
 export function hasField(field: string): string {
-  return `has:${field}`;
+  return isMpField(field) ? HAS_MP : `has:${field}`;
 }
 
 /** Someone made up, as a preview shows and a test copy is filled in for: no real supporter's details. */
@@ -390,7 +451,19 @@ const FAKE = {
   email: "jane.smith@example.com",
   phone: "+447700900123",
   values: { firstName: "Jane", name: "Jane Smith" },
+  mpName: "Sam Taylor",
+  mpConstituency: "Exampleton North",
 };
+
+/**
+ * A made-up recipient's link to write to their MP in a campaign: a real
+ * one's, with a token no copy has, so it opens the campaign's page with
+ * nothing filled in (write-links.server.ts).
+ */
+const exampleLink = (slug: string) => `${site.url}/write/${EXAMPLE_LINK_CODE}/${slug}`;
+
+/** The code a made-up recipient's links carry: shaped as a copy's, and no copy's. */
+export const EXAMPLE_LINK_CODE = "A9A9A9A9A9A9A9A9A9A9A9A9";
 
 /** A made-up recipient to preview a broadcast for, and fill a test copy in for. */
 export type FakeRecipient = MailingRecipientValues & { name: string; address: string };
@@ -398,18 +471,33 @@ export type FakeRecipient = MailingRecipientValues & { name: string; address: st
 /**
  * A made-up recipient meeting just `meets`: each field theirs where they
  * have it, its fallback where they don't, so any mix of fields and
- * conditions can be shown, and nobody's real details are.
+ * conditions can be shown, and nobody's real details are. With an MP, a
+ * made-up one, and links to write to them that fill nothing in, as a test
+ * copy's links change nothing.
  */
 export function fakeRecipient(meets: string[], channel: BroadcastChannel): FakeRecipient {
   return {
     name: FAKE.name,
     address: channel === "email" ? FAKE.email : FAKE.phone,
-    values: Object.fromEntries(
-      BROADCAST_FIELDS.map((field) => [
-        field,
-        meets.includes(hasField(field)) ? FAKE.values[field] : broadcastsCopy.broadcastPages.fallbacks[field],
-      ]),
-    ),
+    values: {
+      ...Object.fromEntries(
+        BROADCAST_FIELDS.map((field) => [
+          field,
+          meets.includes(hasField(field)) ? FAKE.values[field] : broadcastsCopy.broadcastPages.fallbacks[field],
+        ]),
+      ),
+      ...(meets.includes(HAS_MP) &&
+        Object.fromEntries(
+          MP_FIELDS.map((field) => [
+            field,
+            field === MP_NAME
+              ? FAKE.mpName
+              : field === MP_CONSTITUENCY
+                ? FAKE.mpConstituency
+                : exampleLink(mpLinkCampaign(field)!),
+          ]),
+        )),
+    },
     meets,
   };
 }
@@ -488,7 +576,9 @@ export type BroadcastScheduleProblem =
   | "no-subject"
   | "no-letter"
   | "no-template"
+  | "no-words"
   | "no-name"
+  | "mp-field-without-mp"
   | "field-edge"
   | "fields-together"
   | "field-twice"
@@ -517,6 +607,8 @@ export type SchedulingBroadcast = {
   finishMinutes: number | null;
   /** How many it goes to. */
   recipients: number;
+  /** How many of them have no MP, so nothing for a field about their MP. */
+  withoutMp: number;
   /** The values of its filter the site no longer knows. */
   unknown: string[];
   /** Whether it goes by Gmail, and whether the Gmail it's from is connected. */
@@ -525,6 +617,8 @@ export type SchedulingBroadcast = {
   /** How many more what sends it can send today, and each day after; null for no limit. */
   remaining: number | null;
   daily: number | null;
+  /** Whether a text has a template chosen, or New template open, so its empty words want writing, not a template choosing. */
+  writing: boolean;
   /** Whether a text's template is one WhatsApp has approved: not new words, nor one waiting for its approval. */
   approved: boolean;
   /** Whether a text's new words are, word for word, those of a template WhatsApp has approved (sameWords). */
@@ -538,12 +632,25 @@ export type SchedulingBroadcast = {
   place: TextPlace | null;
   pictureId: string | null;
   buttons: TextButton[];
-  /** A text's second version, as far as scheduling it goes; none for one version. */
-  textVersion: Pick<
-    SchedulingBroadcast,
-    "body" | "approved" | "sameWords" | "header" | "place" | "pictureId" | "buttons"
-  > | null;
+  /** A text's second version, as far as scheduling it goes, and who it's for; none for one version. */
+  textVersion:
+    | (Pick<SchedulingBroadcast, "body" | "approved" | "sameWords" | "header" | "place" | "pictureId" | "buttons"> & {
+        condition: string;
+      })
+    | null;
 };
+
+/**
+ * Whether someone without an MP would see a field about their MP in `body`:
+ * one outside a part for those with an MP. A text's second version, for
+ * those who meet `condition`, is seen only by those with one when that's
+ * its condition; its first, which has no parts, by anyone.
+ */
+export function mpFieldSeenWithoutMp(body: MailingDoc, condition?: string): boolean {
+  if (condition === HAS_MP) return false;
+  const seen = body.content.filter((block) => block.type !== "onlyFor" || block.attrs.condition !== HAS_MP);
+  return fieldsIn({ type: "doc", content: seen }).some(isMpField);
+}
 
 /**
  * WhatsApp's code for why it rejected a template, as stored, in plain words
@@ -603,10 +710,46 @@ export function approvalProblems(problems: BroadcastScheduleProblem[]): Broadcas
   return problems.filter((problem) => !LEFT_TILL_SCHEDULING.includes(problem));
 }
 
+/** What the preview says, under Send test: what there's nothing to test without, and what's wrong with what's written. */
+const PREVIEW_PROBLEMS: BroadcastScheduleProblem[] = [
+  "no-subject",
+  "no-letter",
+  "no-template",
+  "no-words",
+  "mp-field-without-mp",
+];
+
+/** Where the writer says what stops a broadcast being scheduled: Schedule's list, with first, perhaps, to fix what's said above. */
+export type ProblemPlaces = {
+  approval: BroadcastScheduleProblem[];
+  preview: BroadcastScheduleProblem[];
+  send: (BroadcastScheduleProblem | "fix-preview")[];
+};
+
+/**
+ * Where the writer says each of what stops a broadcast being scheduled: each
+ * once, in the first place down the page that says it. Under Send for
+ * approval, while a text has words to send (`approving`), all that stops
+ * that (approvalProblems); otherwise under Send test, what the preview says
+ * (PREVIEW_PROBLEMS); then, by Schedule, the rest, after a line saying to fix
+ * what's said above, if anything is.
+ */
+export function problemPlaces(problems: BroadcastScheduleProblem[], approving: boolean): ProblemPlaces {
+  const approval = approving ? approvalProblems(problems) : [];
+  const preview = approving ? [] : problems.filter((problem) => PREVIEW_PROBLEMS.includes(problem));
+  const above = [...approval, ...preview];
+  return {
+    approval,
+    preview,
+    send: [...(above.length > 0 ? ["fix-preview" as const] : []), ...problems.filter((one) => !above.includes(one))],
+  };
+}
+
 /**
  * What stops a broadcast being scheduled: none, for one that can be. Unlike a
  * mailing to politicians, a field some recipients lack doesn't, as each has
- * a fallback. A text with no words has no template chosen yet. One with
+ * a fallback, but for a field about their MP, which has none: someone with
+ * no MP mustn't see one. A text with no words has no template chosen yet. One with
  * new words, or a template WhatsApp hasn't approved yet, can be: scheduling
  * sends new words for approval (scheduleBroadcast), and it goes once
  * they're approved, at its time or after, till its finish. It must have time
@@ -627,8 +770,18 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["no-recipients", broadcast.recipients === 0],
     ["no-subject", email && !broadcast.subject.trim()],
     ["no-letter", email && blank],
-    ["no-template", versions.some((one) => isBlankMailing(one.body))],
+    // Empty words: a template to choose, or, with one chosen or New template open, words to write.
+    ["no-template", !broadcast.writing && versions.some((one) => isBlankMailing(one.body))],
+    ["no-words", broadcast.writing && versions.some((one) => isBlankMailing(one.body))],
     ["no-name", anyFresh && !broadcast.title.trim()],
+    [
+      "mp-field-without-mp",
+      broadcast.withoutMp > 0 &&
+        (mpFieldSeenWithoutMp(broadcast.body) ||
+          Boolean(
+            broadcast.textVersion && mpFieldSeenWithoutMp(broadcast.textVersion.body, broadcast.textVersion.condition),
+          )),
+    ],
     ["field-edge", misplaced.some((one) => one.atEdge)],
     ["fields-together", misplaced.some((one) => one.together)],
     ["field-twice", misplaced.some((one) => one.twice)],

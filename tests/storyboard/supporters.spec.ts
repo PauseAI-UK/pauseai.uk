@@ -225,6 +225,14 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
     `${staffVocabulary.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffVocabulary.metaTitle}`,
   );
   await frame(page, "Mo Example's constituents");
+  story("Their MP finds everyone whose postcode finds an MP, as a broadcast that names their MP needs.");
+  await page.goto(`${BASE}/staff/supporters`);
+  const add = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
+  await add.locator("summary", { hasText: new RegExp(`^${copy.filters.hasMp}$`) }).click();
+  await add.getByRole("link", { name: copy.filters.hasMpChoices.yes, exact: true }).click();
+  await expect(page).toHaveURL(/\/staff\/supporters\?hasmp=yes$/);
+  await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
+  await frame(page, "Those with an MP");
 });
 
 test("A supporter's page", async ({ page, request, flowDatabase }) => {

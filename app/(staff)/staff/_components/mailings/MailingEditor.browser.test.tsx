@@ -131,6 +131,17 @@ describe("MailingEditor", () => {
       .toHaveAttribute("title", copy.dragHint);
   });
 
+  it("puts in a field some lack that can go in a part only for those with it, saying so on hovering", async () => {
+    const mp = { id: "mpName", label: "MP's name", lacking: 2, onlyInPart: "Put it in a part for those with an MP" };
+    const onChange = await renderEditor([paragraph(text("Write to "))], { fields: [...fields, mp], conditions });
+    await toEnd();
+    const lozenge = page.getByRole("button", { name: "MP's name", exact: true });
+    await expect.element(lozenge).toHaveAttribute("title", mp.onlyInPart);
+    await expect.element(lozenge).toHaveAttribute("draggable", "true");
+    await lozenge.click();
+    expect(last(onChange).content![0].content).toContainEqual(field("mpName"));
+  });
+
   it("makes a paragraph only for some, changes who for, then for everyone again", async () => {
     const onChange = await renderEditor([paragraph(text("Thank you."))]);
     await toEnd();

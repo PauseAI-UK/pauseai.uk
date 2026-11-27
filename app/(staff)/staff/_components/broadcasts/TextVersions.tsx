@@ -19,7 +19,7 @@ export type VersionSide = "only" | "except";
  * many each goes to, on one line, cut short where it's too long, as the
  * box under them says it whole; beside them, how many templates go to WhatsApp
  * for approval, while any do. The open one's words, top and buttons (`children`) are in its part's
- * box, whose × makes it the text for everyone, the other version gone.
+ * box, whose × takes it away, the other version then the text for everyone.
  */
 export default function TextVersions({
   who,
@@ -27,7 +27,7 @@ export default function TextVersions({
   open,
   onOpen,
   templates,
-  onForEveryone,
+  onRemove,
   children,
 }: {
   who: string;
@@ -36,7 +36,7 @@ export default function TextVersions({
   onOpen: (side: VersionSide) => void;
   /** How many templates go to WhatsApp for approval: two, one, or none once it has them all. */
   templates: number;
-  onForEveryone?: () => void;
+  onRemove?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -64,7 +64,8 @@ export default function TextVersions({
       <PartBox
         label={open === "only" ? parts.onlyForLabel(who) : parts.exceptLabel(who)}
         except={open === "except"}
-        onForEveryone={onForEveryone}
+        onRemove={onRemove}
+        removeLabel={copy.removeVariant}
       >
         {children}
       </PartBox>
