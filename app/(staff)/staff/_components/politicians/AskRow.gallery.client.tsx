@@ -3,7 +3,7 @@
 // AskRow's examples, which log the answers set (AskRow.gallery.tsx).
 import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAsks } from "../asks/AsksList.examples";
-import AskRow, { AskRows, PoliticianAsks } from "./AskRow";
+import AskRow, { AskRows, PoliticianAsks, SetAnswer } from "./AskRow";
 import { examplePolitician } from "./PoliticianTable.examples";
 
 /**
@@ -47,6 +47,22 @@ export function AskRowExample({
           </AskRows>
         )
       }
+    </Logged>
+  );
+}
+
+/** Set answer, as under a reply to a mailing's letter, for an event they were invited to. */
+export function SetAnswerExample() {
+  return (
+    <Logged>
+      {(log) => (
+        <SetAnswer
+          politician={{ ...examplePolitician, airtableId: null }}
+          ask={exampleAsks[0]!}
+          setStatus={loggedDone(log, "setStatus")}
+          look="primary"
+        />
+      )}
     </Logged>
   );
 }

@@ -949,6 +949,31 @@ test("A reply to someone else's mailbox", async ({ page, request, flowDatabase }
   await frame(page, "Nothing to do, said");
 });
 
+test("Setting the answer from a reply", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly's reply says she'll come to the Edinburgh conference. Set answer, under her reply, opens the ask's form there, so her answer is set without going back up the page.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  const { mailing, letter } = pollyReplied(flowDatabase, "jo@pauseai.uk");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
+  const words = politiciansCopy.politician;
+  const set = page.getByRole("button", { name: words.setAnswer });
+  await expect(set).toBeVisible();
+  await set.evaluate((button) => button.scrollIntoView({ block: "center", behavior: "instant" }));
+  await frame(page, "Set answer, under her reply", { window: true });
+  story("It opens the form, under who asked her what. They pick Going, with a note, and save.");
+  await openBubble(set);
+  await page.getByRole("radio", { name: staffVocabulary.statuses.going }).click();
+  await page.getByLabel(words.note).fill("Said yes in her reply");
+  await frame(page, "The answer's form, under her reply", { window: true });
+  story("Saved, the ask says she's going.");
+  await page.getByRole("button", { name: words.save }).click();
+  await expect(page.locator("#ask-title").locator("..").getByText(staffVocabulary.statuses.going)).toBeVisible();
+  await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "Her answer, set");
+});
+
 test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
   story("The invitation names its ask. Following it opens the Edinburgh conference's page.");
   await importPoliticians(request, BASE, flowDatabase);

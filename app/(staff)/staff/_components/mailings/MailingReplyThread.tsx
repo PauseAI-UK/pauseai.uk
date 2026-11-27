@@ -16,6 +16,10 @@ import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./AnswerableReply.module.css";
 import { mailingsCopy } from "./copy";
 import { StaffSentence } from "../ui/StaffMember";
+import { SetAnswer, type SetStatus } from "../politicians/AskRow";
+import { answeredByHand } from "@/lib/asks/asks";
+import type { Ask } from "@/lib/asks/records.server";
+import type { Politician } from "@/lib/politicians/records.server";
 
 const copy = mailingsCopy.answers;
 
@@ -29,7 +33,9 @@ export type WaitingReply = { id: number; account: string };
  * if any: Reply, which opens an answer at the foot of the thread, from the
  * mailbox it came to, as the letter's From name; or, if the staff member
  * can't answer from that mailbox (`canAnswer`), whose mailbox it came to,
- * as only they can. Beside either, Nothing to do (`deal`); a reply someone
+ * as only they can. Beside either, Set answer, for the answer to the
+ * mailing's ask (`asked`) where staff record it, and Nothing to do
+ * (`deal`); a reply someone
  * else has dealt with since is said at the page's top.
  */
 export default function MailingReplyThread({
@@ -37,6 +43,7 @@ export default function MailingReplyThread({
   link,
   waiting,
   canAnswer,
+  asked,
   deal,
   answer,
 }: {
@@ -44,10 +51,21 @@ export default function MailingReplyThread({
   link?: ReactNode;
   waiting: WaitingReply | null;
   canAnswer: boolean;
+  /** The politician, the mailing's ask, if it makes one, and what sets their answer to it, among the reply's buttons. */
+  asked?: { politician: Politician; ask: Ask | undefined; setStatus: SetStatus };
   deal: (form: FormData) => Promise<FormResult<"gone">>;
   answer: AnswerAction;
 }) {
   const reply = waiting && thread.messages.find((message) => message.id === waiting.id);
+  // Set answer, for an ask staff record, plainer beside Reply.
+  const setAnswer = asked?.ask && answeredByHand(asked.ask.slug) && (
+    <SetAnswer
+      politician={asked.politician}
+      ask={asked.ask}
+      setStatus={asked.setStatus}
+      look={canAnswer ? "ghost" : "primary"}
+    />
+  );
 
   const foot = (write?: () => void) =>
     function Foot(message: ThreadMessage) {
@@ -73,6 +91,7 @@ export default function MailingReplyThread({
               ) : (
                 <Muted>{copy.answerElsewhere(waiting!.account)}</Muted>
               )}
+              {setAnswer}
               <ResultForm action={deal} says={mailingsCopy.refusals.nothingToDo} atTop={["gone"]}>
                 <input type="hidden" name="replyId" value={message.id} />
                 <SubmitButton variant="ghost" size="small" fit>

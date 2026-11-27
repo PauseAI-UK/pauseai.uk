@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { buttonClass } from "@/components/ui/Button";
+import { buttonClass, type ButtonVariant } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Segmented } from "@/components/ui/Controls";
 // A row of fields along their bottoms, as a FilterForm lays them out.
@@ -15,7 +15,7 @@ import type { Politician } from "@/lib/politicians/records.server";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "../asks/AnswerWord";
 import { AskLead } from "../asks/AskLine";
-import { BubbleBox } from "@/components/ui/Bubble";
+import Bubble, { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "../ui/Menu";
 import { Refusal, RefusedTextInput, ResultForm } from "../ui/ResultForm";
@@ -72,6 +72,40 @@ function AnswerForm({ politician, ask, setStatus }: { politician: Politician; as
         <Refusal />
       </span>
     </ResultForm>
+  );
+}
+
+/**
+ * A button that opens the form to set where they stand on an ask staff
+ * record, in a bubble under it, as the ask's Edit does, under who asked
+ * them what: for setting their answer from a reply, among its buttons.
+ * `look` is the button's. Keyed on the answer, so a change made from it
+ * closes it and empties the note.
+ */
+export function SetAnswer({
+  politician,
+  ask,
+  setStatus,
+  look,
+}: {
+  politician: Politician;
+  ask: Ask;
+  setStatus: SetStatus;
+  look: ButtonVariant;
+}) {
+  return (
+    <Bubble
+      key={politician.statuses[ask.slug]?.updatedAt.toISOString() ?? "none"}
+      id={`set-answer-${ask.slug}`}
+      label={copy.setAnswer}
+      trigger={buttonClass({ variant: look, size: "small", fit: true })}
+      className={styles.editPopover}
+    >
+      <div className={styles.asked}>
+        <AskLead ask={ask} />
+      </div>
+      <AnswerForm politician={politician} ask={ask} setStatus={setStatus} />
+    </Bubble>
   );
 }
 

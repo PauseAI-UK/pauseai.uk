@@ -1,7 +1,7 @@
 // AskRow in the component gallery (app/(tools)/gallery/), in the staff politicians group
 // (app/(tools)/gallery/_examples/staff-politicians.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { AskRowExample } from "./AskRow.gallery.client";
+import { AskRowExample, SetAnswerExample } from "./AskRow.gallery.client";
 
 export const askRowGallery: Example[] = [
   {
@@ -31,6 +31,16 @@ export const askRowGallery: Example[] = [
       {
         label: "A politician's asks: those answered, in order, and the button for another",
         render: () => <AskRowExample others />,
+      },
+    ],
+  },
+  {
+    name: "SetAnswer",
+    file: "app/(staff)/staff/_components/politicians/AskRow.tsx",
+    variants: [
+      {
+        label: "Set answer, as under a reply, opening the form to set their answer",
+        render: () => <SetAnswerExample />,
       },
     ],
   },
