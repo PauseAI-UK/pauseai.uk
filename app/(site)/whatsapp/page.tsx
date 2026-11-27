@@ -6,7 +6,7 @@ import WaitingRoomDown from "./_components/WaitingRoomDown";
 
 export const metadata: Metadata = pageMetadata({
   title: copy.title,
-  description: copy.description,
+  description: copy.body,
   path: "/whatsapp",
 });
 
