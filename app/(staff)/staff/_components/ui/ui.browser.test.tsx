@@ -607,6 +607,34 @@ describe("FilterBar", () => {
     expect(shown()).toEqual([false, false]);
   });
 
+  it("shows a choice for before anything's typed until something is, then hides it", async () => {
+    await render(
+      <FilterBar
+        path="/list"
+        values={{}}
+        search={{ name: "q", label: "Search" }}
+        filters={[
+          {
+            name: "mp",
+            label: "MP",
+            searchable: true,
+            options: [
+              { value: "any", label: "Has any MP", untyped: true },
+              { value: "7", label: "Mo Example" },
+            ],
+          },
+        ]}
+      />,
+    );
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
+    await page.getByText("MP", { exact: true }).click();
+    const list = document.querySelector<HTMLElement>("[popover]:popover-open ul")!;
+    const shown = () => [...list.querySelectorAll("li")].map((li) => getComputedStyle(li).display !== "none");
+    expect(shown()).toEqual([true, false]);
+    await page.getByRole("searchbox", { name: staffVocabulary.filters.narrow }).fill("mo");
+    expect(shown()).toEqual([false, true]);
+  });
+
   it("takes a place in a small form, keeping the other filters, and says what it found and how far in its chip", async () => {
     const place: Filter = {
       name: "near",

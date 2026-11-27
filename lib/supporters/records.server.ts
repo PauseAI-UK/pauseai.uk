@@ -492,15 +492,20 @@ export async function listSupporters(
       }),
       // The filter found only those who wrote in it, so every row has a letter.
       ...(filter.campaign && filter.wrote && { wroteAt: letters.find((l) => l.id === row.id)!.at }),
-      ...((filter.mp || filter.hasMp) && {
-        mp: mps.find((m) => m.id === row.id) ?? null,
-      }),
+      // The filter found only those with an MP, so every row has one.
+      ...((filter.mp || filter.hasMp) && { mp: mpOf(mps.find((m) => m.id === row.id)!) }),
     })),
     total,
     pages: Math.max(1, Math.ceil(total / SUPPORTERS_PAGE_SIZE)),
     ...(near !== undefined && { near }),
   };
 }
+
+/** A supporter's MP as the list's MP column says it: their name and constituency. */
+const mpOf = (found: { name: string; constituency: string }) => ({
+  name: found.name,
+  constituency: found.constituency,
+});
 
 /** A Luma event to filter supporters by: its ID, name and when it starts. */
 export type EventChoice = { id: string; name: string; startAt: Date };

@@ -43,6 +43,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
       { id: "name", lacking: 1, fallback: true },
       // Manchester Central has no MP here, so nobody has one.
       { id: "mpName", lacking: 2, fallback: undefined },
+      { id: "mpConstituency", lacking: 2, fallback: undefined },
       { id: "mpLink:regulate-letter-pm", lacking: 2, fallback: undefined },
       { id: "mpLink:support-sobel-bill", lacking: 2, fallback: undefined },
     ]);
@@ -67,6 +68,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     const { recipients, fields, conditions } = await supporterAudience(FILTER, EMAIL);
     const theirs = recipients.find((one) => one.id === jane)!;
     expect(theirs.values.mpName).toBe("Lucy Powell");
+    expect(theirs.values.mpConstituency).toBe("Manchester Central");
     expect(theirs.meets).toContain(HAS_MP);
     // The links are made as each copy goes, with its token.
     expect(theirs.values).not.toHaveProperty("mpLink:support-sobel-bill");
@@ -76,7 +78,7 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     expect(fields.find((one) => one.id === "mpName")).toMatchObject({
       label: copy.mpFieldWords.name,
       lacking: 1,
-      onlyInPart: copy.mpLacking(1),
+      onlyInPart: true,
     });
     expect(conditions.find((one) => one.id === HAS_MP)).toMatchObject({ label: copy.conditions.hasMp, covers: 1 });
   });

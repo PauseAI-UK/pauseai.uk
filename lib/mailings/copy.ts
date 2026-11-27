@@ -25,11 +25,12 @@ export const mailingsCopy = {
     partsHeading: "Conditional parts",
     // At the top of a group of fields' menu, such as the campaigns a link to write to their MP can be for.
     fieldGroupIn: (group: string) => `${group} about`,
-    // The two menus that put the paragraph at the cursor in a part: one only some get, titled the same as its
-    // button, and one everyone but some get, titled in full.
-    wayOnly: "Only those who…",
-    wayExcept: "Everyone except…",
-    wayExceptTitle: "Everyone except those who…",
+    // The two buttons whose menus put the paragraph at the cursor in a part: one only some get, and one everyone
+    // but some get; then each menu's title.
+    addOnlyFor: "+ Only those who…",
+    except: "Everyone except…",
+    onlyTitle: "Only those who…",
+    exceptTitle: "Everyone except those who…",
     // After a group of choices, such as the campaigns: how many it opens.
     choiceCount: (n: number) => `${n} to choose from`,
     // Instead of them, when no recipient has answered an ask.

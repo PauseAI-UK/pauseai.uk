@@ -225,14 +225,23 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
     `${staffVocabulary.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffVocabulary.metaTitle}`,
   );
   await frame(page, "Mo Example's constituents");
-  story("Their MP finds everyone whose postcode finds an MP, as a broadcast that names their MP needs.");
+  story(
+    "Before anything's typed, the MP filter offers Has any MP: everyone whose postcode finds an MP, as a broadcast that names their MP needs. A column says whose MP each is.",
+  );
   await page.goto(`${BASE}/staff/supporters`);
   const add = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
-  await add.locator("summary", { hasText: new RegExp(`^${copy.filters.hasMp}$`) }).click();
-  await add.getByRole("link", { name: copy.filters.hasMpChoices.yes, exact: true }).click();
-  await expect(page).toHaveURL(/\/staff\/supporters\?hasmp=yes$/);
+  await add.locator("summary", { hasText: new RegExp(`^${mp}$`) }).click();
+  await expect(add.getByRole("link", { name: copy.filters.anyMp, exact: true })).toBeVisible();
+  await frame(page, "Has any MP, before anything's typed");
+  await add.getByRole("link", { name: copy.filters.anyMp, exact: true }).click();
+  await expect(page).toHaveURL(/\/staff\/supporters\?mp=any$/);
+  await expect(page.getByRole("columnheader", { name: copy.columns.mp })).toBeVisible();
   await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
-  await frame(page, "Those with an MP");
+  await frame(page, "Those with an MP, and whose");
+  story("Except leaves them out instead: the chip says MP: none.");
+  await page.goto(`${BASE}/staff/supporters?mp=!any`);
+  await expect(page.getByText(`${mp}: ${copy.filters.noMp}`)).toBeVisible();
+  await frame(page, "Those with no MP");
 });
 
 test("A supporter's page", async ({ page, request, flowDatabase }) => {

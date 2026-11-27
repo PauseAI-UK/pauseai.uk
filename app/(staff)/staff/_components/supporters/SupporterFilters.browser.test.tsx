@@ -176,7 +176,6 @@ describe("SupporterFilters", () => {
       copy.filters.first,
       copy.filters.near,
       politiciansCopy.politician.roles.commons,
-      copy.filters.hasMp,
       politiciansCopy.politician.country,
     ]);
     // Consent isn't among them: it has its own button, first, its lists under their channels.

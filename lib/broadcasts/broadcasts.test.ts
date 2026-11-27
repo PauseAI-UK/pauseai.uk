@@ -11,6 +11,7 @@ import {
   mpFieldSeenWithoutMp,
   mpLink,
   mpLinkCampaign,
+  problemPlaces,
   withLinksAsWords,
   firstNameOf,
   approvalProblems,
@@ -340,6 +341,7 @@ describe("fakeRecipient", () => {
   it("has a made-up MP, and links to write to them that fill nothing in, only when they have an MP", () => {
     expect(fakeRecipient([HAS_MP], "email").values).toMatchObject({
       mpName: "Sam Taylor",
+      mpConstituency: "Exampleton North",
       "mpLink:support-sobel-bill": "https://pauseai.uk/write/A9A9A9A9A9A9A9A9A9A9A9A9/support-sobel-bill",
       "mpLink:regulate-letter-pm": "https://pauseai.uk/write/A9A9A9A9A9A9A9A9A9A9A9A9/regulate-letter-pm",
     });
@@ -349,8 +351,8 @@ describe("fakeRecipient", () => {
 
 describe("the fields about the reader's MP", () => {
   it("are the MP's name and a link for each campaign, all needing an MP", () => {
-    expect(MP_FIELDS).toEqual(["mpName", "mpLink:regulate-letter-pm", "mpLink:support-sobel-bill"]);
-    expect(MP_FIELDS.map(hasField)).toEqual([HAS_MP, HAS_MP, HAS_MP]);
+    expect(MP_FIELDS).toEqual(["mpName", "mpConstituency", "mpLink:regulate-letter-pm", "mpLink:support-sobel-bill"]);
+    expect(MP_FIELDS.map(hasField)).toEqual([HAS_MP, HAS_MP, HAS_MP, HAS_MP]);
     expect(hasField("firstName")).toBe("has:firstName");
     expect(isMpField("firstName")).toBe(false);
     expect(mpLink("support-sobel-bill")).toBe("mpLink:support-sobel-bill");
@@ -560,6 +562,7 @@ describe("broadcastScheduleProblems", () => {
     finishMinutes: null,
     recipients: 3,
     withoutMp: 0,
+    writing: false,
     unknown: [],
     byGmail: false,
     connected: false,
@@ -776,6 +779,12 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...text, buttons: [link, link, link] })).toEqual(["too-many-links"]);
   });
 
+  it("asks for a template while none is chosen, and for words once one is, or New template is open", () => {
+    const text = { ...good, channel: "text" as const, body: EMPTY_MAILING_DOC };
+    expect(broadcastScheduleProblems(text)).toEqual(["no-template"]);
+    expect(broadcastScheduleProblems({ ...text, writing: true })).toEqual(["no-words"]);
+  });
+
   it("stops while someone with no MP would see a field about their MP, in an email or either version of a text", () => {
     const mpName: MailingDoc = {
       type: "doc",
@@ -906,5 +915,26 @@ describe("broadcastScheduleProblems", () => {
     vi.setSystemTime(new Date("2026-11-05T12:00:00Z"));
     expect(broadcastScheduleProblems({ ...good, dueAt: new Date("2026-11-05T11:00:00Z") })).toEqual(["time-passed"]);
     vi.useRealTimers();
+  });
+});
+
+describe("problemPlaces", () => {
+  it("says each problem once: under Send test what the preview says, by Schedule the rest after a line to fix it", () => {
+    expect(problemPlaces(["no-subject", "mp-field-without-mp", "no-time"], false)).toEqual({
+      approval: [],
+      preview: ["no-subject", "mp-field-without-mp"],
+      send: ["fix-preview", "no-time"],
+    });
+    // With nothing said above, Schedule says it all, and no line to fix what's above; so too with no preview shown.
+    expect(problemPlaces(["no-time"], false)).toEqual({ approval: [], preview: [], send: ["no-time"] });
+    expect(problemPlaces(["no-template"], false, false)).toEqual({ approval: [], preview: [], send: ["no-template"] });
+  });
+
+  it("says all but the time under Send for approval while there's something to send, and nothing under Send test", () => {
+    expect(problemPlaces(["no-words", "no-name", "no-time"], true)).toEqual({
+      approval: ["no-words", "no-name"],
+      preview: [],
+      send: ["fix-preview", "no-time"],
+    });
   });
 });

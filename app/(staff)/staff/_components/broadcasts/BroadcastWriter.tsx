@@ -953,7 +953,8 @@ export default function BroadcastWriter({
   // Each said once, in the first place down the page that says it (problemPlaces). Greyed, before a Consent by the
   // channel picked: that comes first, till one's picked.
   const approving = toSubmit > 0;
-  const placed = problemPlaces(problems, approving);
+  // The preview says nothing for a text with no template chosen yet, but to choose one (Preview).
+  const placed = problemPlaces(problems, approving, words !== "none" || Boolean(textVersion));
   const shownProblems = [...(blank && !picked ? ["no-consent" as const] : []), ...placed.send];
   // A text with a version WhatsApp hasn't approved yet: new words, or ones it's reviewing.
   const unapproved = !email && (words === "new" || Boolean(textVersion && !stands.only.approved));

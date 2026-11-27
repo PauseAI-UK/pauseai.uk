@@ -22,6 +22,15 @@ const conditions = [
     option: "Signed",
   },
   { id: "edinburgh:going", label: "are going to Edinburgh", covers: 3, group: "Edinburgh", option: "Going" },
+  // A second answer each, so each ask opens its answers beside the menu.
+  {
+    id: "frontier-ai-letter:declined",
+    label: "declined the Frontier AI letter",
+    covers: 4,
+    group: "Frontier AI letter",
+    option: "Declined",
+  },
+  { id: "edinburgh:not-going", label: "aren't going to Edinburgh", covers: 2, group: "Edinburgh", option: "Not going" },
 ];
 
 const paragraph = (...content: JSONContent[]): JSONContent => ({ type: "paragraph", content });
@@ -131,12 +140,31 @@ describe("MailingEditor", () => {
       .toHaveAttribute("title", copy.dragHint);
   });
 
-  it("puts in a field some lack that can go in a part only for those with it, saying so on hovering", async () => {
-    const mp = { id: "mpName", label: "MP's name", lacking: 2, onlyInPart: "Put it in a part for those with an MP" };
+  it("puts in one of a group of fields from its lozenge's menu, titled for the group", async () => {
+    const links = ["Regulate AI", "Sobel bill"].map((option, i) => ({
+      id: `mpLink:${i}`,
+      label: `Link: ${option}`,
+      lacking: 2,
+      onlyInPart: true,
+      group: "Link to write to their MP",
+      option,
+    }));
+    const onChange = await renderEditor([paragraph(text("Write at "))], { fields: [...fields, ...links], conditions });
+    await toEnd();
+    await page.getByRole("button", { name: "Link to write to their MP" }).click();
+    const menu = page.getByRole("menu", { name: "Link to write to their MP" });
+    await expect.element(menu.getByText(copy.fieldGroupIn("Link to write to their MP"))).toBeVisible();
+    await menu.getByRole("menuitem", { name: "Sobel bill" }).click();
+    expect(document.querySelector(":popover-open")).toBeNull();
+    expect(last(onChange).content![0].content).toContainEqual(field("mpLink:1"));
+  });
+
+  it("puts in a field some lack that can go in a part only for those with it, hovering as any field does", async () => {
+    const mp = { id: "mpName", label: "MP's name", lacking: 2, onlyInPart: true };
     const onChange = await renderEditor([paragraph(text("Write to "))], { fields: [...fields, mp], conditions });
     await toEnd();
     const lozenge = page.getByRole("button", { name: "MP's name", exact: true });
-    await expect.element(lozenge).toHaveAttribute("title", mp.onlyInPart);
+    await expect.element(lozenge).toHaveAttribute("title", copy.dragHint);
     await expect.element(lozenge).toHaveAttribute("draggable", "true");
     await lozenge.click();
     expect(last(onChange).content![0].content).toContainEqual(field("mpName"));
@@ -145,20 +173,25 @@ describe("MailingEditor", () => {
   it("makes a paragraph only for some, changes who for, then for everyone again", async () => {
     const onChange = await renderEditor([paragraph(text("Thank you."))]);
     await toEnd();
-    const only = page.getByRole("menu", { name: copy.addOnlyFor });
+    const only = page.getByRole("menu", { name: copy.onlyTitle });
     await page.getByRole("button", { name: copy.addOnlyFor }).click();
-    await only.getByRole("menuitem", { name: "Edinburgh" }).click();
-    await expect.element(only.getByText("Edinburgh", { exact: true })).toBeVisible();
-    await only.getByRole("button", { name: copy.backToAsks }).click();
-    await only.getByRole("menuitem", { name: "Frontier AI letter" }).click();
+    // A group's choices open beside the menu; another group's take their place.
+    await only.getByRole("menuitem", { name: /^Edinburgh/ }).click();
+    await expect.element(only.getByRole("menuitem", { name: /Going/ })).toBeVisible();
+    await only.getByRole("menuitem", { name: /^Frontier AI letter/ }).click();
+    await expect.element(only.getByRole("menuitem", { name: /Going/ })).not.toBeInTheDocument();
+    // Pressed again, a group's choices close; and again, open.
+    await only.getByRole("menuitem", { name: /^Frontier AI letter/ }).click();
+    await expect.element(only.getByRole("menuitem", { name: /Signed/ })).not.toBeInTheDocument();
+    await only.getByRole("menuitem", { name: /^Frontier AI letter/ }).click();
     const signed = only.getByRole("menuitem", { name: /Signed/ });
     await expect.element(signed.getByText(copy.covers(12), { exact: true })).toBeVisible();
     await signed.click();
     expect(document.querySelector(":popover-open")).toBeNull();
     expect(last(onChange).content![0]).toMatchObject({ type: "onlyFor", attrs: { condition: conditions[0].id } });
     await page.getByRole("button", { name: copy.except }).click();
-    const except = page.getByRole("menu", { name: copy.except });
-    await except.getByRole("menuitem", { name: "Edinburgh" }).click();
+    const except = page.getByRole("menu", { name: copy.exceptTitle });
+    await except.getByRole("menuitem", { name: /^Edinburgh/ }).click();
     await except.getByRole("menuitem", { name: /Going/ }).click();
     expect(last(onChange).content![0]).toMatchObject({ type: "onlyFor", attrs: { condition: `!${conditions[1].id}` } });
     await page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone }).click();
@@ -178,8 +211,8 @@ describe("MailingEditor", () => {
     const onChange = await renderEditor([paragraph(text("Dear all")), quotedList]);
     await cursorAt("First", "end");
     await page.getByRole("button", { name: copy.addOnlyFor }).click();
-    const only = page.getByRole("menu", { name: copy.addOnlyFor });
-    await only.getByRole("menuitem", { name: "Frontier AI letter" }).click();
+    const only = page.getByRole("menu", { name: copy.onlyTitle });
+    await only.getByRole("menuitem", { name: /^Frontier AI letter/ }).click();
     await only.getByRole("menuitem", { name: /Signed/ }).click();
     await expect
       .poll(() => onChange.mock.lastCall?.[0].content)
@@ -305,9 +338,9 @@ describe("MailingEditor", () => {
     }));
     const onChange = await renderEditor([paragraph(text("See you there."))], { fields, conditions: events });
     await toEnd();
-    const only = page.getByRole("menu", { name: copy.addOnlyFor });
+    const only = page.getByRole("menu", { name: copy.onlyTitle });
     await page.getByRole("button", { name: copy.addOnlyFor }).click();
-    await only.getByRole("menuitem", { name: "Registered for" }).click();
+    await only.getByRole("menuitem", { name: /^Registered for/ }).click();
     expect(only.getByRole("menuitem", { name: /Leeds talk/ }).query()).toBeNull();
     await only.getByRole("searchbox", { name: staffVocabulary.filters.narrow }).fill("leeds");
     await expect.element(only.getByRole("menuitem", { name: /Leeds talk/ })).toBeVisible();
@@ -320,8 +353,8 @@ describe("MailingEditor", () => {
   it("counts those an except part leaves in, out of the recipients", async () => {
     await renderEditor([paragraph(text("Thank you."))], { fields, conditions }, 20);
     await page.getByRole("button", { name: copy.except }).click();
-    const except = page.getByRole("menu", { name: copy.except });
-    await except.getByRole("menuitem", { name: "Frontier AI letter" }).click();
+    const except = page.getByRole("menu", { name: copy.exceptTitle });
+    await except.getByRole("menuitem", { name: /^Frontier AI letter/ }).click();
     await expect
       .element(except.getByRole("menuitem", { name: /Signed/ }).getByText(copy.covers(8), { exact: true }))
       .toBeVisible();

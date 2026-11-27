@@ -38,7 +38,7 @@ export default function ConditionMenu({
   choose: (condition: string) => void;
 }) {
   const id = `${useId().replace(/:/g, "")}-${not ? "except" : "only"}`;
-  const title = not ? copy.wayExceptTitle : copy.wayOnly;
+  const title = not ? copy.exceptTitle : copy.onlyTitle;
   // The group whose choices are open beside the menu; none while none is.
   const [open, setOpen] = useState<string>();
   const menu = useRef<HTMLDivElement>(null);
@@ -54,13 +54,7 @@ export default function ConditionMenu({
     choose(`${not ? NOT_CONDITION : ""}${condition.id}`);
   };
   const choiceRow = (condition: MailingChoice, label: string) => (
-    <button
-      type="button"
-      role="menuitem"
-      className={menuRow.row}
-      onMouseDown={keep}
-      onClick={() => pick(condition)}
-    >
+    <button type="button" role="menuitem" className={menuRow.row} onMouseDown={keep} onClick={() => pick(condition)}>
       <span className={menuRow.head}>
         <span className={styles.choice}>{label}</span>
         <span className={menuRow.facts}>{copy.covers(takesIn(condition))}</span>
@@ -77,8 +71,8 @@ export default function ConditionMenu({
         onMouseDown={keep}
         style={{ anchorName: `--${id}` } as React.CSSProperties}
       >
-        {not ? <NotIcon /> : "+ "}
-        {not ? copy.wayExcept : copy.wayOnly}
+        {not && <NotIcon />}
+        {not ? copy.except : copy.addOnlyFor}
       </button>
       <div
         ref={menu}
@@ -97,7 +91,12 @@ export default function ConditionMenu({
               options={choices.map((condition) => ({ value: condition.id, label: condition.option! }))}
               current={[]}
               search={choices.some((condition) => condition.searchable) ? staffVocabulary.filters.narrow : undefined}
-              row={(option) => choiceRow(choices.find((one) => one.id === option.value)!, option.label)}
+              row={(option) =>
+                choiceRow(
+                  choices.find((one) => one.id === option.value)!,
+                  option.label,
+                )
+              }
             />
           </div>
         )}

@@ -731,12 +731,13 @@ export type ProblemPlaces = {
  * once, in the first place down the page that says it. Under Send for
  * approval, while a text has words to send (`approving`), all that stops
  * that (approvalProblems); otherwise under Send test, what the preview says
- * (PREVIEW_PROBLEMS); then, by Schedule, the rest, after a line saying to fix
+ * (PREVIEW_PROBLEMS), while it's `shown`, as it isn't for a text with no
+ * template yet; then, by Schedule, the rest, after a line saying to fix
  * what's said above, if anything is.
  */
-export function problemPlaces(problems: BroadcastScheduleProblem[], approving: boolean): ProblemPlaces {
+export function problemPlaces(problems: BroadcastScheduleProblem[], approving: boolean, shown = true): ProblemPlaces {
   const approval = approving ? approvalProblems(problems) : [];
-  const preview = approving ? [] : problems.filter((problem) => PREVIEW_PROBLEMS.includes(problem));
+  const preview = approving || !shown ? [] : problems.filter((problem) => PREVIEW_PROBLEMS.includes(problem));
   const above = [...approval, ...preview];
   return {
     approval,

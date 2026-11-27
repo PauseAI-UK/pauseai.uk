@@ -303,26 +303,29 @@ test("An email asking readers to write to their MP", async ({ page, request, flo
   await page.keyboard.type("Could you write to ");
   await page.getByRole("button", { name: copy.mpFieldWords.name, exact: true }).click();
   await page.keyboard.type(" about the bill? ");
-  await savedAfter(page, () =>
-    page.getByRole("button", { name: copy.mpFieldWords.link(CAMPAIGN_NAMES[1].title), exact: true }).click(),
-  );
-  story("Some of those it goes to have no MP we know of, so it can't be scheduled as it is, and says why.");
-  const send = page.getByRole("region", { name: copy.sections.send });
-  await expect(send.getByText(copy.problems["mp-field-without-mp"])).toBeVisible();
-  await send.scrollIntoViewIfNeeded();
+  story("The link is one lozenge for every campaign, whose menu picks which.");
+  await page.getByRole("button", { name: copy.mpFieldWords.linkGroup }).click();
+  await expect(page.getByRole("menuitem", { name: CAMPAIGN_NAMES[1].title })).toBeVisible();
+  await frame(page, "The campaigns a link can be for", { window: true });
+  await savedAfter(page, () => page.getByRole("menuitem", { name: CAMPAIGN_NAMES[1].title }).click());
+  story("Some of those it goes to have no MP we know of, so it can't be scheduled as it is. The preview says why.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  const problem = preview.getByText(copy.problems["mp-field-without-mp"]);
+  await expect(problem).toBeVisible();
+  await problem.scrollIntoViewIfNeeded();
   await frame(page, "Not for those with no MP", { window: true });
   story("They put the ask in a part only for those who have an MP.");
   await words.getByText("Could you write to").click();
   await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
-  await page.getByRole("menuitem", { name: copy.conditions.mpGroup }).click();
-  await savedAfter(page, () => page.getByRole("menuitem", { name: copy.conditions.hasMpOption }).click());
-  await expect(send.getByText(copy.problems["mp-field-without-mp"])).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: new RegExp(`^${copy.conditions.hasMp}`) })).toBeVisible();
+  await frame(page, "Who the part can be for", { window: true });
+  await savedAfter(page, () => page.getByRole("menuitem", { name: new RegExp(`^${copy.conditions.hasMp}`) }).click());
+  await expect(problem).toHaveCount(0);
   await words.scrollIntoViewIfNeeded();
   await frame(page, "The ask, only for those with an MP", { window: true });
   story(
     "The preview's made-up reader has a made-up MP, and a link to the campaign. Without an MP, the ask isn't there.",
   );
-  const preview = page.getByRole("region", { name: copy.sections.preview });
   await expect(preview.getByText("Could you write to Sam Taylor about the bill?", { exact: false })).toBeVisible();
   await preview.scrollIntoViewIfNeeded();
   await frame(page, "The preview, for someone with an MP", { window: true });
@@ -908,7 +911,7 @@ test("A text with a variant for some", async ({ page, request, flowDatabase }) =
   await page.keyboard.type("The march is this Saturday at noon. Will you join us?");
   await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March this Saturday"));
   await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
-  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByRole("menuitem", { name: new RegExp(`^${copy.conditions.registeredGroup}`) }).click();
   await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
   await frame(page, "Any event, searched", { window: true });
   story(
@@ -966,7 +969,7 @@ test("A conditional variant on an approved template", async ({ page, request, fl
   await startFromList(page, TEXT, TEXTABLE);
   await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
   await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
-  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByRole("menuitem", { name: new RegExp(`^${copy.conditions.registeredGroup}`) }).click();
   await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
   await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
   const tabs = page.getByRole("tab");
@@ -1049,7 +1052,7 @@ test("A text with two variants, written, approved and sent", async ({ page, requ
     "Then a variant for those who registered, which starts as a copy. They give it the march's picture in place of the map, words of its own, and a reply button in place of the link.",
   );
   await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
-  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByRole("menuitem", { name: new RegExp(`^${copy.conditions.registeredGroup}`) }).click();
   await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
   await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
   const who = copy.conditions.registered("PauseAI London: Protest at Parliament");

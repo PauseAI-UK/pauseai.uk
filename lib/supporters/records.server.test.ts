@@ -731,9 +731,15 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ mp: [mp] })).toEqual(["Jane"]);
     expect(await names({ mp: [mp + 1] })).toEqual([]);
     expect(await names({ not: { mp: [mp] } })).toEqual(["Sam", "Pat", "Old"]);
-    // Has an MP finds those with any MP, and leaves them out.
+    // Has an MP finds those with any MP, whichever MPs are chosen with it, and leaves them out.
     expect(await names({ hasMp: true })).toEqual(["Jane"]);
+    expect(await names({ hasMp: true, mp: [mp + 1] })).toEqual(["Jane"]);
     expect(await names({ not: { hasMp: true } })).toEqual(["Sam", "Pat", "Old"]);
+    // Finding those with an MP, the list says each one's; leaving them out, it has nothing to say.
+    const found = await listSupporters({ sort: "active", dir: "desc", page: 1, hasMp: true });
+    expect(found.supporters[0].mp).toEqual({ name: "Mo Manchester", constituency: "Manchester Central" });
+    const left = await listSupporters({ sort: "active", dir: "desc", page: 1, not: { hasMp: true } });
+    expect(left.supporters[0]).not.toHaveProperty("mp");
     // One out of office isn't their MP.
     await query("UPDATE notable_people SET status = 'retired' WHERE id = $1", [mp]);
     expect((await getSupporter(id))!.mp).toBeNull();

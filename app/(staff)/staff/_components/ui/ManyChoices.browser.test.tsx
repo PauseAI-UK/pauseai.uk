@@ -245,6 +245,32 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(rows().map(([words, on]) => [words, on])[0]).toEqual(["gone", true]);
   });
 
+  it("says a choice for before anything's typed in words of its own when left out, has no + Add with it, and isn't offered to add", async () => {
+    const mps: Filter = {
+      ...tag,
+      name: "mp",
+      label: "MP",
+      options: [
+        { value: "any", label: "Has any MP", untyped: true, leftOut: "none" },
+        { value: "7", label: "Mo Example" },
+        { value: "8", label: "Polly Placeholder" },
+      ],
+    };
+    const { unmount } = await render(bar([mps], { mp: "!any" }));
+    expect(chipWords()).toBe("MP: none");
+    await unmount();
+    // Chosen, it takes in every MP, so there's nothing to add to it.
+    const { unmount: again } = await render(bar([mps], { mp: "any" }));
+    await page.getByRole("button", { name: "MP: Has any MP" }).click();
+    expect(page.getByRole("button", { name: copy.addChoice }).query()).toBeNull();
+    await again();
+    // With an MP chosen, adding another doesn't offer it.
+    await render(bar([mps], { mp: "7" }));
+    await page.getByRole("button", { name: "MP: Mo Example" }).click();
+    await page.getByRole("button", { name: copy.addChoice }).click();
+    expect(rows().map(([words]) => words)).toEqual(["Mo Example", "Polly Placeholder"]);
+  });
+
   it("names a choice in a group by both", async () => {
     const grouped: Filter = {
       ...tag,
