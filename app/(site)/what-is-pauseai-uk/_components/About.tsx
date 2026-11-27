@@ -42,9 +42,9 @@ export default function About() {
           </p>
 
           <p>
-            At PauseAI UK, we have a policy of not using AI art on our website or any of our public materials. We also do
-            not publish material that includes wholly AI-generated writing (although we may use AI systems to edit our
-            writing, such as to improve clunky paragraphs). We always write the first draft ourselves. We use AI for
+            At PauseAI UK, we have a policy of not using AI art on our website or any of our public materials. We also
+            do not publish material that includes wholly AI-generated writing (although we may use AI systems to edit
+            our writing, such as to improve clunky paragraphs). We always write the first draft ourselves. We use AI for
             coding and other tasks.
           </p>
 
