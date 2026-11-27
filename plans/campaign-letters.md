@@ -85,16 +85,6 @@ visit, reading the latest version as it's shown, as `/press` reads its
 coverage. The campaign's own page, with the postcode form, and the
 preview and sent steps don't need it, so they stay built once at deploy.
 
-The other way would be to build the write step once and rebuild it when
-staff publish (`revalidatePath()`, in this Next.js's docs at
-`node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`).
-That doesn't work here. The build runs before a deploy's migrations, as
-the comment on `/press` says, so the build can't read the letters. And
-Next.js's guide to revalidation says that with more than one server, a
-rebuild happens only on the server that was asked unless the host shares
-it (`how-revalidation-works.md`, "Multi-Instance Considerations"). I don't
-know how Netlify handles that, so a publish might not show at once.
-
 Building on each visit costs one small database query per visit to that
 step, which is a few milliseconds, on a page that already looks up the MP.
 
