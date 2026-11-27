@@ -54,7 +54,6 @@ describe("CampaignLetterWriter", () => {
     await expect.element(preview().getByText("Thank you for signing.")).toBeVisible();
     // Signed with an example sender, as each supporter's own goes there.
     await expect.element(preview().getByText(copy.exampleAddress[0], { exact: false })).toBeVisible();
-    await expect.element(preview().getByText(copy.exampleNote)).toBeVisible();
   });
 
   it("shows it for an MP who didn't sign, chosen by the part's button or from the list", async () => {

@@ -64,7 +64,6 @@ export const mailingsCopy = {
     // The preview signs the letter with a made-up sender, as each supporter's own name and address go there.
     exampleSender: "Jane Smith",
     exampleAddress: ["1 High Street", "AB1 2CD"],
-    exampleNote: "⁂ The name and address at the end are an example. Each supporter's own go there.",
     publishTitle: "Publish",
     publish: "Publish the letter",
     // Why it can't be published, under the button.

@@ -135,7 +135,6 @@ export default function CampaignLetterWriter({
               ) : (
                 <p className={styles.noEmail}>{mailingsCopy.mailingPages.noOneMix}</p>
               )}
-              <Muted>{copy.exampleNote}</Muted>
             </>
           )}
         </Card>
