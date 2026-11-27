@@ -302,6 +302,8 @@ test("An email asking readers to write to their MP", async ({ page, request, flo
   await caretInEmpty(words, 1);
   await page.keyboard.type("Could you write to ");
   await page.getByRole("button", { name: copy.mpFieldWords.name, exact: true }).click();
+  // Back in the email, as putting a field in leaves the cursor after it, before typing on.
+  await expect(words).toBeFocused();
   await page.keyboard.type(" about the bill? ");
   story("The link is one lozenge for every campaign, whose menu picks which.");
   await page.getByRole("button", { name: copy.mpFieldWords.linkGroup }).click();

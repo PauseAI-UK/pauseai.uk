@@ -235,7 +235,7 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await frame(page, "Has any MP, before anything's typed");
   await add.getByRole("link", { name: copy.filters.anyMp, exact: true }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?mp=any$/);
-  await expect(page.getByRole("columnheader", { name: copy.columns.mp })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: copy.columns.mp, exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
   await frame(page, "Those with an MP, and whose");
   story("Except leaves them out instead: the chip says MP: none.");
