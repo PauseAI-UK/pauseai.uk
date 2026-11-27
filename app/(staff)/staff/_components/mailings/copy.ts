@@ -62,8 +62,8 @@ export const mailingsCopy = {
     preview: "⁂ What a constituent starts from",
     noMps: "⁂ There are no MPs to preview the letter for.",
     // The preview signs the letter with a made-up sender, as each supporter's own name and address go there.
-    exampleSender: "⁂ Jane Smith",
-    exampleAddress: ["⁂ 1 High Street", "AB1 2CD"],
+    exampleSender: "Jane Smith",
+    exampleAddress: ["1 High Street", "AB1 2CD"],
     exampleNote: "⁂ The name and address at the end are an example. Each supporter's own go there.",
     publishTitle: "⁂ Publish",
     publish: "⁂ Publish the letter",
