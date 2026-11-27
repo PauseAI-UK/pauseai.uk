@@ -46,22 +46,36 @@ export const broadcastsCopy = {
     fallbacks: { firstName: "there", name: "friend" },
     // Each field, as its lozenge in the editor, a template's row and a title say it.
     fieldWords: { firstName: "First name", name: "Name" },
+    // The fields about the reader's MP, which have no fallback, as their lozenges say them: the MP's name, and a link
+    // for each campaign that opens its page with the reader's name and postcode filled in.
+    mpFieldWords: {
+      name: "MP's name",
+      constituency: "Constituency",
+      link: (campaign: string) => `Link to write to their MP: ${campaign}`,
+      // The one lozenge for every campaign's link, whose menu picks the campaign.
+      linkGroup: "Link to write to their MP",
+    },
     greeting: "Hi",
     // A new email's lines at its end, a few lines under the greeting.
     signature: ["Best wishes,", "PauseAI UK"],
     // What a part can be only for, as the editor's menus and the preview's case buttons say it.
     conditions: {
       // A part for those who wrote to their MP in a campaign, its menu's group, then each campaign by its title.
-      wroteGroup: "Wrote to their MP",
+      wroteGroup: "wrote to their MP",
       wrote: (campaign: string) => `wrote to their MP in “${campaign}”`,
       // A part for those who registered for an event, past or to come, its menu's group, then each event.
-      registeredGroup: "Registered for",
+      registeredGroup: "registered for",
       registered: (event: string) => `registered for “${event}”`,
+      // A part for those with an MP, its menu's group, then its one choice.
+      mpGroup: "Their MP",
+      hasMp: "have an MP",
+      hasMpOption: "Has an MP",
     },
     // The preview's buttons, of the one made-up recipient: each field they have; a part's own words say the rest.
     previewCases: {
       "has:firstName": "has a first name",
       "has:name": "has a name",
+      "has:mpName": "has an MP",
     } as Record<string, string>,
     // The numbered sections of a draft.
     sections: { who: "To", write: "Write", preview: "Preview", from: "Sent from", when: "When", send: "Send" },
@@ -128,6 +142,8 @@ export const broadcastsCopy = {
     // A template's two variants, once it has a condition: how many of them go to WhatsApp for approval, beside
     // their tabs, and on the button that sends them.
     textVersions: {
+      // The × on a variant's tab, which takes that variant away, leaving the other for everyone.
+      removeVariant: "Remove this variant",
       templates: (n: number) =>
         n === 1 ? "1 variant goes to WhatsApp for approval" : `${n} variants go to WhatsApp for approval`,
       submit: (n: number) => (n === 1 ? "Send for approval" : `Send ${n} variants for approval`),
@@ -257,7 +273,10 @@ export const broadcastsCopy = {
       "no-subject": "Fill in the subject.",
       "no-letter": "Write the email.",
       "no-template": "Choose a template.",
+      "no-words": "Write the message.",
       "no-name": "Give the template a name.",
+      "mp-field-without-mp":
+        "MP fields only apply to people who have an MP. Either put them in a conditional part, or narrow down the whole broadcast.",
       "field-edge": "WhatsApp templates can't have a field at the very start or end.",
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",

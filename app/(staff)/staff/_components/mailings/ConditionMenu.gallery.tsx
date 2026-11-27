@@ -10,7 +10,7 @@ export const conditionMenuGallery: Example[] = [
     file: "app/(staff)/staff/_components/mailings/ConditionMenu.tsx",
     variants: [
       {
-        label: "Only for those who…: press it for the asks, then an ask for its answers, events with a search",
+        label: "Only those who…: press it for the groups, then a group for its choices beside it, events with a search",
         render: () => (
           <StaffPage as="div">
             <ConditionMenuExample />
@@ -18,7 +18,7 @@ export const conditionMenuGallery: Example[] = [
         ),
       },
       {
-        label: "Except those who…, counting all but each answer's",
+        label: "Everyone except…, counting all but each choice's",
         render: () => (
           <StaffPage as="div">
             <ConditionMenuExample not />

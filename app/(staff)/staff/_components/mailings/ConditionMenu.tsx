@@ -15,14 +15,14 @@ import { mailingsCopy } from "./copy";
 const copy = mailingsCopy.mailingEditor;
 
 /**
- * "+ Only for those who…", or "Except those who…" (`not`): a button, in the
- * look of the box it makes (PartBox), that opens the asks, as the filter
- * bar's Answer does, then the answers to the one chosen, each with how many
- * recipients it takes in, searchable where there are many, such as events:
- * a menu's box and choices (Menu), and its answers as the template menu's
- * (MenuSelect), each with its count at the far end of its line.
- * Choosing one calls `choose` with its condition, marked NOT_CONDITION for
- * except. Pressing it keeps the focus where it was, so a letter being
+ * "+ Only those who…", or "Everyone except…" (`not`): a button, in the look
+ * of the box it makes (PartBox), whose menu, titled the same, offers who the
+ * paragraph at the cursor is for, or isn't. Each group of
+ * conditions: one with a single choice, such as having an MP, is chosen
+ * there; any other opens its choices beside the menu, searchable where
+ * there are many, such as events. Each says how many recipients it takes
+ * in. Choosing one calls `choose` with its condition, marked NOT_CONDITION
+ * for except. Pressing it keeps the focus where it was, so a letter being
  * written keeps its cursor.
  */
 export default function ConditionMenu({
@@ -38,13 +38,30 @@ export default function ConditionMenu({
   choose: (condition: string) => void;
 }) {
   const id = `${useId().replace(/:/g, "")}-${not ? "except" : "only"}`;
-  // The ask chosen, whose answers the menu now offers; none for the list of asks.
-  const [ask, setAsk] = useState<string>();
+  const title = not ? copy.exceptTitle : copy.onlyTitle;
+  // The group whose choices are open beside the menu; none while none is.
+  const [open, setOpen] = useState<string>();
   const menu = useRef<HTMLDivElement>(null);
-  const asks = [...new Set(conditions.map((condition) => condition.group!))];
-  const inAsk = conditions.filter((condition) => condition.group === ask);
-  const searchable = inAsk.some((condition) => condition.searchable);
+  const groups = [...new Set(conditions.map((condition) => condition.group!))];
+  const inGroup = (group: string) => conditions.filter((condition) => condition.group === group);
   const keep = (event: React.MouseEvent) => event.preventDefault();
+  // How many a choice takes in, the way the switch is set.
+  const takesIn = (condition: MailingChoice) =>
+    not && recipients !== undefined ? recipients - condition.covers! : condition.covers!;
+  const pick = (condition: MailingChoice) => {
+    menu.current?.hidePopover();
+    setOpen(undefined);
+    choose(`${not ? NOT_CONDITION : ""}${condition.id}`);
+  };
+  const choiceRow = (condition: MailingChoice, label: string) => (
+    <button type="button" role="menuitem" className={menuRow.row} onMouseDown={keep} onClick={() => pick(condition)}>
+      <span className={menuRow.head}>
+        <span className={styles.choice}>{label}</span>
+        <span className={menuRow.facts}>{copy.covers(takesIn(condition))}</span>
+      </span>
+    </button>
+  );
+  const choices = open === undefined ? [] : inGroup(open);
   return (
     <>
       <button
@@ -61,68 +78,65 @@ export default function ConditionMenu({
         ref={menu}
         id={id}
         popover="auto"
-        className={menuClass}
+        className={styles.pop}
         role="menu"
-        aria-label={not ? copy.except : copy.addOnlyFor}
+        aria-label={title}
         style={{ positionAnchor: `--${id}` } as React.CSSProperties}
+        onToggle={(event) => event.newState === "closed" && setOpen(undefined)}
       >
-        {ask === undefined ? (
-          <ul className={menuItemsClass}>
-            {asks.map((group) => (
-              <li key={group}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={`${menuItemClass} ${styles.toAsk}`}
-                  onMouseDown={keep}
-                  onClick={() => setAsk(group)}
-                >
-                  {group}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <>
-            <button
-              type="button"
-              className={`${menuItemClass} ${styles.back}`}
-              onMouseDown={keep}
-              onClick={() => setAsk(undefined)}
-            >
-              {copy.backToAsks}
-            </button>
-            <p className={styles.askTitle}>{ask}</p>
+        {open !== undefined && (
+          <div className={`${menuClass} ${styles.box} ${styles.side}`}>
+            <p className={styles.sideTitle}>{open}</p>
             <Choices
-              options={inAsk.map((condition) => ({ value: condition.id, label: condition.option! }))}
+              options={choices.map((condition) => ({ value: condition.id, label: condition.option! }))}
               current={[]}
-              search={searchable ? staffVocabulary.filters.narrow : undefined}
-              row={(option) => {
-                const condition = inAsk.find((one) => one.id === option.value)!;
-                const n = not && recipients !== undefined ? recipients - condition.covers! : condition.covers!;
-                return (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={menuRow.row}
-                    onMouseDown={keep}
-                    onClick={() => {
-                      // Not popoverTargetAction: by then the asks have replaced this button.
-                      menu.current?.hidePopover();
-                      setAsk(undefined);
-                      choose(`${not ? NOT_CONDITION : ""}${condition.id}`);
-                    }}
-                  >
-                    <span className={menuRow.head}>
-                      <span className={menuRow.name}>{option.label}</span>
-                      <span className={menuRow.facts}>{copy.covers(n)}</span>
-                    </span>
-                  </button>
-                );
-              }}
+              search={choices.some((condition) => condition.searchable) ? staffVocabulary.filters.narrow : undefined}
+              row={(option) =>
+                choiceRow(
+                  choices.find((one) => one.id === option.value)!,
+                  option.label,
+                )
+              }
             />
-          </>
+          </div>
         )}
+        <div className={`${menuClass} ${styles.box}`}>
+          <p className={styles.question}>{title}</p>
+          <ul className={menuItemsClass}>
+            {groups.map((group) => {
+              const all = inGroup(group);
+              const one = all.length === 1 && !all[0].searchable ? all[0] : undefined;
+              return (
+                <li key={group}>
+                  {one ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={`${menuItemClass} ${styles.group}`}
+                      onMouseDown={keep}
+                      onClick={() => pick(one)}
+                    >
+                      <span className={styles.choice}>{one.label}</span>
+                      <span className={styles.covers}>{copy.covers(takesIn(one))}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      aria-expanded={open === group}
+                      className={`${menuItemClass} ${styles.group}`}
+                      onMouseDown={keep}
+                      onClick={() => setOpen(open === group ? undefined : group)}
+                    >
+                      <span className={styles.choice}>{group}</span>
+                      <span className={styles.count}>{copy.choiceCount(all.length)}</span>
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
     </>
   );

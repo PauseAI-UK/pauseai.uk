@@ -397,6 +397,9 @@ describe("supportersSearch", () => {
       dir: "desc",
       page: 3,
     });
+    // Any MP is a value of the MP filter of its own, which can be left out too.
+    expect(supportersSearch({ mp: ["any", "7"] }).filter).toMatchObject({ mp: [7], hasMp: true });
+    expect(supportersSearch({ mp: "!any" }).filter).toMatchObject({ not: { hasMp: true } });
     expect(all.q).toBe(" jane ");
     expect(all.activity).toEqual(["registered", "member", "!letter"]);
     expect(all.contact).toEqual(["email:events:unsubscribed", "!email:newsletter:yes"]);

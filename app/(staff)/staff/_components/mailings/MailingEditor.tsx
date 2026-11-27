@@ -5,7 +5,7 @@ import { NodeRange } from "@tiptap/pm/model";
 import { Plugin, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { liftTarget } from "@tiptap/pm/transform";
 import type { EditorView } from "@tiptap/pm/view";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFollowScroll } from "@/components/ui/useFollowScroll";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
@@ -15,6 +15,7 @@ import { isQuoted, toggleQuote } from "@/lib/letters/quotes";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor, type MailingChoice } from "@/lib/mailings/fields";
 import ConditionMenu from "./ConditionMenu";
+import { menuClass, menuItemClass, menuItemsClass } from "../ui/Menu";
 import styles from "./MailingEditor.module.css";
 import { partBox } from "./PartBox";
 import { mailingsCopy } from "./copy";
@@ -49,8 +50,74 @@ type Props = {
   autoFocus?: boolean | number;
 };
 
-/** Whether a field can be used: every recipient has a value for it, or those without get its fallback. */
-const usable = (field: MailingChoice) => !field.lacking || Boolean(field.fallback);
+/** Whether a field can be used: every recipient has a value for it, those without get its fallback, or it can go in a part only for those with it. */
+const usable = (field: MailingChoice) => !field.lacking || Boolean(field.fallback) || Boolean(field.onlyInPart);
+
+/** What hovering a field says: why it can't be used, while some recipients lack it; how to put it in, otherwise. */
+const fieldHint = (field: MailingChoice) => (usable(field) ? copy.dragHint : copy.lacking(field.lacking!));
+
+/**
+ * A group of fields, such as a link for each campaign, as one lozenge, "Link
+ * to write to their MP ▸", that opens a menu of its fields by their option,
+ * the campaign; choosing one calls `choose`. Pressing it keeps the focus
+ * where it was, so a letter being written keeps its cursor.
+ */
+function FieldMenu({
+  group,
+  fields,
+  choose,
+}: {
+  group: string;
+  fields: MailingChoice[];
+  choose: (field: MailingChoice) => void;
+}) {
+  const id = `${useId().replace(/:/g, "")}-fields`;
+  const menu = useRef<HTMLDivElement>(null);
+  const keep = (event: React.MouseEvent) => event.preventDefault();
+  return (
+    <>
+      <button
+        type="button"
+        className={`${styles.fieldLozenge} ${styles.fieldGroup}`}
+        popoverTarget={id}
+        title={fieldHint(fields[0])}
+        onMouseDown={keep}
+        style={{ anchorName: `--${id}` } as React.CSSProperties}
+      >
+        {group}
+      </button>
+      <div
+        ref={menu}
+        id={id}
+        popover="auto"
+        className={menuClass}
+        role="menu"
+        aria-label={group}
+        style={{ positionAnchor: `--${id}` } as React.CSSProperties}
+      >
+        <p className={styles.fieldMenuTitle}>{copy.fieldGroupIn(group)}</p>
+        <ul className={menuItemsClass}>
+          {fields.map((field) => (
+            <li key={field.id}>
+              <button
+                type="button"
+                role="menuitem"
+                className={menuItemClass}
+                onMouseDown={keep}
+                onClick={() => {
+                  menu.current?.hidePopover();
+                  choose(field);
+                }}
+              >
+                {field.option}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
 
 /** A choice's label, or its ID when it has none, as for a field no longer offered. */
 function labelOf(choices: Record<string, string>, id: string): string {
@@ -412,34 +479,47 @@ function Sidebar({
       .focus()
       .insertContent({ type: "field", attrs: { field: field.id } })
       .run();
+  // Fields in a group, such as a link for each campaign, are one lozenge, whose menu picks which.
+  const groups = [...new Set(fields.flatMap((field) => field.group ?? []))];
   return (
     <div className={styles.sidebar}>
       <p className={styles.sideHeading}>{copy.fieldsHeading}</p>
       <ul className={styles.lozenges}>
-        {fields.map((field) => (
-          <li key={field.id}>
-            {/* Not a <button>, which Firefox won't drag: a button's role, focus and keys. */}
-            <span
-              role="button"
-              tabIndex={0}
-              className={styles.fieldLozenge}
-              aria-disabled={!usable(field) || undefined}
-              title={field.lacking ? copy.lacking(field.lacking) : copy.dragHint}
-              draggable={usable(field)}
-              onDragStart={(event) => {
-                event.dataTransfer.effectAllowed = "copy";
-                event.dataTransfer.setData("text/html", `<span data-field="${field.id}">${field.label}</span>`);
-                event.dataTransfer.setData("text/plain", field.label);
-              }}
-              onClick={() => insert(field)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                insert(field);
-              }}
-            >
-              {field.label}
-            </span>
+        {fields
+          .filter((field) => !field.group)
+          .map((field) => (
+            <li key={field.id}>
+              {/* Not a <button>, which Firefox won't drag: a button's role, focus and keys. */}
+              <span
+                role="button"
+                tabIndex={0}
+                className={styles.fieldLozenge}
+                aria-disabled={!usable(field) || undefined}
+                title={fieldHint(field)}
+                draggable={usable(field)}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "copy";
+                  event.dataTransfer.setData("text/html", `<span data-field="${field.id}">${field.label}</span>`);
+                  event.dataTransfer.setData("text/plain", field.label);
+                }}
+                onClick={() => insert(field)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  insert(field);
+                }}
+              >
+                {field.label}
+              </span>
+            </li>
+          ))}
+        {groups.map((group) => (
+          <li key={group}>
+            <FieldMenu
+              group={group}
+              fields={fields.filter((field) => field.group === group)}
+              choose={(field) => insert(field)}
+            />
           </li>
         ))}
       </ul>

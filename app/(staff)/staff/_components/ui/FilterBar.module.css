@@ -258,8 +258,9 @@
   list-style: none;
 }
 
-/* A searchable list shows only the choice made, if any, until something's typed (ChoiceSearch). */
-.choices[data-search="empty"] > li:not(:has(a[aria-current="true"], input:checked)) {
+/* A searchable list shows only the choice made, if any, and those for before anything's typed, until something's typed (ChoiceSearch); then not those. */
+.choices[data-search="empty"] > li:not(:has(a[aria-current="true"], input:checked), [data-untyped]),
+.choices[data-search="typed"] > li[data-untyped] {
   display: none;
 }
 

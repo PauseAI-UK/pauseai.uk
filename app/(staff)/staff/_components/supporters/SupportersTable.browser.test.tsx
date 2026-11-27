@@ -67,6 +67,24 @@ describe("SupportersTable", () => {
     expect(page.getByText("Oxford").element().className).toMatch(/muted/);
   });
 
+  it("adds each one's MP while the MP filter finds some, the constituency on hovering it and in a download", async () => {
+    const copy = supportersCopy.supporters;
+    const [jane, sam] = exampleSupporterRows;
+    const rows = [
+      { ...jane, mp: { name: "Mo Example", constituency: "Manchester Central" } },
+      { ...sam, mp: null },
+    ];
+    const search = supportersSearch({ mp: "any" });
+    await render(<SupportersTable search={search} page={{ supporters: rows, total: 2, pages: 1 }} />);
+    await expect.element(page.getByText(copy.columns.mp, { exact: true })).toBeVisible();
+    await expect.element(page.getByText("Mo Example", { exact: true })).toHaveAttribute("title", "Manchester Central");
+    const column = supporterColumns(search).find((c) => c.key === "mp")!;
+    expect(column.text!(rows[0])).toBe(staffVocabulary.mpChoice("Mo Example", "Manchester Central"));
+    expect(column.text!(rows[1])).toBe("");
+    // Leaving those with an MP out, there's none to say.
+    expect(supporterColumns(supportersSearch({ mp: "!any" })).map((c) => c.key)).not.toContain("mp");
+  });
+
   it("adds how each stands at the events the Event filter finds, named when several, and when each wrote in its campaign", async () => {
     const copy = supportersCopy.supporters;
     const [jane, sam] = exampleSupporterRows;

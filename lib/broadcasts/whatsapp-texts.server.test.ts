@@ -29,6 +29,7 @@ const BOTH: MailingDoc = {
 it("names each field's parameter in WhatsApp's lower case", () => {
   expect(paramName("firstName")).toBe("first_name");
   expect(paramName("name")).toBe("name");
+  expect(paramName("mpLink:support-sobel-bill")).toBe("mp_link_support_sobel_bill");
 });
 
 it("gives a text's words with each field as its parameter, and each field's words once", () => {

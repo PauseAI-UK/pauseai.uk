@@ -10,7 +10,7 @@ const copy = broadcastsCopy.broadcastPages.textVersions;
 const parts = mailingsCopy.mailingEditor;
 const WHO = "registered for “PauseCon 2026”";
 
-async function renderVersions(open: VersionSide, onForEveryone?: () => void, templates = 2) {
+async function renderVersions(open: VersionSide, onRemove?: () => void, templates = 2) {
   const onOpen = vi.fn();
   await render(
     <TextVersions
@@ -19,7 +19,7 @@ async function renderVersions(open: VersionSide, onForEveryone?: () => void, tem
       open={open}
       onOpen={onOpen}
       templates={templates}
-      onForEveryone={onForEveryone}
+      onRemove={onRemove}
     >
       <p>Its words</p>
     </TextVersions>,
@@ -28,12 +28,12 @@ async function renderVersions(open: VersionSide, onForEveryone?: () => void, tem
 }
 
 const tab = (count: number) => page.getByRole("tab", { name: `${WHO} · ${count}` });
-const close = () => page.getByRole("button", { name: parts.forEveryone });
+const close = () => page.getByRole("button", { name: copy.removeVariant });
 
 describe("TextVersions", () => {
   it("has a tab for each version, with how many it goes to, and the open one's parts in a box under who it's for", async () => {
-    const onForEveryone = vi.fn();
-    const onOpen = await renderVersions("only", onForEveryone);
+    const onRemove = vi.fn();
+    const onOpen = await renderVersions("only", onRemove);
     await expect.element(tab(85)).toHaveAttribute("aria-selected", "true");
     await expect.element(tab(327)).toHaveAttribute("aria-selected", "false");
     await expect.element(page.getByText(parts.onlyForLabel(WHO))).toBeVisible();
@@ -44,7 +44,7 @@ describe("TextVersions", () => {
     await tab(85).click();
     expect(onOpen).toHaveBeenLastCalledWith("only");
     await close().click();
-    expect(onForEveryone).toHaveBeenCalled();
+    expect(onRemove).toHaveBeenCalled();
   });
 
   it("boxes everyone else's version under all but those, and says when the two are one template", async () => {
@@ -70,6 +70,6 @@ describe("TextVersions' examples in the gallery", () => {
     await close().click();
     await expect
       .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
-      .toHaveTextContent("onForEveryone(event)");
+      .toHaveTextContent("onRemove(event)");
   });
 });

@@ -147,10 +147,17 @@ export function conditionsIn(doc: MailingDoc): string[] {
   return [...new Set(conditions)];
 }
 
+/**
+ * A field filled in: its value, with the field's marks. A value that's a web
+ * address, as a broadcast's link to write to their MP is, links to itself,
+ * unless the field is in a link of its own.
+ */
 function fillInline(node: MailingInline, values: Record<string, string>): Inline {
   if (node.type !== "field") return node;
   const text = values[node.attrs.field] ?? "";
-  return node.marks ? { type: "text", text, marks: node.marks } : { type: "text", text };
+  const linked = /^https:\/\/\S+$/.test(text) && !node.marks?.some((mark) => mark.type === "link");
+  const marks: Mark[] = [...(node.marks ?? []), ...(linked ? [{ type: "link" as const, attrs: { href: text } }] : [])];
+  return marks.length ? { type: "text", text, marks } : { type: "text", text };
 }
 
 function fillBlock(block: MailingBlock, values: Record<string, string>): Block {

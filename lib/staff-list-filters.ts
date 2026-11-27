@@ -24,6 +24,10 @@ export type FilterOption = {
   /** What the choice means, after its link in a menu, such as a "?" that opens it. */
   help?: ReactNode;
   under?: string;
+  /** In a `searchable` filter: shown before anything's typed in its box, as a choice of its own, and gone once something is. */
+  untyped?: boolean;
+  /** How a chip leaving it out says it, in place of "not" and its label: Any MP left out is "MP: none". */
+  leftOut?: string;
 };
 
 /**

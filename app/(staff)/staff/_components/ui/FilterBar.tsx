@@ -347,12 +347,17 @@ export default function FilterBar({
         oneEach={Boolean(filter.oneEach)}
         options={[
           ...here.filter((v) => !choiceOf(filter, v)).map((value) => ({ value, label: value })),
-          ...filter.options.filter((o) => o.value && !elsewhere.includes(o.value)),
+          // A choice for before anything's typed, such as Any MP, isn't one of several to tick with others, unless it's ticked.
+          ...filter.options.filter(
+            (o) => o.value && !elsewhere.includes(o.value) && (!o.untyped || here.includes(o.value)),
+          ),
         ]}
         every={everyChoice(filter)}
         search={filter.searchable ? copy.narrow : undefined}
         turns
         half={false}
+        // Nothing to add to such a choice: Any MP takes in every MP already.
+        adds={!filter.options.some((o) => o.untyped && here.includes(o.value))}
       />
     );
   };

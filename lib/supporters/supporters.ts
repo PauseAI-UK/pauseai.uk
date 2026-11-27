@@ -95,6 +95,8 @@ export type SupporterRow = SupporterSummary & {
   registrations?: { event: string; status: string }[];
   /** With the Campaign filter finding those who wrote, when they first wrote in it. */
   wroteAt?: Date;
+  /** With the MP filter finding those with an MP, theirs: the one in office for the postcode that places them. */
+  mp?: Pick<SupporterMp, "name" | "constituency"> | null;
 };
 
 /** What a supporter did, from any source: `kind` says what, `title` and `detail` which and how. */
@@ -202,8 +204,11 @@ export type SupporterGroupTown = { town: string; group: string; at: Date };
 /** How far from a place the Near filter reaches, in miles. */
 export const NEAR_MILES = [5, 10, 25, 50] as const;
 
+/** The MP filter's value for those with any MP, beside each MP's own ID. */
+export const ANY_MP = "any";
+
 /** The filters that repeat, which can leave out as well as find. */
-export type NegatableSupporterFilter = "activity" | "contact" | "event" | "country" | "mp";
+export type NegatableSupporterFilter = "activity" | "contact" | "event" | "country" | "mp" | "hasMp";
 
 /** Who the list shows, as the server finds them. A filter that repeats finds those with any of its values. */
 export type SupporterWho = {
@@ -226,6 +231,8 @@ export type SupporterWho = {
   country?: string[];
   /** In the constituency of any of these MPs, by politician ID, by the postcode that places them. */
   mp?: number[];
+  /** With an MP in office, by the postcode that places them, as a broadcast's fields about their MP need; in `not`, without one. */
+  hasMp?: boolean;
   /** Within `miles` of what was typed: a postcode, the first half of one, or a town. */
   near?: { text: string; miles: number };
   /** Those with none of these, each a filter above that repeats. */

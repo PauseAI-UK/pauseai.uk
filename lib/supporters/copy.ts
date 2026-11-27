@@ -26,6 +26,10 @@ export const supportersCopy = {
       near: "Near",
       nearPlaceholder: "Postcode or town",
       miles: (n: number) => `${n} miles`,
+      // The MP filter's choice before anything's typed: those whose postcode finds an MP in office.
+      anyMp: "Has any MP",
+      // The MP filter's chip leaving out those with any MP: "MP: none".
+      noMp: "none",
       // In the Near chip, when what was typed couldn't be placed.
       notFound: (text: string) => `${text} (not found)`,
       failed: (text: string) => `${text} (couldn't look it up)`,
@@ -69,6 +73,7 @@ export const supportersCopy = {
       notes: "Notes",
       // Added by the Event filter: how their registration for the event stands, each event named when there are several.
       registrations: "At the event",
+      mp: "MP",
       // Added by the Campaign filter: when they first wrote in the campaign.
       wrote: "Wrote",
     },

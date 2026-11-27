@@ -16,7 +16,7 @@ export function TextVersionsExample({ templates }: { templates: number }) {
           open={open}
           onOpen={setOpen}
           templates={templates}
-          onForEveryone={log("onForEveryone")}
+          onRemove={log("onRemove")}
         >
           <p>{open === "only" ? "We meet at All Souls' Place at noon." : "Over 1,800 people are coming. Will you?"}</p>
         </TextVersions>

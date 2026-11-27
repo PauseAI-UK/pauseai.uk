@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { FAILURES_TO_STOP } from "./days";
 import {
+  mpLinkCampaign,
   REST_MINUTES,
   sendingStopsAt,
   waitEndsAt,
@@ -11,7 +12,7 @@ import {
   type BroadcastTerms,
 } from "./broadcasts";
 import type { Topic } from "@/lib/supporters/contact-permissions";
-import { checkMailingDoc, type MailingRecipientValues } from "@/lib/mailings/doc";
+import { checkMailingDoc, fieldsIn, type MailingRecipientValues } from "@/lib/mailings/doc";
 import { now } from "@/lib/now";
 import type { StoredFilter } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
@@ -25,6 +26,7 @@ import { gmailAccount } from "@/lib/email/gmail-accounts.server";
 import { paced, type ChannelMessage, type ChannelResult } from "@/lib/letters/channels.server";
 import { attachmentsOf } from "@/lib/mailings/drafts.server";
 import { broadcastEmail, copyLinks } from "./email-message.server";
+import { withWriteLinks } from "./write-links.server";
 import { newMessageId } from "@/lib/server/mime.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { recordOptOut, type OptOut } from "@/lib/supporters/opt-outs.server";
@@ -375,13 +377,14 @@ async function suppressions(values: string[], of: "email" | "phone"): Promise<Su
 
 /**
  * A copy's message, as its person gets it: the broadcast's words for them
- * and its files, its unsubscribe link at its foot and in its headers.
+ * and its files, its unsubscribe link at its foot and in its headers, and
+ * its links to write to their MP by the same token.
  */
 function copyMessage(broadcast: Sending, copy: Copy, linkToken: string, attachments: Attachment[]): ChannelMessage {
   return {
     ...broadcastEmail(
       broadcast,
-      { address: copy.address, values: copy.mergeValues },
+      { address: copy.address, values: withWriteLinks(copy.mergeValues, linkToken) },
       copyLinks(linkToken),
       attachments,
     ),
@@ -828,10 +831,11 @@ type SentVersion = {
 /**
  * A text's sender: by WhatsApp, its template filled in for each person, with
  * its place or picture, if its top has one, up to our number's daily limit; for someone who
- * meets its second version's condition, that version's. None where
- * WhatsApp doesn't send, or doesn't answer; `template` when a template of
- * the text's isn't approved now, as WhatsApp paused or disabled it, which
- * stops the text.
+ * meets its second version's condition, that version's. A version with a
+ * link to write to their MP gives the copy a link token for it, as an
+ * email's unsubscribe link does. None where WhatsApp doesn't send, or
+ * doesn't answer; `template` when a template of the text's isn't approved
+ * now, as WhatsApp paused or disabled it, which stops the text.
  */
 async function textSender(broadcast: Sending): Promise<CopySender | "template" | undefined> {
   const backend = await textBackend();
@@ -870,7 +874,12 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
     send: async (copy) => {
       // Its words can't be made: thrown, as nothing has gone, so it's put back.
       const version = versionFor(copy);
-      const params = templateParams(bodies.get(version)!, copy.mergeValues);
+      const body = bodies.get(version)!;
+      const linked = fieldsIn(body).some((field) => mpLinkCampaign(field) !== undefined);
+      const params = templateParams(
+        body,
+        linked ? withWriteLinks(copy.mergeValues, await newToken(copy)) : copy.mergeValues,
+      );
       try {
         return textResult(
           await sendTemplate(backend.keys, backend.number.id, copy.address, {

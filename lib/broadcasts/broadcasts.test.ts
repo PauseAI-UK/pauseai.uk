@@ -3,6 +3,16 @@ import { daysInWords, SENDING_DAYS } from "./days";
 import { EMPTY_MAILING_DOC, type MailingDoc, type MailingInline } from "@/lib/mailings/doc";
 import {
   fakeRecipient,
+  FIELD_WORDS,
+  FIELDS_AS_WORDS,
+  HAS_MP,
+  isMpField,
+  MP_FIELDS,
+  mpFieldSeenWithoutMp,
+  mpLink,
+  mpLinkCampaign,
+  problemPlaces,
+  withLinksAsWords,
   firstNameOf,
   approvalProblems,
   firstWords,
@@ -327,6 +337,73 @@ describe("fakeRecipient", () => {
     });
     expect(fakeRecipient([], "text").address).toBe("+447700900123");
   });
+
+  it("has a made-up MP, and links to write to them that fill nothing in, only when they have an MP", () => {
+    expect(fakeRecipient([HAS_MP], "email").values).toMatchObject({
+      mpName: "Sam Taylor",
+      mpConstituency: "Exampleton North",
+      "mpLink:support-sobel-bill": "https://pauseai.uk/write/A9A9A9A9A9A9A9A9A9A9A9A9/support-sobel-bill",
+      "mpLink:regulate-letter-pm": "https://pauseai.uk/write/A9A9A9A9A9A9A9A9A9A9A9A9/regulate-letter-pm",
+    });
+    expect(fakeRecipient([], "email").values).not.toHaveProperty("mpName");
+  });
+});
+
+describe("the fields about the reader's MP", () => {
+  it("are the MP's name and a link for each campaign, all needing an MP", () => {
+    expect(MP_FIELDS).toEqual(["mpName", "mpConstituency", "mpLink:regulate-letter-pm", "mpLink:support-sobel-bill"]);
+    expect(MP_FIELDS.map(hasField)).toEqual([HAS_MP, HAS_MP, HAS_MP, HAS_MP]);
+    expect(hasField("firstName")).toBe("has:firstName");
+    expect(isMpField("firstName")).toBe(false);
+    expect(mpLink("support-sobel-bill")).toBe("mpLink:support-sobel-bill");
+    expect(mpLinkCampaign("mpLink:support-sobel-bill")).toBe("support-sobel-bill");
+    expect(mpLinkCampaign("mpName")).toBeUndefined();
+  });
+
+  it("each have words, as a template's row says them", () => {
+    expect(FIELD_WORDS.mpName).toBe(broadcastsCopy.broadcastPages.mpFieldWords.name);
+    expect(FIELDS_AS_WORDS.values["mpLink:support-sobel-bill"]).toBe(
+      `{${broadcastsCopy.broadcastPages.mpFieldWords.link("Support the Artificial Superintelligence Bill")}}`,
+    );
+  });
+});
+
+describe("mpFieldSeenWithoutMp", () => {
+  const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
+  const words = (...content: MailingInline[]) => ({ type: "paragraph" as const, content });
+  const part = (condition: string, ...content: MailingInline[]) => ({
+    type: "onlyFor" as const,
+    attrs: { condition },
+    content: [words(...content)],
+  });
+  const doc = (...content: MailingDoc["content"]): MailingDoc => ({ type: "doc", content });
+
+  it("is so of a field about the MP outside a part for those with one, or in a part for another condition", () => {
+    expect(mpFieldSeenWithoutMp(doc(words(field("mpName"))))).toBe(true);
+    expect(mpFieldSeenWithoutMp(doc(part("wrote:regulate-letter-pm", field("mpLink:support-sobel-bill"))))).toBe(true);
+    expect(mpFieldSeenWithoutMp(doc(part(`!${HAS_MP}`, field("mpName"))))).toBe(true);
+  });
+
+  it("isn't so of one in a part for those with an MP, or of other fields anywhere", () => {
+    expect(mpFieldSeenWithoutMp(doc(words(field("firstName")), part(HAS_MP, field("mpName"))))).toBe(false);
+  });
+
+  it("isn't so of a text's second version for those with an MP, but is of one for another condition", () => {
+    expect(mpFieldSeenWithoutMp(doc(words(field("mpName"))), HAS_MP)).toBe(false);
+    expect(mpFieldSeenWithoutMp(doc(words(field("mpName"))), "has:firstName")).toBe(true);
+  });
+});
+
+describe("withLinksAsWords", () => {
+  it("shows each link to write to their MP as its words, for someone with an MP", () => {
+    const merge = { values: { firstName: "Jane", mpName: "Sam Taylor" }, meets: [HAS_MP] };
+    expect(withLinksAsWords(merge).values).toMatchObject({
+      mpName: "Sam Taylor",
+      "mpLink:support-sobel-bill": FIELDS_AS_WORDS.values["mpLink:support-sobel-bill"],
+    });
+    const without = { values: { firstName: "Jane" }, meets: [] };
+    expect(withLinksAsWords(without)).toBe(without);
+  });
 });
 
 describe("daysInWords", () => {
@@ -484,6 +561,8 @@ describe("broadcastScheduleProblems", () => {
     dueAt: new Date("2099-01-01T09:18:00Z"),
     finishMinutes: null,
     recipients: 3,
+    withoutMp: 0,
+    writing: false,
     unknown: [],
     byGmail: false,
     connected: false,
@@ -654,6 +733,7 @@ describe("broadcastScheduleProblems", () => {
       "place-words",
     ]);
     const version = {
+      condition: "has:firstName",
       body: WORDS,
       approved: true,
       sameWords: false,
@@ -699,11 +779,51 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...text, buttons: [link, link, link] })).toEqual(["too-many-links"]);
   });
 
+  it("asks for a template while none is chosen, and for words once one is, or New template is open", () => {
+    const text = { ...good, channel: "text" as const, body: EMPTY_MAILING_DOC };
+    expect(broadcastScheduleProblems(text)).toEqual(["no-template"]);
+    expect(broadcastScheduleProblems({ ...text, writing: true })).toEqual(["no-words"]);
+  });
+
+  it("stops while someone with no MP would see a field about their MP, in an email or either version of a text", () => {
+    const mpName: MailingDoc = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Write to " },
+            { type: "field", attrs: { field: "mpName" } },
+            { type: "text", text: " today." },
+          ],
+        },
+      ],
+    };
+    expect(broadcastScheduleProblems({ ...good, body: mpName, withoutMp: 2 })).toEqual(["mp-field-without-mp"]);
+    // Everyone has an MP, as the MP filter's Has an MP finds.
+    expect(broadcastScheduleProblems({ ...good, body: mpName, withoutMp: 0 })).toEqual([]);
+    const text = { ...good, channel: "text" as const, withoutMp: 2 };
+    const version = {
+      body: mpName,
+      approved: true,
+      sameWords: false,
+      header: null,
+      place: null,
+      pictureId: null,
+      buttons: [],
+    };
+    expect(broadcastScheduleProblems({ ...text, textVersion: { ...version, condition: HAS_MP } })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, textVersion: { ...version, condition: "has:firstName" } })).toEqual([
+      "mp-field-without-mp",
+    ]);
+  });
+
   it("checks a text's second version as it does its first", () => {
     const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
     const text = { ...good, channel: "text" as const };
     type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
     const version: Version = {
+      condition: "has:firstName",
       body: WORDS,
       approved: true,
       sameWords: false,
@@ -735,6 +855,7 @@ describe("broadcastScheduleProblems", () => {
     const text = { ...good, channel: "text" as const, approved: false };
     type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
     const version: Version = {
+      condition: "has:firstName",
       body: WORDS,
       approved: false,
       sameWords: false,
@@ -794,5 +915,26 @@ describe("broadcastScheduleProblems", () => {
     vi.setSystemTime(new Date("2026-11-05T12:00:00Z"));
     expect(broadcastScheduleProblems({ ...good, dueAt: new Date("2026-11-05T11:00:00Z") })).toEqual(["time-passed"]);
     vi.useRealTimers();
+  });
+});
+
+describe("problemPlaces", () => {
+  it("says each problem once: under Send test what the preview says, by Schedule the rest after a line to fix it", () => {
+    expect(problemPlaces(["no-subject", "mp-field-without-mp", "no-time"], false)).toEqual({
+      approval: [],
+      preview: ["no-subject", "mp-field-without-mp"],
+      send: ["fix-preview", "no-time"],
+    });
+    // With nothing said above, Schedule says it all, and no line to fix what's above; so too with no preview shown.
+    expect(problemPlaces(["no-time"], false)).toEqual({ approval: [], preview: [], send: ["no-time"] });
+    expect(problemPlaces(["no-template"], false, false)).toEqual({ approval: [], preview: [], send: ["no-template"] });
+  });
+
+  it("says all but the time under Send for approval while there's something to send, and nothing under Send test", () => {
+    expect(problemPlaces(["no-words", "no-name", "no-time"], true)).toEqual({
+      approval: ["no-words", "no-name"],
+      preview: [],
+      send: ["fix-preview", "no-time"],
+    });
   });
 });

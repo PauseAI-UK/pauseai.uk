@@ -55,8 +55,9 @@
   color: var(--white);
 }
 
+/* Wide enough for a few fields' lozenges to a line, taken from the letter beside it. */
 .sidebar {
-  flex: 0 1 15rem;
+  flex: 0 1 20rem;
 }
 
 .sideHeading {
@@ -95,6 +96,21 @@
   background: var(--status-blue-bg);
   color: var(--status-blue);
   user-select: none;
+}
+
+/* A group of fields, which opens a menu of them: a button, with a ▸ for the menu. */
+.fieldGroup {
+  cursor: pointer;
+}
+
+.fieldGroup::after {
+  content: " ▸" / "";
+}
+
+/* Its menu's title, bold, as the parts menu's (ConditionMenu). */
+.fieldMenuTitle {
+  margin: 0 var(--space-2) var(--space-2);
+  font-weight: 600;
 }
 
 .fieldLozenge:focus-visible {

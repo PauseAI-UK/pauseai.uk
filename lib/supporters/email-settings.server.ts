@@ -63,7 +63,7 @@ import { emailProblems } from "@/lib/email/copy";
 // too, on the live site.
 
 /** How long the page works from a copy's unsubscribe link, after the copy went. */
-const PAGE_DAYS = 30;
+export const PAGE_DAYS = 30;
 /** How long a link for a number works, as no fresh one can be emailed to it. */
 const NUMBER_LINK_DAYS = 30;
 /** How soon after one link the same address can be sent another. */

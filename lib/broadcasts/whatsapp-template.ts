@@ -8,9 +8,13 @@ import { fieldsIn, letterFor, type MailingDoc } from "@/lib/mailings/doc";
 // gives it. Not server-only, so the storyboard can picture a text as it
 // arrives (tests/storyboard/whatsapp-steps.ts).
 
-/** A merge field's name as a template's parameter, which WhatsApp wants in lower case: firstName is first_name. */
+/**
+ * A merge field's name as a template's parameter, in the lower case, digits
+ * and underscores WhatsApp wants: firstName is first_name, and
+ * mpLink:support-sobel-bill is mp_link_support_sobel_bill.
+ */
 export function paramName(field: string): string {
-  return field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  return field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`).replace(/[^a-z0-9_]/g, "_");
 }
 
 /** A text's words as the template's body: each field as its parameter, {{first_name}}. */

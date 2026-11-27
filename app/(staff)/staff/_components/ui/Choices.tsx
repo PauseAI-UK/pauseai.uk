@@ -58,7 +58,10 @@ export default function Choices({
                 {option.group.label}
               </li>
             )}
-            <li className={option.group ? styles.inGroup : [undefined, styles.under, styles.underTwice][depth(option)]}>
+            <li
+              className={option.group ? styles.inGroup : [undefined, styles.under, styles.underTwice][depth(option)]}
+              data-untyped={option.untyped || undefined}
+            >
               {row ? (
                 row(option)
               ) : (

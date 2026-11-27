@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { query } from "@/lib/server/db.server";
-import { registeredFor, wroteIn } from "./broadcasts";
+import { HAS_MP, registeredFor, wroteIn } from "./broadcasts";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower } from "@/tests/broadcast-fixtures";
 import { audienceSizes, supporterAudience } from "./recipients.server";
@@ -41,8 +41,46 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     expect(fields.map(({ id, lacking, fallback }) => ({ id, lacking, fallback }))).toEqual([
       { id: "firstName", lacking: 1, fallback: true },
       { id: "name", lacking: 1, fallback: true },
+      // Manchester Central has no MP here, so nobody has one.
+      { id: "mpName", lacking: 2, fallback: undefined },
+      { id: "mpConstituency", lacking: 2, fallback: undefined },
+      { id: "mpLink:regulate-letter-pm", lacking: 2, fallback: undefined },
+      { id: "mpLink:support-sobel-bill", lacking: 2, fallback: undefined },
     ]);
     expect(conditions.find((one) => one.id === "event:evt-1")?.covers).toBe(2);
+  });
+
+  it("fills in the MP of the postcode that places them, and puts them in the part for those with an MP", async () => {
+    await query(
+      `INSERT INTO postcode_places (postcode, latitude, longitude, place, country, constituency, constituency_checked)
+       VALUES ('M11AE', 53.4794, -2.2353, 'Manchester', 'england', 'Manchester Central', true)`,
+    );
+    await addTestPolitician({ name: "Lucy Powell", constituency: "Manchester Central" });
+    // A test MP is never anyone's.
+    await addTestPolitician({
+      name: "Signy McTestface",
+      constituency: "Manchester Central",
+      testPostcode: "ZZ99ZZ",
+      airtableId: "recTest",
+    });
+    const jane = await addFollower("usr-1", "jane@example.com", "Jane Smith", { postcode: "m1 1ae" });
+    const sam = await addFollower("usr-2", "sam@example.com", "Sam");
+    const { recipients, fields, conditions } = await supporterAudience(FILTER, EMAIL);
+    const theirs = recipients.find((one) => one.id === jane)!;
+    expect(theirs.values.mpName).toBe("Lucy Powell");
+    expect(theirs.values.mpConstituency).toBe("Manchester Central");
+    expect(theirs.meets).toContain(HAS_MP);
+    // The links are made as each copy goes, with its token.
+    expect(theirs.values).not.toHaveProperty("mpLink:support-sobel-bill");
+    const samValues = recipients.find((one) => one.id === sam)!;
+    expect(samValues.values).not.toHaveProperty("mpName");
+    expect(samValues.meets).not.toContain(HAS_MP);
+    expect(fields.find((one) => one.id === "mpName")).toMatchObject({
+      label: copy.mpFieldWords.name,
+      lacking: 1,
+      onlyInPart: true,
+    });
+    expect(conditions.find((one) => one.id === HAS_MP)).toMatchObject({ label: copy.conditions.hasMp, covers: 1 });
   });
 
   it("puts those who wrote to their MP in a campaign, and who registered for an event, in its part", async () => {
