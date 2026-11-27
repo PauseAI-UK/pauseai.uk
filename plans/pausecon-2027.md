@@ -126,7 +126,7 @@ asked, and its answer. The columns are:
 - on the application: whether they need accommodation, whether they
   agreed to the code of conduct, its status (waiting, approved or
   declined), who decided and when, the nights, when they confirmed
-  they're coming, and a note for staff.
+  they're coming, when they confirmed the hotel, and a note for staff.
 
 Questions 8 to 12 and 14 are pairs. All the forms' wording is in one
 copy file, so changing a question is a small PR, with no migration,
@@ -166,6 +166,10 @@ When an application is approved, the site registers them on Luma for
 the panel, if they ticked it, and emails them. Its email links to form
 2 if they need accommodation.
 
+Staff can edit an application's columns on the conference's page, such
+as someone's nights after they email to change them, or their
+accommodation after a cancellation. Each edit goes in the audit log.
+
 The hotel assigns the rooms. We give it lists of names for each night,
 from the supporters list's CSV download, which exists already: staff
 filter by the conference, "approved with accommodation" and a night.
@@ -183,18 +187,38 @@ sheet back, so nothing can fall out of step.
    they're still welcome at the events that need no approval.
 3. Form 2 not yet sent. Reminders to the approved who haven't filled
    it in.
-4. Form 2 sent. An email confirming their nights, with the donation
-   link.
-5. Before PauseCon. Broadcasts to those going, such as the base's
+4. Form 2 sent. An email confirming that they've got accommodation,
+   and their nights, with the donation link.
+5. The hotel known. Once the hotel is booked, an email to everyone
+   with accommodation: here is the hotel, please confirm you want to be
+   here. The site records each confirmation.
+6. Before PauseCon. Broadcasts to those going, such as the base's
    address, and to those not yet going to some part, about it.
 
 Emails 1, 2 and 4 are sent by the site when they happen, with their
-words in the copy file. Emails 3 and 5 are broadcasts, which need these
-conditions, and the same as filters on the supporters list:
+words in the copy file. Emails 3, 5 and 6 are broadcasts, which need
+these conditions, and the same as filters on the supporters list:
 
 - going to any event of a conference;
 - has applied, and the application is waiting, approved or declined;
-- approved with accommodation but hasn't sent form 2.
+- approved with accommodation but hasn't sent form 2;
+- has accommodation but hasn't confirmed the hotel.
+
+Email 5's confirmation is a link of the reader's own, like #515's link
+to write to their MP, which records their yes on the application.
+
+Being registered on five Luma events means five sets of Luma's
+reminders, which last time was a pain, though getting the events into
+people's calendars worked well.
+
+O21. Luma's reminders off for PauseCon's events, and our own instead:
+one broadcast before each day to those going to that day's events.
+Fewer emails, in our words, but they're ours to schedule.
+
+O22. Luma's reminders left on, as they cost nothing and people are
+used to them.
+
+I recommend O21, if Luma lets reminders be turned off for each event.
 
 #517 plans broadcasts to an event's guests whatever lists they're on,
 which these would use.
