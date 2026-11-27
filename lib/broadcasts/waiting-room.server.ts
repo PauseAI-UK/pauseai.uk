@@ -5,7 +5,7 @@ import { keptInWords, type KeptWords } from "./whatsapp-messages";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { refused, type FormResult } from "@/lib/form-result";
 import { now } from "@/lib/now";
-import { isInternational } from "@/lib/phone";
+import type { PhoneNumber } from "@/lib/phone";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { sendText } from "@/lib/server/outside-services/whatsapp.server";
@@ -135,7 +135,8 @@ async function letIn(person: Row, by: string | null, gave: Pick<Checked, "postco
   const entryId = await addFormEntry("whatsapp-join", {
     name: person.profileName,
     email: gave.email,
-    phone: isInternational(person.number) ? person.number : null,
+    // The phone domain keeps every number in the waiting room international.
+    phone: person.number as PhoneNumber,
     city: null,
     postcode: gave.postcode,
     consent: true,
@@ -206,12 +207,12 @@ export async function receiveWaitingRoomMessage(incoming: Incoming): Promise<boo
   if (!person) {
     const asked = asksToJoin(words);
     if (!asked) return false;
+    // Two first messages at once: the second fails here, and WhatsApp sends it again, to find them in it.
     [person] = await query<Row>(
       `INSERT INTO waiting_room (number, profile_name, came_from, asked_at) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (number) DO NOTHING RETURNING ${COLUMNS.replaceAll("w.", "")}`,
+       RETURNING ${COLUMNS.replaceAll("w.", "")}`,
       [number, profileName, asked.cameFrom, at],
     );
-    if (!person) return true;
     await keepTheirs(person.id, messageId, at, kept);
     await say(person, waitingRoomCopy.texts.welcome);
     return true;

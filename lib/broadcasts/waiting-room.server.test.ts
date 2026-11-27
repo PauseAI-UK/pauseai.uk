@@ -228,6 +228,23 @@ describeWithDatabase("the waiting room", () => {
     expect(await jane()).toMatchObject({ state: "dismissed", decidedBy: "jo@pauseai.uk" });
   });
 
+  it("reports a message WhatsApp took without saying its ID as not sent", async () => {
+    server.use(http.post(/graph\.facebook\.com\/.*\/messages$/, () => HttpResponse.json({ messages: [] })));
+    await receiveWaitingRoomMessage(from(JOIN));
+    expect(console.error).toHaveBeenCalledWith(waitingRoomProblems.notSent({ code: 0 }).what);
+  });
+
+  it("sends no link to someone let in once there's none to send", async () => {
+    await setLink();
+    await receiveWaitingRoomMessage(from(JOIN));
+    refusing = true;
+    await receiveWaitingRoomMessage(from(REASON));
+    refusing = false;
+    await query("DELETE FROM waiting_room_links");
+    await receiveWaitingRoomMessage(from("thanks!"));
+    expect(await jane()).toMatchObject({ state: "let-in", linkSent: false });
+  });
+
   it("takes a message quoting one of its own as its own", async () => {
     await receiveWaitingRoomMessage(from(JOIN));
     expect(await receiveWaitingRoomMessage(from("hi", { quoted: "wamid.ours-1" }))).toBe(true);

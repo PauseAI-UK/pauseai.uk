@@ -56,6 +56,15 @@ describe("WaitingRoomJoin", () => {
     await expect.element(page.getByText(copy.failed)).toBeVisible();
   });
 
+  it("asks nothing with an empty token, as Turnstile gives when its check expires", async () => {
+    fakeTurnstile("");
+    const ask = vi.fn();
+    await render(<WaitingRoomJoin turnstileSiteKey="site" ask={ask} />);
+    await expect.element(page.getByText(copy.check)).toBeVisible();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(ask).not.toHaveBeenCalled();
+  });
+
   it("waits for Turnstile's token before asking", async () => {
     // No script: Turnstile never gives a token.
     vi.spyOn(document.head, "append").mockImplementation(() => {});

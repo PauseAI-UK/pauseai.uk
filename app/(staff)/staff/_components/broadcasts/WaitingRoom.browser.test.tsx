@@ -94,6 +94,18 @@ describe("WaitingRoom", () => {
     expect(page.getByRole("button", { name: copy.letIn }).elements()).toHaveLength(0);
   });
 
+  it("says when the check couldn't say why someone was held", async () => {
+    await render(
+      <WaitingRoom
+        state="held"
+        people={[{ ...exampleHeld, heldWhy: null }]}
+        counts={exampleCounts}
+        actions={actions()}
+      />,
+    );
+    await expect.element(page.getByText(copy.heldUnasked, { exact: false })).toBeVisible();
+  });
+
   it("says who dismissed someone, and that there's nobody on an empty tab", async () => {
     await render(<WaitingRoomExample state="dismissed" people={[exampleDismissed]} link={exampleLink} />);
     await expect.element(page.getByText("Crypto Gains")).toBeVisible();
