@@ -81,21 +81,76 @@ volunteering on the site (a past event, a letter to their MP, a march)
 could be approved automatically, or shown to staff with that record
 beside their request. Showing it to staff is safer to begin with.
 
-A request is a row of its own: the person, the event it belongs to,
-their answers to the vetting questions, its status (waiting, approved
-or declined), who decided and when, the nights and answers from the
-second form, and a note for staff. Any
-later event with accommodation uses the same table and staff pages.
+The hotel assigns the rooms. We give it lists of names for each night.
 
-The hotel assigns the rooms. We give it lists of names for each night,
-from the supporters list's CSV download, which exists already: staff
-filter by "accommodation approved" and a night, and download. The
-download gains columns for the nights. The site never reads a sheet
-back, so nothing can fall out of step.
+### What it belongs to
 
-O4. Airtable instead. Staff could run accommodation in Airtable from
-the start. The site would then know nothing of it, so the broadcasts
-couldn't tell who is approved.
+Accommodation belongs to PauseCon as a whole, not to one of its five
+Luma events, and nothing on the site holds PauseCon as one thing today.
+
+O15. A tag on the five Luma events, such as "PauseCon 2027", which the
+staff events list can already group by. Accommodation belongs to the
+tag. It's cheap, but if someone renames or removes the tag in Luma,
+the requests lose their home, and the gathering is worked out from
+tags each time rather than held anywhere.
+
+O16. A small table of gatherings. PauseCon 2027 is one row, with its
+five Luma events tied to it. Requests belong to the gathering, and its
+staff page shows the five events together, with the accommodation
+lists on it, under Events in the sidebar rather than an entry of its
+own. The saved filter for "anyone going to any part of PauseCon" could
+become the gathering's own filter.
+
+I recommend O16.
+
+### Where requests are kept, and how the questions can change
+
+Whoever runs PauseCon will want to change what the form asks, and how
+it says it, often and at short notice. So the choice is mostly about
+how cheap a change is.
+
+O17. On the site, a column for each question. Simple to read, but
+every new or changed question needs a migration and a deploy, and old
+answers don't fit a reworded question. Too rigid for this.
+
+O18. On the site, a fixed core and the rest as questions and answers.
+The core is what the site acts on: who, which gathering, its status
+(waiting, approved or declined), who decided and when, the nights, and
+a note for staff. The vetting questions and the second form's are
+kept as pairs of a question, in the words it was asked, and its
+answer. All the form's wording is in one copy file. Changing a
+question is a small PR, with no migration, that an agent can make in
+minutes and the organiser can check on the deploy preview, and old
+answers still read under the question they were asked.
+
+O19. On the site, with questions staff edit. As O18, but staff add,
+reword and remove the questions on the staff site, and the form shows
+them as they stand. Changes need no PR at all, but it's the most work:
+an editor for questions, and a form that builds itself from them.
+O18 can grow into it if the PRs turn out too slow.
+
+O20. The site keeps the core, and an outside form tool, such as
+Fillout or Tally, asks the questions. The organiser edits that form
+whenever they like. The site's form, and the approval email, link to
+it with the person's ID, and its answers come to the site one way, by
+webhook, shown beside the request. Changes are free and instant, but
+the answers live in two places, and the webhook is one more thing to
+keep working, much like last time's chain, though only one way.
+
+O4. Airtable for all of it. Staff run accommodation in Airtable from
+the start, changing it as they please. The site then knows nothing of
+it, so the broadcasts can't tell who is approved, and the reminders
+and the hotel list are done in Airtable too.
+
+I recommend O18, and O19 if it's needed later.
+
+### The hotel's list
+
+With the requests on the site (O17 to O20), the list comes from the supporters
+list's CSV download, which exists already: staff filter by
+"accommodation approved" and a night, and download. The download gains
+columns for the nights. The site never reads a sheet back, so nothing
+can fall out of step.
 
 ## Staff pages
 
@@ -104,8 +159,9 @@ each. Each event gets a page of its own, showing who's going, with
 their answers where they used our form, and a button to email the
 people going, which opens a new broadcast with the event's filter set.
 
-Accommodation has two lists of its own: requests waiting for a
-decision, and people approved, with their nights.
+Accommodation has two lists of its own, on PauseCon's page (O16):
+requests waiting for a decision, and people approved, with their
+nights.
 
 Emailing everyone going to any of several events already works: the
 supporters list's event filter takes more than one event, and a saved
