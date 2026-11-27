@@ -96,6 +96,7 @@ describe("StaffNav", () => {
       "/staff/broadcasts",
       "/staff/supporters/blocked-addresses",
       "/staff/supporters/import",
+      "/staff/supporters/waiting-room",
     ]);
   });
 });

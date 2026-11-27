@@ -38,7 +38,7 @@ CREATE TABLE waiting_room_messages (
   body text,
   provider_message_id text UNIQUE
 );
-CREATE INDEX waiting_room_messages_person ON waiting_room_messages (person_id, at);
+CREATE INDEX waiting_room_messages_person ON waiting_room_messages (person_id, id);
 
 -- Each community link staff have set. The newest is the one sent.
 CREATE TABLE waiting_room_links (

@@ -4570,7 +4570,7 @@ CREATE INDEX unmatched_mail_waiting ON public.unmatched_mail USING btree (found_
 -- Name: waiting_room_messages_person; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX waiting_room_messages_person ON public.waiting_room_messages USING btree (person_id, at);
+CREATE INDEX waiting_room_messages_person ON public.waiting_room_messages USING btree (person_id, id);
 
 --
 -- Name: whatsapp_templates_conditional_variant; Type: INDEX; Schema: public; Owner: -

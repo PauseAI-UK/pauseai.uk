@@ -39,7 +39,7 @@ export type WaitingPerson = {
   messages: ChatMessage[];
 };
 
-/** A message in the chat: theirs, or ours. */
+/** A message in the chat: theirs, or ours, and when, as WhatsApp's clock or ours says. */
 export type ChatMessage = { id: number; at: Date; ours: boolean; kind: string | null; body: string | null };
 
 type Row = Omit<WaitingPerson, "messages" | "supporterId"> & { checkingSentAt: Date | null; entryId: number | null };
@@ -115,12 +115,12 @@ async function sendLink(person: Row): Promise<boolean> {
   return sent;
 }
 
-/** Their words since our welcome, one message a line, for the check. */
+/** Their words since the message that asked to join, one message a line, for the check. */
 async function theirReply(personId: number): Promise<string> {
   const said = await query<{ body: string | null }>(
-    `SELECT body FROM waiting_room_messages WHERE person_id = $1 AND NOT ours AND at > (
-       SELECT min(at) FROM waiting_room_messages WHERE person_id = $1 AND NOT ours)
-     ORDER BY at, id`,
+    `SELECT body FROM waiting_room_messages WHERE person_id = $1 AND NOT ours AND id > (
+       SELECT min(id) FROM waiting_room_messages WHERE person_id = $1 AND NOT ours)
+     ORDER BY id`,
     [personId],
   );
   return said.map((message) => message.body ?? "").join("\n");
@@ -281,11 +281,15 @@ export async function setCommunityLink(pasted: string, by: string): Promise<Form
   return { ok: true };
 }
 
-/** Each person's chat, keyed by their ID. */
+/**
+ * Each person's chat, keyed by their ID, in the order its messages came and
+ * went: theirs are timed by WhatsApp's clock and ours by ours, so their
+ * times may not say which came first.
+ */
 async function chats(ids: number[]): Promise<Map<number, ChatMessage[]>> {
   const messages = await query<ChatMessage & { personId: number }>(
     `SELECT id::int AS id, person_id::int AS "personId", at, ours, kind, body FROM waiting_room_messages
-     WHERE person_id = ANY($1::bigint[]) ORDER BY at, id`,
+     WHERE person_id = ANY($1::bigint[]) ORDER BY id`,
     [ids],
   );
   const byPerson = new Map<number, ChatMessage[]>(ids.map((id) => [id, []]));

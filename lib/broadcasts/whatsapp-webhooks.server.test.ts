@@ -446,6 +446,18 @@ describeWithDatabase("WhatsApp's webhook", () => {
     ]);
   });
 
+  it("starts the waiting room for a message asking to join, with the name WhatsApp gives its sender, and doesn't email staff", async () => {
+    whatsAppTakes();
+    const join = message({ text: { body: "Hi PauseAI UK, I'd like to join (parents)" } }, "447700900999");
+    join.entry[0].changes[0].value.contacts = [{ wa_id: "447700900999", profile: { name: "Sam" } }];
+    expect(await recordWhatsAppWebhook(join)).toBe(1);
+    const [person] = await query<{ name: string; from: string }>(
+      `SELECT profile_name AS name, came_from AS from FROM waiting_room WHERE number = '+447700900999'`,
+    );
+    expect(person).toEqual({ name: "Sam", from: "parents" });
+    expect(sent).toEqual([]);
+  });
+
   it("emails staff one that's more than words as what it was, then its words", async () => {
     const replies = broadcastsCopy.broadcastPages.replies;
     await recordWhatsAppWebhook(message({ type: "image", image: { caption: "Our banner" } }, "447700900999"));

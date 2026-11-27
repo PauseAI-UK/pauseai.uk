@@ -1665,3 +1665,30 @@ VALUES
    '2026-10-04', now() - interval '3 days', 'not ours', 'https://www.examplebusiness.com/bank-ai',
    'The bank will pause AI decisions on loans while regulators review them.', 'not ours', 'none',
    'Only the phrase "pause AI", about a bank.', 1, NULL, 'Article', 'examplebusiness.com');
+
+-- ---------------------------------------------------- the WhatsApp waiting room
+
+-- The community's link, and three people who asked to join by messaging our
+-- number: Sam replied "hi", so is held; an advert from an investment club was
+-- dismissed; Priya hasn't replied. None was let in, so none is a supporter.
+INSERT INTO waiting_room_links (link, set_by, set_at)
+VALUES ('https://chat.whatsapp.com/FixtureInvite', 'jo@pauseai.uk', now() - interval '20 days');
+INSERT INTO waiting_room (number, profile_name, came_from, asked_at, state, held_why, decided_by, decided_at) VALUES
+  ('+447700900911', 'Sam', 'footer', now() - interval '3 hours', 'held', 'It gives no reason for joining.', NULL, NULL),
+  ('+447700900912', 'Crypto Gains', 'site', now() - interval '2 days', 'dismissed', NULL, 'jo@pauseai.uk',
+    now() - interval '1 day'),
+  ('+447700900913', 'Priya', 'parents', now() - interval '30 minutes', 'asked', NULL, NULL, NULL);
+INSERT INTO waiting_room_messages (person_id, at, ours, body, provider_message_id)
+SELECT w.id, w.asked_at + m.after, m.ours, m.body, 'fixture-waiting-' || w.id || '-' || m.n
+FROM waiting_room w
+JOIN (VALUES
+  ('+447700900911', 1, interval '0', false, 'Hi PauseAI UK, I''d like to join (footer)'),
+  ('+447700900911', 2, interval '1 second', true, 'Thanks for asking to join PauseAI UK''s WhatsApp community! To help us keep out bots, could you reply with a line about why you''re interested in PauseAI?'),
+  ('+447700900911', 3, interval '5 minutes', false, 'hi'),
+  ('+447700900912', 1, interval '0', false, 'join (site)'),
+  ('+447700900912', 2, interval '1 second', true, 'Thanks for asking to join PauseAI UK''s WhatsApp community! To help us keep out bots, could you reply with a line about why you''re interested in PauseAI?'),
+  ('+447700900912', 3, interval '2 minutes', false, 'Investment discussion group, all investors welcome: https://chat.whatsapp.com/AbCdEf123'),
+  ('+447700900913', 1, interval '0', false, 'Hi PauseAI UK, I''d like to join (parents)'),
+  ('+447700900913', 2, interval '1 second', true, 'Thanks for asking to join PauseAI UK''s WhatsApp community! To help us keep out bots, could you reply with a line about why you''re interested in PauseAI?')
+) m (number, n, after, ours, body) ON m.number = w.number
+ORDER BY w.id, m.n;

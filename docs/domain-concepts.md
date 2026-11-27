@@ -1130,8 +1130,11 @@ international format ("Phone numbers", below), the box to hear from us
 (`contact_consent`), where they came from (`utm_source`) and when.
 `form` says which form: `email-your-mp`, a march's sign-up (`march-2026-11`, `march-2027-04`), `paper-signup`
 ("Paper sign-ups", below), `whatsapp-community` ("WhatsApp groups", below),
-or `web-form` for pauseai.info's old letter form. Every entry has an email
-but a WhatsApp member's, which has a number instead.
+`whatsapp-join` ("The waiting room", below), or `web-form` for pauseai.info's
+old letter form. Every entry has an email but a WhatsApp member's, which has
+a number instead, and one let in from the waiting room, which has a number
+and may have an email. An entry with no email is linked to its supporter by
+its number.
 What only some forms make hangs off the entry, one to one. A letter's sender,
 for one, is the entry its `letters_from_supporters` row points at.
 
@@ -1208,11 +1211,63 @@ someone erased (`whatsapp_erased`, "Erasure", below). A number already
 uploaded under the group's name, in any case, gets no other entry, so an
 upload only adds people: nobody is marked as having left a group.
 
-Joining the community goes through a waiting room, where a person talks to
-an admin and agrees to be messaged. So an entry is a yes to the newsletter
-by text, and to nothing else. It's older than any opt-out, whenever it was
+Joining the community went through a group, the old waiting room, where a
+person talked to an admin and agreed to be messaged. So an entry is a yes to
+the newsletter by text, and to nothing else. It's older than any opt-out, whenever it was
 uploaded: a stop of newsletter texts in force always wins. The group's name
 is the entry's line in a supporter's history, linked to its upload.
+
+### The waiting room
+
+Asking to join our WhatsApp community is a chat with our WhatsApp number.
+`/whatsapp/beta`, linked from nowhere while it's tried, shows Turnstile; past
+it, the server answers with a `wa.me` link that opens a chat with our
+number, a message asking to join typed in it, ending with the code of the
+button they came by in brackets: "… I'd like to join (parents)". Our number
+is in no page, so a bot reading the site doesn't find it.
+
+The webhook (`lib/broadcasts/whatsapp-webhooks.server.ts`) gives the waiting
+room (`lib/broadcasts/waiting-room.server.ts`) every message from someone in
+it, unless it quotes a broadcast's message; and, from a number not in it,
+one asking to join: "join" anywhere, or a code in brackets at its end, as
+they may change the typed message before sending. Anything else that
+answers no text of ours is emailed to staff, as it was.
+
+Someone in it (`waiting_room`, one row per number) is in one of four states:
+
+- **asked**: welcomed by our number, which asked why they're interested,
+  and for their postcode and email if they like. They wrote first, so we
+  can answer in words of our own for a day, with no template.
+- **held**: their reply went to the check, which held it, or couldn't be
+  asked, or there was no community link to send. Staff are emailed once a
+  day while anyone is (by the sending job), and decide on the waiting room
+  page, under Supporters. Writing again gets one "someone will check".
+- **let-in**: their reply passed the check (Claude Haiku, leniently: any
+  sincere reason passes, an empty one, an advert or gibberish is held;
+  `lib/broadcasts/waiting-room-check.server.ts`), or staff let them in.
+  They become a form entry (`whatsapp-join`), so a supporter, with their
+  WhatsApp profile name, number, where they came from as its `utm_source`,
+  and the postcode (whole, or its first half) and email the check read in
+  their reply. They're sent the community's link, with a line asking for
+  their postcode if they gave none; if WhatsApp won't take it, as their day
+  has passed, it goes when they next write. A later message with a postcode
+  or email updates their entry; anything else goes to staff.
+- **dismissed**: by staff, for good. Their messages are kept, unanswered,
+  and reach neither the check nor staff.
+
+Every message both ways is kept (`waiting_room_messages`) and shown as a
+chat, on the waiting room page and the supporter's page, in the order they
+came, as theirs are timed by WhatsApp's clock and ours by ours.
+
+The community's link is the newest staff set on the waiting room page
+(`waiting_room_links`), logged in the audit log. They reset it in WhatsApp
+when there's reason to, such as the link seen in public, and paste the new
+one.
+
+Joining is a yes to the newsletter by text, as the page and our first
+message say, and to nothing else: an email given in the chat is kept but is
+no yes. Erasing a supporter removes their place in the waiting room and its
+chat; asking again starts afresh.
 
 ## Phone numbers
 
