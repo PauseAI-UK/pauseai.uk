@@ -8,6 +8,9 @@ import { type LettersSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import CampaignLetter from "./CampaignLetter";
+import { DeleteDraft } from "./MailingButtons";
+import type { UnpublishedDraft } from "@/lib/mailings/campaign-letters.server";
+import type { FormResult } from "@/lib/form-result";
 import { CampaignAsk, campaignCounts } from "./CampaignsOverview";
 import Band, { BandFact } from "../ui/Band";
 import { CountGroups } from "./CopyCounts";
@@ -98,8 +101,13 @@ export type CampaignPageProps = {
   changed: number;
   /** Who a part of a letter is for, by its condition (answerLabels()), for a letter with parts. */
   conditions?: Record<string, string>;
-  /** For a campaign in the code, whose letter staff write: whether it has a draft open. */
-  draft?: boolean;
+  /**
+   * For a campaign in the code, whose letter staff write: its draft with
+   * changes that aren't published, or null for none; and the Server Action
+   * that deletes it.
+   */
+  draft?: UnpublishedDraft | null;
+  discard?: (form: FormData) => Promise<FormResult<never>>;
   letters: { letters: LetterSummary[]; total: number; pages: number; pageSize: number };
   search: LettersSearch;
 };
@@ -123,6 +131,7 @@ export default function CampaignView({
   changed,
   conditions,
   draft,
+  discard,
   letters,
   search,
 }: CampaignPageProps) {
@@ -179,14 +188,21 @@ export default function CampaignView({
           title={copy.theLetter}
           id="campaign-letter"
           action={
-            draft !== undefined && (
+            draft === undefined ? undefined : draft ? (
+              <div className={styles.letterActions}>
+                <ButtonLink variant="ghost" size="small" href={`${path}/letter`}>
+                  {copy.carryOn}
+                </ButtonLink>
+                <DeleteDraft id={draft.id} action={discard!} says={{}} />
+              </div>
+            ) : (
               <ButtonLink variant="ghost" size="small" href={`${path}/letter`}>
-                {draft ? copy.carryOn : copy.editLetter}
+                {copy.editLetter}
               </ButtonLink>
             )
           }
         >
-          <CampaignLetter versions={versions} conditions={conditions} />
+          <CampaignLetter versions={versions} conditions={conditions} unpublished={draft ?? undefined} />
         </Card>
         <Card span={3} as="div">
           <div className={styles.recipientsHead}>

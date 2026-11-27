@@ -4,7 +4,7 @@ import { query } from "@/lib/server/db.server";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./doc";
 import {
   campaignDraft,
-  hasDraft,
+  unpublishedDraft,
   campaignLetterChangesFrom,
   campaignWriterData,
   discardCampaignDraft,
@@ -77,11 +77,17 @@ describeWithDatabase("campaign letters", () => {
     expect((await campaignDraft(BILL))!.id).toBe(draft.id);
   });
 
-  it("says whether a campaign in the code has a draft open, and nothing for one that isn't", async () => {
-    expect(await hasDraft(BILL)).toBe(false);
-    await openDraft(BILL, "jane@pauseai.uk", "Dear");
-    expect(await hasDraft(BILL)).toBe(true);
-    expect(await hasDraft("pauseai-info-liability")).toBeUndefined();
+  it("finds a draft with changes that aren't published, and not one left as it was opened", async () => {
+    expect(await unpublishedDraft(BILL)).toBeNull();
+    const draft = await openDraft(BILL, "jane@pauseai.uk", "Dear");
+    expect(await unpublishedDraft(BILL)).toBeNull();
+    await saveCampaignDraft(draft.id, 1, { subject: "Newer" }, "sam@pauseai.uk");
+    expect(await unpublishedDraft(BILL)).toEqual({
+      id: draft.id,
+      updatedAt: expect.any(Date),
+      updatedBy: "sam@pauseai.uk",
+    });
+    expect(await unpublishedDraft("pauseai-info-liability")).toBeUndefined();
   });
 
   it("opens a campaign with no letter yet on a greeting to the MP, with no subject", async () => {

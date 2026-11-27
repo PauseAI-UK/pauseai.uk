@@ -73,10 +73,28 @@ export async function publishedVersions(campaign: string): Promise<{ versions: P
   return { versions: versions.map((row) => ({ ...row, body: checkMailingDoc(row.body)! })), before };
 }
 
-/** Whether a campaign in the code has a draft open; for one not in the code, whose letter isn't staff's, undefined. */
-export async function hasDraft(campaign: string): Promise<boolean | undefined> {
+/** A draft with changes that aren't published: who last saved it, and when. */
+export type UnpublishedDraft = { id: number; updatedAt: Date; updatedBy: string | null };
+
+/**
+ * A campaign in the code's draft, if it says something the latest version
+ * doesn't, so it's work waiting to be published; null if there's none, or
+ * one opened and left as it was. For a campaign not in the code, whose
+ * letter isn't staff's, undefined.
+ */
+export async function unpublishedDraft(campaign: string): Promise<UnpublishedDraft | null | undefined> {
   if (!campaignBySlug(campaign)) return undefined;
-  return (await campaignDraft(campaign)) !== undefined;
+  const [row] = await query<UnpublishedDraft>(
+    `SELECT d.id::int AS id, d.updated_at AS "updatedAt", d.updated_by AS "updatedBy"
+     FROM campaign_letters d
+       LEFT JOIN LATERAL (
+         SELECT p.subject, p.body FROM campaign_letters p WHERE p.campaign = $1 AND p.published_at IS NOT NULL
+         ORDER BY p.published_at DESC, p.id DESC LIMIT 1) latest ON true
+     WHERE d.campaign = $1 AND d.published_at IS NULL
+       AND (d.subject, d.body) IS DISTINCT FROM (latest.subject, latest.body)`,
+    [campaign],
+  );
+  return row ?? null;
 }
 
 /** The campaign's draft, if staff have one open. */

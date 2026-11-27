@@ -17,6 +17,8 @@ describe("CampaignLetter", () => {
     await says(copy.fields.sender);
     // When it was published, by whom, and its letters, under it; the earlier ones behind a link.
     await says(copy.versionLine("23 Sept 2026", "jane.smith@pauseai.uk", 4));
+    // Named as staff pages name staff, free to break before the @.
+    expect(document.querySelector("wbr")).not.toBeNull();
     expect(page.getByRole("combobox").query()).toBeNull();
     await page.getByRole("button", { name: copy.earlierVersions(2) }).click();
     await page.getByRole("combobox").selectOptions("1");

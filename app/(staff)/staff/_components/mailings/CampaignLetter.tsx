@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Select } from "@/components/ui/Controls";
 import { Field } from "@/components/ui/Field";
 import LinkButton from "@/components/ui/LinkButton";
+import { staffMemberText } from "@/lib/staff-member";
+import { StaffSentence } from "../ui/StaffMember";
 import { Muted } from "@/components/ui/Text";
 import type { CampaignVersion } from "@/lib/mailings/campaigns.server";
 import { staffDate } from "@/lib/staff-time";
@@ -25,17 +27,31 @@ const copy = mailingsCopy.campaigns;
 export default function CampaignLetter({
   versions,
   conditions = {},
+  unpublished,
 }: {
   versions: CampaignVersion[];
   conditions?: Record<string, string>;
+  /** A draft with changes that aren't published, said under the version's line. */
+  unpublished?: { updatedAt: Date; updatedBy: string | null };
 }) {
   const [key, setKey] = useState(versions[0]?.key ?? "");
   const [choosing, setChoosing] = useState(false);
   const version = versions.find((one) => one.key === key);
+  // As a choice in the list, which can only be words.
   const line = (one: CampaignVersion) =>
     one.body
-      ? copy.versionLine(one.from && staffDate(one.from), one.by, one.letters)
+      ? copy.versionLine(one.from && staffDate(one.from), one.by && staffMemberText(one.by), one.letters)
       : copy.beforeVersions(one.letters);
+  // Under the letter, naming whoever published it as staff pages do.
+  const shown = (one: CampaignVersion) =>
+    one.body && one.by ? (
+      <StaffSentence
+        words={(who) => copy.versionLine(one.from && staffDate(one.from), who, one.letters)}
+        email={one.by}
+      />
+    ) : (
+      line(one)
+    );
   return (
     <div className={styles.letter}>
       {version?.body ? (
@@ -64,7 +80,7 @@ export default function CampaignLetter({
       ) : (
         version && (
           <p className={styles.versionLine}>
-            <Muted>{line(version)}</Muted>
+            <Muted>{shown(version)}</Muted>
             {versions.length > 1 && (
               <>
                 <Muted> · </Muted>
@@ -73,6 +89,20 @@ export default function CampaignLetter({
             )}
           </p>
         )
+      )}
+      {unpublished && (
+        <p className={styles.versionLine}>
+          <Muted>
+            {unpublished.updatedBy ? (
+              <StaffSentence
+                words={(who) => copy.unpublished(staffDate(unpublished.updatedAt), who)}
+                email={unpublished.updatedBy}
+              />
+            ) : (
+              copy.unpublished(staffDate(unpublished.updatedAt), null)
+            )}
+          </Muted>
+        </p>
       )}
     </div>
   );

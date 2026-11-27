@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { campaignVersions, getCampaignSummary } from "@/lib/mailings/campaigns.server";
 import { listLetters } from "@/lib/letters/records.server";
-import { hasDraft } from "@/lib/mailings/campaign-letters.server";
+import { unpublishedDraft } from "@/lib/mailings/campaign-letters.server";
+import { discardCampaignLetter } from "../../../_components/mailings/actions";
 import { listAsks } from "@/lib/asks/records.server";
 import { answerLabels } from "@/lib/mailings/fields";
 import { requireStaff } from "@/lib/accounts/auth.server";
@@ -34,7 +35,7 @@ export default async function CampaignPage({ params, searchParams }: Params) {
     listLetters(filter),
     campaignVersions(slug),
     listAsks(),
-    hasDraft(slug),
+    unpublishedDraft(slug),
   ]);
   return (
     <Page kind="record" under="campaigns" here={campaign.title}>
@@ -44,6 +45,7 @@ export default async function CampaignPage({ params, searchParams }: Params) {
         changed={changed}
         conditions={answerLabels(asks)}
         draft={draft}
+        discard={discardCampaignLetter.bind(null, slug)}
         letters={letters}
         search={search}
       />
