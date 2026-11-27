@@ -71,8 +71,8 @@ export const mailingsCopy = {
       // As the mailings' Schedule button says them.
       "no-subject": wordsTheServerUses.mailingPages.problems["no-subject"],
       "no-letter": wordsTheServerUses.mailingPages.problems["no-letter"],
-      "not-draft": "⁂ Someone else has just published this draft.",
-      gone: "⁂ Someone else has just deleted this draft.",
+      "not-draft": "⁂ This draft has already been published. Reload the page to see it.",
+      gone: "⁂ This draft has been deleted, so it can't be published.",
     },
   },
   campaigns: {
