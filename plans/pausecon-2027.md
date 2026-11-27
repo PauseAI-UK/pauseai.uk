@@ -29,8 +29,10 @@ brings them into the site as it does for every event. Each Luma event's
 description links to the PauseCon page for anyone who needs a bed.
 
 The PauseCon page is our own, on the site, and the PauseCon domain
-redirects to it. Its form works like the march forms
-(`app/(march)/demonstrations/`), but we build it as a very simple,
+redirects to it. Its form is bespoke, as the march forms are
+(`app/(march)/demonstrations/`): its own page, fields and server
+route, calling the same shared pieces underneath (`addLumaGuest()`,
+`addFormEntry()` and `form_entry_luma`). We build it as a very simple,
 plain mockup, and our designer then has an agent give it its real
 design. The form asks for:
 
@@ -43,9 +45,18 @@ design. The form asks for:
 
 When they send it, the site registers them on the Luma event for each
 part they ticked, so Luma sends its usual confirmation and reminder.
-The march form does this already with `addLumaGuest()`. One change is
-needed: `form_entry_luma` keeps one event per form entry, and a
-PauseCon entry registers someone for up to five.
+The postcode goes in `form_entries`' own column, and the answers to the
+accommodation questions go on the accommodation request (below), so
+the form needs nowhere else to keep answers.
+
+Two shared pieces change, and any later form gets both:
+
+- `form_entry_luma` keeps one event per form entry, and a PauseCon
+  entry registers someone for up to five, so it takes a row per entry
+  and event.
+- `addLumaGuest()` sends answers to the event's registration
+  questions, such as the lobbying day's postcode, as well as name and
+  email (`plans/parliament-lobbying.md`, "Signing up").
 
 ## Accommodation
 
@@ -70,9 +81,10 @@ volunteering on the site (a past event, a letter to their MP, a march)
 could be approved automatically, or shown to staff with that record
 beside their request. Showing it to staff is safer to begin with.
 
-A request is a row of its own: the person, the event it belongs to, its
-status (waiting, approved or declined), who decided and when, the
-nights and answers from the second form, and a note for staff. Any
+A request is a row of its own: the person, the event it belongs to,
+their answers to the vetting questions, its status (waiting, approved
+or declined), who decided and when, the nights and answers from the
+second form, and a note for staff. Any
 later event with accommodation uses the same table and staff pages.
 
 The hotel assigns the rooms. We give it lists of names for each night,
