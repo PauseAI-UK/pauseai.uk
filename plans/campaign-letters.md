@@ -23,6 +23,17 @@ for MPs who signed ControlAI's letter", which the editor's "Only for those
 who…" menu already makes. The Sobel bill's letter uses one of those parts
 to thank an MP who signed ControlAI's letter, which the code does today.
 
+Beside the draft, a preview shows it as a supporter would start from it,
+as the mailing writer's Preview card does for a mailing. Staff pick an
+MP, real or a test one (ZZ99ZB is the one who signed ControlAI's
+letter), and see the subject and letter filled in for that MP's
+constituents, with the parts only for some MPs shown or left out by
+that MP's answers. Only the MP changes what a draft says: the supporter
+adds just their name and address at the end, which the site doesn't
+know until they type them, so the preview signs it with a made-up
+example, and says so. Once published, the staff page's "Public page: See
+it" link and a test postcode try the real form.
+
 Every published version is kept for good: its subject, its letter, who
 published it and when. The version list on the staff page shows each
 one, with how many letters started from it. Letters sent before this
