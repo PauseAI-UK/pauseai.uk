@@ -26,7 +26,7 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 
 ## Serving a branch
 
-When the person you're working with asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give them the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until they're done with it, then stop it with `--stop`. It builds into `.next-serve`, a folder of its own, so it keeps running beside a storyboard review or the gate in the same checkout: never stop it for one.
+When the person you're working with asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give them the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until they're done with it, then stop it with `--stop`. It builds into a folder of its own, so it keeps running beside a storyboard review or the gate ("The CI gate", below).
 
 Link to a page that shows what the branch changes, such as the staff page of a fixture record it affects, rather than the home page or `/staff/login`: the login appears over any staff page, with buttons to log in. Open the link first to check it shows the change.
 
@@ -56,7 +56,14 @@ Each command has a time limit and a log in `tmp/gate/`. While they run, a line a
 
 It takes a few minutes, so run it in the background with its output going to a file in `tmp/`, and look at that file each minute (`docs/testing.md`, "`npm run gate`").
 
-It leaves out `npm run build`: that repeats the unit tests and linters, and the storyboard builds the site anyway. Two `next build`s in one checkout share `.next`, so never run two at once, and don't run the gate beside a storyboard review in the same checkout. A served branch (`npm run serve`) isn't one of them: it has `.next-serve`. CI runs the storyboard without pictures: every flow on main, and on a pull request only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). `npm run test:storyboard` runs every flow.
+It leaves out `npm run build`, which repeats the unit tests and linters, as the storyboard builds the site anyway.
+
+What can run at once in one checkout depends on where each builds the site:
+
+- The gate, a storyboard review and `npm run test:storyboard` all build into `.next`, and each would overwrite the others' build. Run one of them at a time in a checkout. Another worktree has its own `.next`.
+- A served branch (`npm run serve`) builds into `.next-serve`, so it runs beside any of them. Never stop it for one.
+
+CI runs the storyboard without pictures: every flow on main, and on a pull request only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). `npm run test:storyboard` runs every flow.
 
 If the prek Git hook is installed (`npm run hooks:install`), commits run Prettier, ESLint and Stylelint on the staged files first. Prettier rewrites them, so `git add` and commit again. That's only part of the gate.
 
