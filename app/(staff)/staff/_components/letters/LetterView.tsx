@@ -111,8 +111,7 @@ export default function LetterView({
       </PageHead>
       <Grid>
         <div className={spanClass(3)}>{children}</div>
-        {/* The ask kept in view down a long thread, where there's a card for it. */}
-        <Column span={3} keepFirst={Boolean(ask) || letter.kind !== "pauseai"}>
+        <Column span={3}>
           <AskCard letter={letter} ask={ask} answer={answer} />
           <Card look="log" title={lettersCopy.letters.detail.historyTitle} id="letter-history">
             <LetterHistory events={historyOf(letter)} />

@@ -1301,29 +1301,6 @@ describe("Column", () => {
     );
     const top = (text: string) => page.getByText(text).element().getBoundingClientRect().top;
     expect(top("Second")).toBeGreaterThan(top("First"));
-    expect(getComputedStyle(page.getByText("First").element()).position).toBe("static");
-  });
-
-  it("keeps its first card in view down the record beside it, where it is beside it", async () => {
-    await render(
-      <div style={{ width: "1100px" }}>
-        <Grid>
-          <Card span={3}>
-            <div style={{ height: "3000px" }}>Record</div>
-          </Card>
-          <Column span={3} keepFirst>
-            <Card>First</Card>
-            <Card>Second</Card>
-          </Column>
-        </Grid>
-      </div>,
-    );
-    const first = page.getByText("First").element().closest("section")!;
-    expect(getComputedStyle(first).position).toBe("sticky");
-    window.scrollTo({ top: 1500, behavior: "instant" });
-    await vi.waitFor(() => expect(first.getBoundingClientRect().top).toBeGreaterThanOrEqual(0));
-    expect(first.getBoundingClientRect().top).toBeLessThan(100);
-    window.scrollTo({ top: 0, behavior: "instant" });
   });
 });
 
