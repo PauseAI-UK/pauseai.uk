@@ -32,10 +32,14 @@ UK postcode finds no MP, and the site treats that person as from
 abroad.
 
 People who sign up through the PauseCon form give their postcode
-there, and the site registers them on the Luma event by name and email
-alone. I don't know whether Luma lets that through when the event has a
-required question, so it needs a real test before PauseCon opens
-(https://docs.luma.com/reference/post_v1-event-add-guests).
+there, and the site sends it to Luma with their name and email when it
+registers them. Luma's add-guests call takes each guest's answers to
+the event's registration questions, by question ID
+(https://docs.luma.com/reference/post_v1-events-guests-add), but
+`addLumaGuest()` sends only name and email today, so it gains the
+answers. Luma's docs don't say what happens when a required question
+is left blank, so a test against a test event checks that Luma takes
+the answer.
 
 ## Writing to their MP
 
@@ -68,8 +72,16 @@ fits, as an MP who agrees to meet meets the group. If an MP will meet
 some constituents and not others, the answer's note says so.
 
 In the first version, staff read each reply and set the MP's answer to
-the ask, from a list of replies waiting to be checked, as they do for
-replies to politician mailings. Later, Claude Haiku can read each reply as it
+the ask, from a list of replies to campaign letters waiting to be
+checked, as they have for replies to politician mailings. The list is
+useful for every campaign, not just lobbying days. Replies already
+have a "dealt with" mark, saying who and when, and the site already
+spots automatic replies, such as an office's acknowledgement. So the
+list is the replies that aren't automatic and aren't yet dealt with.
+On the two live campaigns, about four in five replies are automatic,
+which leaves a real reply every day or two to check.
+
+Later, Claude Haiku can read each reply as it
 comes in and suggest its outcome, for staff to confirm. That needs an
 Anthropic API key in the site's settings, and makes Anthropic a new
 processor of MPs' replies, which include constituents' details.
