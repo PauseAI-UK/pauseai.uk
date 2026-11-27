@@ -964,12 +964,16 @@ test("Setting the answer from a reply", async ({ page, request, flowDatabase }) 
   await frame(page, "Set answer, under her reply", { window: true });
   story("It opens the form, under who asked her what. They pick Going, with a note, and save.");
   await openBubble(set);
-  await page.getByRole("radio", { name: staffVocabulary.statuses.going }).click();
-  await page.getByLabel(words.note).fill("Said yes in her reply");
+  const form = page.locator("#set-answer-edinburgh-conference-2026");
+  await form.getByRole("radio", { name: staffVocabulary.statuses.going }).click();
+  await form.getByLabel(words.note).fill("Said yes in her reply");
   await frame(page, "The answer's form, under her reply", { window: true });
   story("Saved, the ask says she's going.");
-  await page.getByRole("button", { name: words.save }).click();
-  await expect(page.locator("#ask-title").locator("..").getByText(staffVocabulary.statuses.going)).toBeVisible();
+  await form.getByRole("button", { name: words.save }).click();
+  // The answer, before the card's own form, which offers it too.
+  await expect(
+    page.locator("#ask-title").locator("..").getByText(staffVocabulary.statuses.going).first(),
+  ).toBeVisible();
   await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
   await frame(page, "Her answer, set");
 });
