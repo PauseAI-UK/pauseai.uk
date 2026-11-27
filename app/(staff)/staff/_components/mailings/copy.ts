@@ -57,7 +57,7 @@ export const mailingsCopy = {
   // The campaigns page (/staff/campaigns): letters supporters write to politicians, and each campaign's own page.
   // Writing a campaign's letter (/staff/campaigns/<slug>/letter): its draft, a preview for an MP, and publishing it.
   campaignLetter: {
-    title: (campaign: string) => `⁂ The letter for ${campaign}`,
+    title: (campaign: string) => `Editing the letter for ${campaign}`,
     write: "Write",
     preview: "Preview of what a constituent is given",
     noMps: "⁂ There are no MPs to preview the letter for.",
