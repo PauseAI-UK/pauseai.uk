@@ -100,7 +100,7 @@ export const mailingsCopy = {
     ownDrafts:
       "⁂ These letters were written before staff could edit the letter. Each one keeps the draft it started from.",
     // Over the letter, for a campaign in the code: opening its draft, or going back to the one open.
-    editLetter: "⁂ Edit the letter",
+    editLetter: "Edit the letter",
     carryOn: "⁂ Carry on with the draft",
     // Over a campaign's letter, as a mailing's says who it's to.
     fromEach: "Each supporter",
