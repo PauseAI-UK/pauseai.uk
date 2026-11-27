@@ -97,7 +97,7 @@ export const mailingsCopy = {
     // Beside the latest version's line, opening the list of every version.
     earlierVersions: (n: number) => `Earlier versions (${n})`,
     // Under the version's line, while a draft has changes that aren't published.
-    unpublished: (at: string, by: string | null) => `⁂ Unpublished changes, last saved ${at}${by ? ` by ${by}` : ""}`,
+    unpublished: (at: string, by: string | null) => `Unpublished changes, last saved ${at}${by ? ` by ${by}` : ""}`,
     // Under a version of a campaign's letter: when it was published, by whom if staff did, and its letters.
     versionLine: (from: string | null, by: string | null, n: number) =>
       `${[from && `Published ${from}`, by && `by ${by}`].filter(Boolean).join(" ")}${from ? " · " : ""}${count(n, "letter", "letters")}`,
