@@ -96,7 +96,8 @@ just a lobbying day's.
 
 ## The day itself
 
-A staff page for the lobbying day lists everyone going, grouped by MP,
+The lobbying day's event page (#514) lists its guests with their
+postcodes. It gains a view of everyone going grouped by MP,
 with what each MP said, and staff form the groups from it. Later, the
 site could make the groups itself.
 
