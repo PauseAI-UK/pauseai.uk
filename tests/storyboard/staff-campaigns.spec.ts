@@ -75,14 +75,18 @@ test("Staff edit a campaign's letter", async ({ page, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/campaigns/${bill.slug}/letter`);
   const preview = page.getByRole("region", { name: writer.preview });
   await expect(preview.getByText(writer.exampleNote)).toBeVisible();
-  await frame(page, "The draft and its preview");
+  await frame(page, "The draft and its preview, for an MP who signed");
 
-  story("The preview's button for the thank-you part shows it for an MP who signed ControlAI's letter.");
+  story(
+    "The preview starts with the first MP, who signed ControlAI's letter, so their letter has the thank-you. The thank-you part's button shows it for an MP who didn't.",
+  );
   const part = preview.getByRole("button", { name: /signed ControlAI/ });
-  await part.click();
   await expect(part).toHaveAttribute("aria-pressed", "true");
   await expect(preview.getByText(BILL_THANKS)).toBeVisible();
-  await frame(page, "The preview for an MP who signed");
+  await part.click();
+  await expect(part).toHaveAttribute("aria-pressed", "false");
+  await expect(preview.getByText(BILL_THANKS)).toBeHidden();
+  await frame(page, "The preview for an MP who didn't sign");
 
   story("She changes the subject. It saves as she types, but supporters don't see it yet.");
   const subject = "Please attend the debate on the Artificial Superintelligence Bill";
