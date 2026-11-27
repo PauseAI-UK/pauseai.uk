@@ -1,7 +1,7 @@
 // What a draft mailing warns of under Who, where it looks like a mistake
 // but may not be one: each can be sent past.
 import { ANSWER_CHOICES, type AskKind, type AskStatus } from "@/lib/asks/asks";
-import { answerCondition } from "./fields";
+import { answerCondition } from "./doc";
 
 /** Someone a mailing goes to, with the answers they've given (MailingPolitician's `answers`). */
 type Answering = { id: number; name: string; meets: string[] };

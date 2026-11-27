@@ -1,13 +1,11 @@
-/* A campaign's text: which version and how many, then its subject and words. */
+/* A campaign's text: its subject and words, then which version and how many. */
 .letter {
   display: grid;
   gap: var(--space-3);
 }
 
-/* How many letters and the link to those changed, side by side, level at their feet. */
-.head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  align-items: flex-end;
+/* Under the letter: when it was published, by whom, its letters, and the way to earlier versions. */
+.versionLine {
+  margin: 0;
+  font-size: var(--text-sm);
 }

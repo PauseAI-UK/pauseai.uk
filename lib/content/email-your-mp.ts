@@ -4,9 +4,7 @@
 
 // Relative, as next.config.ts imports this file and its loader resolves only its own "@/" imports.
 import { CONTROLAI_LETTER_ASK, FRONTIER_AI_LETTER_ASK, type AskStatus, type AskStatuses } from "@/lib/asks/asks";
-import { signedControlAiLetter } from "../controlai-letter";
 import { CAMPAIGN_NAMES } from "./campaigns";
-import { site } from "./site";
 
 /** The MP's answer to each ask, keyed by the ask's slug (lib/asks/asks.ts). */
 export type MpStatuses = AskStatuses;
@@ -15,9 +13,11 @@ export type MpStatuses = AskStatuses;
 export type LetterDetails = {
   /** "Ms Dummy". */
   salutation: string;
+  /** The MP's name: "Dummy MP". */
+  mpName: string;
   constituency: string;
   senderName: string;
-  /** What the MP has done, so a letter can say so. */
+  /** What the MP has done, so a letter can have parts only for MPs who did it. */
   statuses: MpStatuses;
 };
 
@@ -41,14 +41,6 @@ type CampaignCommon = {
   title: string;
   /** What it asks the MP to do, whose answer we record (lib/asks/asks.ts), if anything. */
   ask?: string;
-  subject: string;
-  /**
-   * The letter to an MP who hasn't done it yet, through the sign-off and
-   * the sender's name. The form adds their address and postcode under it
-   * (lib/email-your-mp.ts). A blank line between paragraphs, **bold**,
-   * _italic_, and "- " for bullets (lib/letters/format.ts).
-   */
-  letter: (details: LetterDetails) => string;
   attachments: Attachment[];
 };
 
@@ -87,24 +79,6 @@ export const campaigns: Campaign[] = [
     ...CAMPAIGN_NAMES[0],
     ask: FRONTIER_AI_LETTER_ASK,
     done: "signed",
-    subject: "Request to co-sign letter on frontier AI risks",
-    // The letter to the MP, drafted for the sender to edit.
-    letter: (d) =>
-      `Dear ${d.salutation},
-
-I'm a resident of ${d.constituency} and a supporter of **PauseAI**, a civic movement focused on averting the risks of superhuman AI. I am very concerned that AI development is racing ahead without adequate protection for the public.
-
-AI now poses an extremely serious risk to our national security. Parliamentarians in the United Kingdom, and politicians around the globe are moving to answer the call from AI developers, Nobel Laureates and concerned citizens to regulate AI immediately.
-
-**The UK has no specific legal standards for frontier AI safety.** No regulator oversees frontier AI development. And UK law does not reliably hold developers liable for damage or deaths caused by their models, even when the danger is predictable, preventable and uniquely enabled by AI.
-
-Please could you add your name to PauseAI's open letter (attached) in support of frontier AI legislation? To sign, just send a quick email to ${site.policyEmail}.
-
-I would also like you to arrange a short meeting with me to discuss this important matter.
-
-Thank you for your consideration,
-
-${d.senderName}`,
     alreadyDone: "Good news: your MP has already signed the letter to the PM.",
     movedOn:
       "Good news! Your MP has already signed the letter to the PM. You can write to them about this related campaign instead.",
@@ -126,27 +100,7 @@ ${d.senderName}`,
   {
     ...CAMPAIGN_NAMES[1],
     // No ask and no "done": everyone is asked to go to the debate, so it's
-    // always there to move on to. Its letter thanks an MP who signed
-    // ControlAI's letter (lib/controlai-letter.ts).
-    subject: "Request to support the Artificial Superintelligence Bill",
-    letter: (d) =>
-      `Dear ${d.salutation},
-
-I'm a resident of ${d.constituency} and a supporter of **PauseAI**, a civic movement focused on averting the risks of superhuman AI. I am very concerned that AI development is racing ahead without adequate protection for the public.
-
-AI now poses an extremely serious risk to our national security. Parliamentarians in the United Kingdom, and politicians around the globe are moving to answer the call from AI developers, Nobel Laureates and concerned citizens to stop building out of control superintelligence.
-
-Alex Sobel MP has tabled the Artificial Superintelligence Bill to protect the public from this threat. It does the following:
-
-- Makes it a crime to build an AI that could overpower the UK government
-- Starts monitoring AI computing power, just as we do for nuclear weapons
-- Pushes for a global ban with an international treaty
-
-${signedControlAiLetter(d.statuses) ? `${copy.sobelBill.letterThanks}\n\n` : ""}**Please consider attending the second reading debate in person to support the bill.**
-
-Thank you for your consideration,
-
-${d.senderName}`,
+    // always there to move on to.
     // The bill's PDFs aren't written yet.
     attachments: [],
   },
@@ -210,6 +164,8 @@ export const copy = {
     title: "Write your letter",
     // Opened with no MP looked up in this browser: straight from a link, say.
     none: "Find your MP first.",
+    // For a campaign staff haven't published a letter for yet.
+    notOpen: "This campaign isn't set up properly yet.",
   },
   // The page between the form and sending: the letter exactly as it will go.
   preview: {
@@ -269,8 +225,7 @@ export const copy = {
     senderBlocked: (senderName: string) => `We couldn't send ${senderName} a copy, as their address is blocked.`,
   },
   // The bill's page, for an MP who signed ControlAI's letter to the PM
-  // backing it (lib/controlai-letter.ts): the note above the form, and the
-  // paragraph in the letter that thanks them, before asking them to the debate.
+  // backing it (lib/controlai-letter.ts): the note above the form.
   sobelBill: {
     // The note, with a link to the letter in the middle.
     signedNote: {
@@ -278,7 +233,6 @@ export const copy = {
       link: "ControlAI letter",
       after: ". Please still thank them for this, and encourage them to attend the debate of the Bill.",
     },
-    letterThanks: "Thank you for signing the ControlAI letter to the Prime Minister in support of the Bill.",
   },
   // Errors the server sends back to the form.
   errors: {

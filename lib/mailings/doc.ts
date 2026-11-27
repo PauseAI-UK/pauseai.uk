@@ -37,6 +37,11 @@ export const EMPTY_MAILING_DOC: MailingDoc = { type: "doc", content: [{ type: "p
 /** The mark before a condition for a part only those who don't meet it get. */
 export const NOT_CONDITION = "!";
 
+/** A condition that someone gave an answer to an ask: "<ask>:<status>". */
+export function answerCondition(ask: string, status: string): string {
+  return `${ask}:${status}`;
+}
+
 /** Whether a recipient gets a part for `condition`: they meet it, or for one marked NOT_CONDITION, don't. */
 function meetsCondition(recipient: MailingRecipientValues, condition: string): boolean {
   return condition.startsWith(NOT_CONDITION)

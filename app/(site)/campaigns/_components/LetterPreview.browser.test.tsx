@@ -99,6 +99,7 @@ describe("LetterPreview", () => {
         subject: "My subject",
         letter: DRAFT.letter,
         draftHash: "0badcafe",
+        campaignLetterId: 1,
         consent: true,
         nickname: "bot",
         turnstileToken: "",

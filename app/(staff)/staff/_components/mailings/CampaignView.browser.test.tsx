@@ -1,6 +1,7 @@
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { CampaignSummary } from "@/lib/mailings/campaigns.server";
-import { describe, expect, it } from "vitest";
+import type { UnpublishedDraft } from "@/lib/mailings/campaign-letters.server";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -43,6 +44,39 @@ describe("CampaignView's public page", () => {
     await expect.element(see()).toHaveAttribute("href", "https://example.org/letter.pdf");
     await rerender(view({ ...exampleCampaign, slug: "gone", url: null }));
     expect(see().query()).toBeNull();
+  });
+});
+
+describe("CampaignView's letter", () => {
+  const discard = vi.fn(async () => ({ ok: true as const }));
+  const DRAFT: UnpublishedDraft = { id: 9, updatedAt: new Date("2026-11-27T10:00:00Z"), updatedBy: "jo@pauseai.uk" };
+  const view = (draft?: UnpublishedDraft | null) => (
+    <CampaignView
+      campaign={{ ...exampleCampaign, slug: campaigns[0].slug }}
+      versions={exampleVersions}
+      changed={0}
+      draft={draft}
+      discard={discard}
+      letters={{ letters: [], total: 0, pages: 1, pageSize: 100 }}
+      search={emptyLettersSearch}
+    />
+  );
+
+  it("leads to editing a campaign's letter, or to its unpublished draft, with Delete draft beside it and who saved it under the letter; for one not in the code, nowhere", async () => {
+    const edit = (name: string) => page.getByRole("link", { name });
+    const remove = () => page.getByRole("button", { name: mailingsCopy.mailingPages.deleteDraft });
+    const { rerender } = await render(view(null));
+    await expect.element(edit(copy.editLetter)).toHaveAttribute("href", `/staff/campaigns/${campaigns[0].slug}/letter`);
+    expect(remove().query()).toBeNull();
+    await rerender(view(DRAFT));
+    await expect.element(edit(copy.carryOn)).toHaveAttribute("href", `/staff/campaigns/${campaigns[0].slug}/letter`);
+    await expect.element(remove()).toBeVisible();
+    await says(copy.unpublished("27 Nov 2026", "jo@pauseai.uk"));
+    await rerender(view({ ...DRAFT, updatedBy: null }));
+    await says(copy.unpublished("27 Nov 2026", null));
+    await rerender(view());
+    expect(edit(copy.editLetter).query()).toBeNull();
+    expect(edit(copy.carryOn).query()).toBeNull();
   });
 });
 

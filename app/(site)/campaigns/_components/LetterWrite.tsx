@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug } from "@/lib/email-your-mp";
+import { campaignBySlug, type CampaignLetter } from "@/lib/email-your-mp";
 import { campaignPath } from "@/lib/content/campaigns";
 import { CONTROLAI_LETTER_PAGE, signedControlAiLetter, SOBEL_BILL_CAMPAIGN } from "@/lib/controlai-letter";
 import { readDraft, readLookup, type Draft, type Lookup } from "./draft.client";
@@ -15,9 +15,11 @@ type Writing = { lookup: Lookup | Draft; draft?: Draft };
 
 /**
  * The page for writing the letter, after "Find my MP": the MP, then the
- * form. Carries on with the draft when coming back from the preview.
+ * form, starting from `letter`, the version staff last published. Carries
+ * on with the draft when coming back from the preview. With no version
+ * published yet, it says the campaign isn't open.
  */
-export default function LetterWrite({ campaignSlug }: { campaignSlug: string }) {
+export default function LetterWrite({ campaignSlug, letter }: { campaignSlug: string; letter: CampaignLetter | null }) {
   const campaign = campaignBySlug(campaignSlug)!;
   // undefined until it's been read from sessionStorage, null if there's no lookup.
   const [writing, setWriting] = useState<Writing | null>();
@@ -29,6 +31,13 @@ export default function LetterWrite({ campaignSlug }: { campaignSlug: string }) 
     setWriting(draft ? { lookup: draft, draft } : lookup && { lookup });
   }, [campaignSlug]);
 
+  if (!letter) {
+    return (
+      <Column>
+        <p>{copy.write.notOpen}</p>
+      </Column>
+    );
+  }
   if (writing === undefined) return null;
   if (writing === null) {
     return (
@@ -53,6 +62,7 @@ export default function LetterWrite({ campaignSlug }: { campaignSlug: string }) 
       )}
       <LetterForm
         campaign={campaign}
+        letter={letter}
         mp={lookup.mp}
         statuses={lookup.statuses}
         senderName={lookup.name}

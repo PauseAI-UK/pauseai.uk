@@ -55,6 +55,26 @@ export const mailingsCopy = {
     },
   },
   // The campaigns page (/staff/campaigns): letters supporters write to politicians, and each campaign's own page.
+  // Writing a campaign's letter (/staff/campaigns/<slug>/letter): its draft, a preview for an MP, and publishing it.
+  campaignLetter: {
+    title: (campaign: string) => `Editing the letter for ${campaign}`,
+    write: "Write",
+    preview: "Preview of what a constituent is given",
+    noMps: "There are no MPs to preview the letter for.",
+    // The preview signs the letter with a made-up sender, as each supporter's own name and address go there.
+    exampleSender: "Jane Smith",
+    exampleAddress: ["1 High Street", "AB1 2CD"],
+    publishTitle: "Publish",
+    publish: "Publish the letter",
+    // Why it can't be published, under the button.
+    refusals: {
+      // As the mailings' Schedule button says them.
+      "no-subject": wordsTheServerUses.mailingPages.problems["no-subject"],
+      "no-letter": wordsTheServerUses.mailingPages.problems["no-letter"],
+      "not-draft": "This draft has already been published. Reload the page to see it.",
+      gone: "This draft has been deleted, so it can't be published.",
+    },
+  },
   campaigns: {
     title: "Campaigns",
     intro: "Letters supporters write to politicians, through a form on the site",
@@ -74,7 +94,19 @@ export const mailingsCopy = {
     publicPage: "Public page",
     seePublicPage: "See it",
     version: "Version of the letter",
-    versionLine: (from: string | null, n: number) => `${from ? `From ${from}: ` : ""}${count(n, "letter", "letters")}`,
+    // Beside the latest version's line, opening the list of every version.
+    earlierVersions: (n: number) => `Earlier versions (${n})`,
+    // Under the version's line, while a draft has changes that aren't published.
+    unpublished: (at: string, by: string | null) => `Unpublished changes, last saved ${at}${by ? ` by ${by}` : ""}`,
+    // Under a version of a campaign's letter: when it was published, by whom if staff did, and its letters.
+    versionLine: (from: string | null, by: string | null, n: number) =>
+      `${[from && `Published ${from}`, by && `by ${by}`].filter(Boolean).join(" ")}${from ? " · " : ""}${count(n, "letter", "letters")}`,
+    // The letters from before staff could edit a campaign's letter, as a version in the list.
+    beforeVersions: (n: number) => `Before versions: ${count(n, "letter", "letters")}`,
+    ownDrafts: "We didn't keep the template for these letters. Each letter shows what was sent.",
+    // Over the letter, for a campaign in the code: opening its draft, or going back to the one open.
+    editLetter: "Edit the letter",
+    carryOn: "Carry on with the draft",
     // Over a campaign's letter, as a mailing's says who it's to.
     fromEach: "Each supporter",
     lettersTitle: "Letters",
@@ -87,10 +119,12 @@ export const mailingsCopy = {
     // Under how much of their letters was their own, leading to those letters.
     changedLink: (n: number) => `${n} changed the wording`,
     columns: { politician: "Politician", from: "From", ownWords: "Own words", status: "Status" },
+    // A campaign letter's fields: the MP's, and the sender's.
     fields: {
       salutation: "Salutation",
       constituency: "Constituency",
-      name: "Name",
+      name: "MP's name",
+      sender: "Sender's name",
       postcode: "Postcode",
     } as Record<string, string>,
     noText: "We've lost the text.",

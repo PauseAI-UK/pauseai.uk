@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpResponse } from "msw";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
-import { draftLetter, signatureAddress } from "@/lib/email-your-mp";
+import { draftLetter, signatureAddress, type CampaignLetter } from "@/lib/email-your-mp";
+import { publishedLetter } from "@/lib/mailings/campaign-letters.server";
 import { draftHash } from "@/lib/letters/changes";
 import { docFromMarkup, toText } from "@/lib/letters/format";
 import {
@@ -27,13 +28,22 @@ vi.mock("@/lib/letters/proxies.server", async (importOriginal) => {
   return { ...real, supporterProxy: vi.fn(real.supporterProxy) };
 });
 
-/** The draft the form gives Jane for the test MP and the letter to the PM: what the server rebuilds. */
-function testDraft(): string {
-  const campaign = campaigns.find((c) => c.slug === "regulate-letter-pm")!;
+/**
+ * The draft the form gives Jane for the test MP from the letter to the PM's
+ * latest version, or `version`: what the server rebuilds.
+ */
+async function testDraft(version?: CampaignLetter): Promise<string> {
+  const letter = version ?? (await publishedLetter("regulate-letter-pm"))!;
   return toText(
     draftLetter(
-      campaign,
-      { salutation: "Mr McTestface", constituency: "Testshire", senderName: "Jane Smith", statuses: {} },
+      letter.body,
+      {
+        salutation: "Mr McTestface",
+        mpName: "Testy McTestface MP",
+        constituency: "Testshire",
+        senderName: "Jane Smith",
+        statuses: {},
+      },
       signatureAddress("1 High Street\nTestville", "zz9 9zz"),
     ),
   );
@@ -81,6 +91,12 @@ describe("parseLetterForm", () => {
     expect(parseLetterForm({ letter: "Dear MP" }).letter).toBeUndefined();
     expect(parseLetterForm({ letter: FORM.letter }).letter).toEqual(FORM.letter);
   });
+
+  it("takes the version of the campaign's letter the form began with only as a whole number", () => {
+    expect(parseLetterForm({ campaignLetterId: 4 }).campaignLetterId).toBe(4);
+    expect(parseLetterForm({ campaignLetterId: "4" })).not.toHaveProperty("campaignLetterId");
+    expect(parseLetterForm({ campaignLetterId: 4.5 })).not.toHaveProperty("campaignLetterId");
+  });
 });
 
 describe("mayWriteTo", () => {
@@ -106,7 +122,7 @@ describeWithDatabase("submitLetter", () => {
 
   it("sends the letter from the sender's proxy to the MP, then their copy from it to the MP's, Bcc'd to them", async () => {
     const sent = recordGmail();
-    expect(await submitLetter({ ...FORM, draftHash: draftHash(testDraft()) })).toEqual({ ok: true });
+    expect(await submitLetter({ ...FORM, draftHash: draftHash(await testDraft()) })).toEqual({ ok: true });
 
     expect(sent).toHaveLength(2);
     const [letter, copied] = sent;
@@ -143,7 +159,7 @@ describeWithDatabase("submitLetter", () => {
 
     const [row] = await query<Record<string, unknown>>(
       `SELECT l.status, l.sent_at IS NOT NULL AS sent, s.copy_state, s.postmark_mailbox, s.draft, s.draft_approximate,
-         s.own_words, s.letter, p.tag, p.supporter_email, f.form, f.postcode, f.contact_consent
+         s.own_words, s.letter, s.campaign_letter_id::int AS campaign_letter_id, p.tag, p.supporter_email, f.form, f.postcode, f.contact_consent
        FROM letters l JOIN letters_from_supporters s USING (id) JOIN proxies p ON p.id = s.proxy_id
          JOIN form_entries f ON f.id = s.entry_id`,
     );
@@ -152,10 +168,12 @@ describeWithDatabase("submitLetter", () => {
       sent: true,
       copy_state: "sent",
       postmark_mailbox: null,
-      draft: testDraft(),
+      draft: await testDraft(),
       draft_approximate: false,
       own_words: expect.any(Number),
       letter: FORM.letter,
+      // The form said no version, so the latest.
+      campaign_letter_id: (await publishedLetter("regulate-letter-pm"))!.id,
       tag: "jane.smith",
       supporter_email: "jane@example.com",
       form: "email-your-mp",
@@ -203,6 +221,50 @@ describeWithDatabase("submitLetter", () => {
   it("marks the draft approximate when the form's was another, as after a deploy", async () => {
     await submitLetter({ ...FORM, draftHash: "0badcafe" });
     expect(await query("SELECT draft_approximate FROM letters_from_supporters")).toEqual([{ draft_approximate: true }]);
+  });
+
+  it("rebuilds the draft from the version the form began with, though staff have published another since", async () => {
+    const first = (await publishedLetter("regulate-letter-pm"))!;
+    await query(
+      `INSERT INTO campaign_letters (campaign, subject, body, published_at, published_by)
+       VALUES ('regulate-letter-pm', 'Newer', $1, now() + interval '1 minute', 'staff@pauseai.uk')`,
+      [JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Newer." }] }] })],
+    );
+    await submitLetter({ ...FORM, campaignLetterId: first.id, draftHash: draftHash(await testDraft(first)) });
+    expect(
+      await query("SELECT draft, draft_approximate, campaign_letter_id::int AS id FROM letters_from_supporters"),
+    ).toEqual([{ draft: await testDraft(first), draft_approximate: false, id: first.id }]);
+  });
+
+  it("rebuilds from the latest version for a form whose version isn't one of the campaign's published ones", async () => {
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    const latest = (await publishedLetter("regulate-letter-pm"))!;
+    const bill = (await publishedLetter("support-sobel-bill"))!;
+    const [{ id: draft }] = await query<{ id: number }>(
+      `INSERT INTO campaign_letters (campaign, subject, body) VALUES ('regulate-letter-pm', 'Draft', $1) RETURNING id::int AS id`,
+      [JSON.stringify(latest.body)],
+    );
+    await submitLetter({ ...FORM, campaignLetterId: draft });
+    await submitLetter({ ...FORM, campaignLetterId: bill.id, email: "other@example.com" });
+    expect(await query("SELECT campaign_letter_id::int AS id FROM letters_from_supporters ORDER BY id")).toEqual([
+      { id: latest.id },
+      { id: latest.id },
+    ]);
+  });
+
+  it("refuses a letter for a campaign whose letter staff haven't published yet", async () => {
+    const kept = await query("SELECT * FROM campaign_letters WHERE campaign = 'support-sobel-bill'");
+    await query("DELETE FROM campaign_letters WHERE campaign = 'support-sobel-bill'");
+    try {
+      expect(await submitLetter({ ...FORM, campaign: "support-sobel-bill" })).toEqual({
+        ok: false,
+        reason: "unknown-campaign",
+      });
+    } finally {
+      await query("INSERT INTO campaign_letters SELECT * FROM json_populate_recordset(NULL::campaign_letters, $1)", [
+        JSON.stringify(kept),
+      ]);
+    }
   });
 
   it("sends a campaign without attachments without any", async () => {

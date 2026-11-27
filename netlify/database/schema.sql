@@ -59,6 +59,18 @@ CREATE DOMAIN public.phone AS text
 	CONSTRAINT phone_check CHECK ((VALUE ~ '^\+[1-9][0-9]{6,14}$'::text));
 
 --
+-- Name: campaign_letters_published_fixed(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.campaign_letters_published_fixed() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'campaign letter % is published, so it can''t change', OLD.id;
+END;
+$$;
+
+--
 -- Name: civicrm_joined_at(date, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -254,6 +266,7 @@ CREATE TABLE public.letters_from_supporters (
     own_words real,
     copy_state text,
     copy_taken_at timestamp with time zone,
+    campaign_letter_id bigint,
     CONSTRAINT letters_from_supporters_copy_state_check CHECK ((copy_state = ANY (ARRAY['queued'::text, 'sending'::text, 'sent'::text, 'held'::text, 'uncertain'::text]))),
     CONSTRAINT letters_from_supporters_draft CHECK ((((draft IS NULL) = (draft_approximate IS NULL)) AND ((draft IS NULL) = (own_words IS NULL)))),
     CONSTRAINT letters_from_supporters_kind_check CHECK ((kind = 'supporter'::text)),
@@ -1242,6 +1255,41 @@ ALTER TABLE public.broadcast_replies ALTER COLUMN id ADD GENERATED ALWAYS AS IDE
     NO MAXVALUE
     CACHE 1
 );
+
+--
+-- Name: campaign_letters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_letters (
+    id bigint NOT NULL,
+    campaign text NOT NULL,
+    subject text NOT NULL,
+    body jsonb NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_by text,
+    published_at timestamp with time zone,
+    published_by text,
+    CONSTRAINT campaign_letters_body_check CHECK ((jsonb_typeof(body) = 'object'::text)),
+    CONSTRAINT campaign_letters_check CHECK (((published_by IS NULL) OR (published_at IS NOT NULL)))
+);
+
+--
+-- Name: campaign_letters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.campaign_letters_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: campaign_letters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.campaign_letters_id_seq OWNED BY public.campaign_letters.id;
 
 --
 -- Name: campaigns; Type: TABLE; Schema: public; Owner: -
@@ -3009,6 +3057,12 @@ CREATE TABLE public.whatsapp_unreachable (
 );
 
 --
+-- Name: campaign_letters id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_letters ALTER COLUMN id SET DEFAULT nextval('public.campaign_letters_id_seq'::regclass);
+
+--
 -- Name: press_coverage id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3164,6 +3218,20 @@ ALTER TABLE ONLY public.broadcast_replies
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_provider_message_id_key UNIQUE (provider_message_id);
+
+--
+-- Name: campaign_letters campaign_letters_id_campaign_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_letters
+    ADD CONSTRAINT campaign_letters_id_campaign_key UNIQUE (id, campaign);
+
+--
+-- Name: campaign_letters campaign_letters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_letters
+    ADD CONSTRAINT campaign_letters_pkey PRIMARY KEY (id);
 
 --
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3928,6 +3996,12 @@ CREATE INDEX broadcast_replies_reaction_to ON public.broadcast_replies USING btr
 CREATE INDEX broadcast_replies_waiting ON public.broadcast_replies USING btree (received_at) WHERE ((outcome IS NULL) AND (NOT automatic));
 
 --
+-- Name: campaign_letters_one_draft; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX campaign_letters_one_draft ON public.campaign_letters USING btree (campaign) WHERE (published_at IS NULL);
+
+--
 -- Name: civicrm_contacts_airtable_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4346,6 +4420,12 @@ CREATE INDEX whatsapp_templates_conditional_variant ON public.whatsapp_templates
 CREATE INDEX whatsapp_templates_default_variant ON public.whatsapp_templates USING btree (default_variant_id);
 
 --
+-- Name: campaign_letters campaign_letters_published_fixed; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER campaign_letters_published_fixed BEFORE UPDATE ON public.campaign_letters FOR EACH ROW WHEN (((old.published_at IS NOT NULL) AND (((new.campaign IS DISTINCT FROM old.campaign) OR (new.subject IS DISTINCT FROM old.subject)) OR (new.body IS DISTINCT FROM old.body)))) EXECUTE FUNCTION public.campaign_letters_published_fixed();
+
+--
 -- Name: ask_statuses ask_statuses_ask_ask_kind_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4421,6 +4501,13 @@ ALTER TABLE ONLY public.broadcast_messages
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE CASCADE;
+
+--
+-- Name: campaign_letters campaign_letters_campaign_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_letters
+    ADD CONSTRAINT campaign_letters_campaign_fkey FOREIGN KEY (campaign) REFERENCES public.campaigns(slug) ON DELETE CASCADE;
 
 --
 -- Name: campaigns campaigns_ask_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -4554,6 +4641,13 @@ ALTER TABLE ONLY public.letters_from_pauseai
 
 ALTER TABLE ONLY public.letters_from_supporters
     ADD CONSTRAINT letters_from_supporters_campaign_fkey FOREIGN KEY (campaign) REFERENCES public.campaigns(slug);
+
+--
+-- Name: letters_from_supporters letters_from_supporters_campaign_letter_id_campaign_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.letters_from_supporters
+    ADD CONSTRAINT letters_from_supporters_campaign_letter_id_campaign_fkey FOREIGN KEY (campaign_letter_id, campaign) REFERENCES public.campaign_letters(id, campaign);
 
 --
 -- Name: letters_from_supporters letters_from_supporters_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

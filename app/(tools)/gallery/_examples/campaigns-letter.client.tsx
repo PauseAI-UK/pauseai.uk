@@ -16,7 +16,12 @@ import {
   type Lookup,
   type Sent,
 } from "@/app/(site)/campaigns/_components/draft.client";
-import { exampleDraft, exampleLookup, exampleMp } from "@/app/(site)/campaigns/_components/draft.examples";
+import {
+  exampleDraft,
+  exampleLetters,
+  exampleLookup,
+  exampleMp,
+} from "@/app/(site)/campaigns/_components/draft.examples";
 import EmailYourMpTool from "@/app/(site)/campaigns/_components/EmailYourMpTool";
 import LetterEditor from "@/app/(site)/campaigns/_components/LetterEditor";
 import LetterForm from "@/app/(site)/campaigns/_components/LetterForm";
@@ -134,12 +139,12 @@ const formProps = {
 
 /** The PM's letter, with its attachments. */
 export function LetterFormExample() {
-  return <LetterForm campaign={letterToPm} {...formProps} />;
+  return <LetterForm campaign={letterToPm} letter={exampleLetters[letterToPm.slug]} {...formProps} />;
 }
 
 /** The bill's letter, which has none. */
 export function LetterFormNoAttachmentsExample() {
-  return <LetterForm campaign={bill} {...formProps} />;
+  return <LetterForm campaign={bill} letter={exampleLetters[bill.slug]} {...formProps} />;
 }
 
 const LETTER = docFromMarkup(
@@ -196,7 +201,16 @@ export function LetterSentExample() {
 export function LetterWriteExample() {
   return (
     <Seeded lookup={exampleLookup}>
-      <LetterWrite campaignSlug={letterToPm.slug} />
+      <LetterWrite campaignSlug={letterToPm.slug} letter={exampleLetters[letterToPm.slug]} />
+    </Seeded>
+  );
+}
+
+/** A campaign whose letter staff haven't published yet. */
+export function LetterWriteNotOpenExample() {
+  return (
+    <Seeded lookup={exampleLookup}>
+      <LetterWrite campaignSlug={letterToPm.slug} letter={null} />
     </Seeded>
   );
 }
@@ -205,7 +219,7 @@ export function LetterWriteExample() {
 export function LetterWriteSignedExample() {
   return (
     <Seeded lookup={{ ...exampleLookup, campaign: bill.slug, statuses: { [CONTROLAI_LETTER_ASK]: "signed" } }}>
-      <LetterWrite campaignSlug={bill.slug} />
+      <LetterWrite campaignSlug={bill.slug} letter={exampleLetters[bill.slug]} />
     </Seeded>
   );
 }

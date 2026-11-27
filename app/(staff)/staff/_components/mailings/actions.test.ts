@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
@@ -32,7 +32,11 @@ import {
   stopMailingNow,
   nothingToDoNow,
   answerLetterReplyNow,
+  saveCampaignLetter,
+  publishCampaignLetter,
+  discardCampaignLetter,
 } from "./actions";
+import { campaignDraft, openDraft, publishedLetter } from "@/lib/mailings/campaign-letters.server";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 const { revalidatePath } = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
@@ -454,6 +458,59 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect(await answerLetterReplyNow(reply, DRAFT, LETTER)).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings", "layout");
     expect(await query("SELECT sent_by FROM letter_answers")).toEqual([{ sent_by: JO }]);
+  });
+
+  describe("writing a campaign's letter", () => {
+    const BILL = "support-sobel-bill";
+    beforeEach(() => query("UPDATE staff_accounts SET permissions = ARRAY['supporters'] WHERE email = $1", [JO]));
+
+    it("asks for the supporters permission", async () => {
+      const { id } = await openDraft(BILL, JO, "Dear");
+      await query("UPDATE staff_accounts SET permissions = '{}' WHERE email = $1", [JO]);
+      for (const attempt of [
+        () => saveCampaignLetter(id, 1, { subject: "x" }),
+        () => publishCampaignLetter(BILL, id, 1),
+        () => discardCampaignLetter(BILL, form({ id: String(id) })),
+      ]) {
+        expect(await expectRedirect(attempt)).toBe("/staff");
+      }
+      expect((await campaignDraft(BILL))!.version).toBe(1);
+    });
+
+    it("saves the draft's changes by whom; refuses one saved since; throws on what isn't a change, an ID or a version", async () => {
+      const { id } = await openDraft(BILL, "sam@pauseai.uk", "Dear");
+      expect(await saveCampaignLetter(id, 1, { subject: "Come", body: LETTER })).toEqual({ ok: true, version: 2 });
+      expect(await campaignDraft(BILL)).toMatchObject({ subject: "Come", body: LETTER, updatedBy: JO });
+      expect(await saveCampaignLetter(id, 1, { subject: "Old" })).toEqual({ ok: false, reason: "conflict" });
+      await expect(saveCampaignLetter(id, 2, { dueAt: null })).rejects.toThrow();
+      await expect(saveCampaignLetter(madeUp(String(id)), 2, { subject: "x" })).rejects.toThrow();
+      await expect(saveCampaignLetter(id, 0, { subject: "x" })).rejects.toThrow();
+    });
+
+    it("publishes the draft and goes to the campaign's page; refuses one changed since or with no subject; throws on a campaign not in the code", async () => {
+      const { id } = await openDraft(BILL, JO, "Dear");
+      expect(await publishCampaignLetter(BILL, id, 2)).toEqual({ ok: false, reason: "conflict" });
+      await saveCampaignLetter(id, 1, { subject: "" });
+      expect(await publishCampaignLetter(BILL, id, 2)).toEqual({ ok: false, reason: "no-subject" });
+      await saveCampaignLetter(id, 2, { subject: "Come" });
+      await expect(publishCampaignLetter("pauseai-info-liability", id, 3)).rejects.toThrow();
+      expect(await expectRedirect(() => publishCampaignLetter(BILL, id, 3))).toBe(`/staff/campaigns/${BILL}`);
+      expect(revalidatePath).toHaveBeenCalledWith(`/staff/campaigns/${BILL}`);
+      expect(await publishedLetter(BILL)).toMatchObject({ id, subject: "Come" });
+    });
+
+    it("discards the draft and goes to the campaign's page, as for one gone already; throws on a form without its ID", async () => {
+      const { id } = await openDraft(BILL, JO, "Dear");
+      expect(await expectRedirect(() => discardCampaignLetter(BILL, form({ id: String(id) })))).toBe(
+        `/staff/campaigns/${BILL}`,
+      );
+      expect(await campaignDraft(BILL)).toBeUndefined();
+      expect(await expectRedirect(() => discardCampaignLetter(BILL, form({ id: String(id) })))).toBe(
+        `/staff/campaigns/${BILL}`,
+      );
+      await expect(discardCampaignLetter(BILL, form({}))).rejects.toThrow();
+      await expect(discardCampaignLetter(madeUp(5), form({ id: String(id) }))).rejects.toThrow();
+    });
   });
 });
 

@@ -43,6 +43,8 @@ export type Draft = {
   letter: LetterDoc;
   /** The hash of the draft the form began with (lib/letters/changes.ts), so the server can tell it rebuilt the same one. */
   draftHash: string;
+  /** The version of the campaign's letter it began with (campaign_letters), for the server to rebuild it from. */
+  campaignLetterId?: number;
   /** The hidden field only a bot fills in, passed on for the server to check. */
   nickname: string;
 };

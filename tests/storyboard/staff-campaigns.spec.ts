@@ -1,10 +1,10 @@
 import type { Page } from "@playwright/test";
 import { longDay } from "@/lib/calendar-days";
 import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
-import { campaigns } from "@/lib/content/email-your-mp";
+import { campaigns, copy as emailYourMpCopy } from "@/lib/content/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { sentLetterId } from "./letter-steps";
+import { BILL_THANKS, openLookup, sentLetterId, SUBJECTS } from "./letter-steps";
 import { addFilter } from "./list-steps";
 import { logIn } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
@@ -48,7 +48,7 @@ test("Campaigns", async ({ page, flowDatabase }) => {
   );
   await page.getByRole("link", { name: campaigns[0].title, exact: true }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(campaigns[0].title);
-  await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(campaigns[0].subject);
+  await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(SUBJECTS[campaigns[0].slug]);
   await frame(page, "A campaign's page");
 
   story("Each count shows only the letters it counts: the sent count, the letters that went.");
@@ -59,6 +59,54 @@ test("Campaigns", async ({ page, flowDatabase }) => {
   await expect(page).toHaveURL(/tab=sent/);
   await expect(page.getByRole("heading", { name: lettersCopy.copyStates.tabs.sent })).toBeVisible();
   await frame(page, "The letters sent");
+});
+
+test("Staff edit a campaign's letter", async ({ page, flowDatabase }) => {
+  const bill = campaigns[1];
+  const writer = mailingsCopy.campaignLetter;
+  story("Staff open the bill's campaign. Its letter is the version the code had, published for them to edit.");
+  await logIn(page, flowDatabase, ["supporters"]);
+  await page.goto(`${BASE}/staff/campaigns/${bill.slug}`);
+  await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(SUBJECTS[bill.slug]);
+  await frame(page, "The bill's campaign and its letter");
+
+  story("Edit the letter opens a draft, a copy of it. Beside it is the letter as an MP's constituent starts from it.");
+  await page.getByRole("link", { name: copy.editLetter }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/campaigns/${bill.slug}/letter`);
+  const preview = page.getByRole("region", { name: writer.preview });
+  await expect(preview.getByRole("paragraph").filter({ hasText: writer.exampleSender })).toBeVisible();
+  await frame(page, "The draft and its preview, for an MP who signed");
+
+  story(
+    "The preview starts with the first MP, who signed ControlAI's letter, so their letter has the thank-you. The thank-you part's button shows it for an MP who didn't.",
+  );
+  const part = preview.getByRole("button", { name: /signed ControlAI/ });
+  await expect(part).toHaveAttribute("aria-pressed", "true");
+  await expect(preview.getByText(BILL_THANKS)).toBeVisible();
+  await part.click();
+  await expect(part).toHaveAttribute("aria-pressed", "false");
+  await expect(preview.getByText(BILL_THANKS)).toBeHidden();
+  await frame(page, "The preview for an MP who didn't sign");
+
+  story("She changes the subject. It saves as she types, but supporters don't see it yet.");
+  const subject = "Please attend the debate on the Artificial Superintelligence Bill";
+  await page.getByLabel(mailingsCopy.mailingPages.subject).fill(subject);
+  await expect(page.getByRole("status").first()).toHaveText(mailingsCopy.mailingPages.savePill.saved);
+  await frame(page, "The subject changed, saved");
+
+  story("Publish makes it the version supporters start from, and goes back to the campaign.");
+  await page.getByRole("button", { name: writer.publish }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/campaigns/${bill.slug}`);
+  await expect(page.getByRole("region", { name: copy.theLetter })).toContainText(subject);
+  await expect(page.getByRole("link", { name: copy.editLetter })).toBeVisible();
+  await frame(page, "The new version on the campaign's page");
+
+  story("A supporter writing to their MP about the bill now starts from it.");
+  await openLookup(page, BASE, "ZZ9 9ZZ", `/campaigns/${bill.slug}`);
+  await page.getByRole("button", { name: emailYourMpCopy.lookup.button }).click();
+  await expect(page).toHaveURL(`${BASE}/campaigns/${bill.slug}/write`);
+  await expect(page.getByLabel(emailYourMpCopy.form.subjectLabel)).toHaveValue(subject);
+  await frame(page, "The letter a supporter starts from");
 });
 
 test("Asks", async ({ page, request, flowDatabase }) => {

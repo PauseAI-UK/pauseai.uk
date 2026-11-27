@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
 import { campaignNamed, campaignPath } from "@/lib/content/campaigns";
@@ -7,6 +8,9 @@ import { type LettersSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import CampaignLetter from "./CampaignLetter";
+import { DeleteDraft } from "./MailingButtons";
+import type { UnpublishedDraft } from "@/lib/mailings/campaign-letters.server";
+import type { FormResult } from "@/lib/form-result";
 import { CampaignAsk, campaignCounts } from "./CampaignsOverview";
 import Band, { BandFact } from "../ui/Band";
 import { CountGroups } from "./CopyCounts";
@@ -95,6 +99,15 @@ export type CampaignPageProps = {
   campaign: CampaignSummary;
   versions: CampaignVersion[];
   changed: number;
+  /** Who a part of a letter is for, by its condition (answerLabels()), for a letter with parts. */
+  conditions?: Record<string, string>;
+  /**
+   * For a campaign in the code, whose letter staff write: its draft with
+   * changes that aren't published, or null for none; and the Server Action
+   * that deletes it.
+   */
+  draft?: UnpublishedDraft | null;
+  discard?: (form: FormData) => Promise<FormResult<never>>;
   letters: { letters: LetterSummary[]; total: number; pages: number; pageSize: number };
   search: LettersSearch;
 };
@@ -112,7 +125,16 @@ function PublicPage({ campaign }: { campaign: CampaignSummary }) {
  * what it asks and when, with its counts; how many answered its ask; then "The letter" beside
  * "Letters", as "The email" is beside "Recipients".
  */
-export default function CampaignView({ campaign, versions, changed, letters, search }: CampaignPageProps) {
+export default function CampaignView({
+  campaign,
+  versions,
+  changed,
+  conditions,
+  draft,
+  discard,
+  letters,
+  search,
+}: CampaignPageProps) {
   const path = `/staff/campaigns/${campaign.slug}`;
   const { page, ...filters } = search;
   void page;
@@ -160,12 +182,27 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
         </Grid>
       )}
       <Grid>
-        <Card span={3} look="aside" title={copy.theLetter} id="campaign-letter">
-          <CampaignLetter
-            versions={versions}
-            changed={changed}
-            changedHref={filtersPath(path, { ...filters, tab: "changed" })}
-          />
+        <Card
+          span={3}
+          look="aside"
+          title={copy.theLetter}
+          id="campaign-letter"
+          action={
+            draft === undefined ? undefined : draft ? (
+              <div className={styles.letterActions}>
+                <ButtonLink variant="ghost" size="small" href={`${path}/letter`}>
+                  {copy.carryOn}
+                </ButtonLink>
+                <DeleteDraft id={draft.id} action={discard!} says={{}} />
+              </div>
+            ) : (
+              <ButtonLink variant="ghost" size="small" href={`${path}/letter`}>
+                {copy.editLetter}
+              </ButtonLink>
+            )
+          }
+        >
+          <CampaignLetter versions={versions} conditions={conditions} unpublished={draft ?? undefined} />
         </Card>
         <Card span={3} as="div">
           <div className={styles.recipientsHead}>
@@ -176,7 +213,15 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
                   ? copy.tabs.changed
                   : lettersCopy.copyStates.tabs[search.tab]}
             </h2>
-            {search.tab && <StaffLink href={filtersPath(path, { ...filters, tab: "" })}>{copy.showAll}</StaffLink>}
+            {search.tab ? (
+              <StaffLink href={filtersPath(path, { ...filters, tab: "" })}>{copy.showAll}</StaffLink>
+            ) : (
+              changed > 0 && (
+                <StaffLink href={filtersPath(path, { ...filters, tab: "changed" })}>
+                  {copy.changedLink(changed)}
+                </StaffLink>
+              )
+            )}
           </div>
           <ListFrame
             count={lettersCopy.letters.total(letters.total)}

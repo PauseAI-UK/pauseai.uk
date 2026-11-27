@@ -1,9 +1,9 @@
 import "server-only";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { ASK_STATUSES } from "@/lib/asks/asks";
-import { answerCondition, POLITICIAN_FIELDS, type MailingChoice } from "./fields";
-import type { MailingRecipientValues } from "./doc";
-import { listAsks } from "@/lib/asks/records.server";
+import { POLITICIAN_FIELDS, type MailingChoice } from "./fields";
+import { answerCondition, type MailingRecipientValues } from "./doc";
+import { listAsks, type Ask } from "@/lib/asks/records.server";
 import { mailingPoliticians, type MailingPolitician } from "@/lib/politicians/records.server";
 import { politiciansSearch } from "@/lib/staff-search";
 import type { StoredFilter } from "@/lib/staff-search";
@@ -58,12 +58,17 @@ export async function politicianAudience(filter: StoredFilter): Promise<Politici
     label: copy.fields[id],
     lacking: recipients.filter((recipient) => !recipient.values[id].trim()).length,
   }));
+  return { recipients, leftOut, fields, conditions: answerChoices(asks, recipients) };
+}
+
+/** Each answer to each ask, as a part of a letter can be for, with how many of `recipients` gave it. */
+export function answerChoices(asks: Ask[], recipients: MailingRecipientValues[]): MailingChoice[] {
   const covers = new Map<string, number>();
   for (const answer of recipients.flatMap((recipient) => recipient.meets)) {
     covers.set(answer, (covers.get(answer) ?? 0) + 1);
   }
   // Every answer to every ask, the asks newest first, each kind's answers in order.
-  const conditions = asks.flatMap((ask) =>
+  return asks.flatMap((ask) =>
     (ASK_STATUSES[ask.kind] as readonly string[]).map((status) => {
       const id = answerCondition(ask.slug, status);
       return {
@@ -75,5 +80,4 @@ export async function politicianAudience(filter: StoredFilter): Promise<Politici
       };
     }),
   );
-  return { recipients, leftOut, fields, conditions };
 }

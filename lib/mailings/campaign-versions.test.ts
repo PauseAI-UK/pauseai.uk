@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { campaignTextDoc } from "./campaign-versions";
 
-it("makes a campaign's names merge fields, in and around its words", () => {
+it("makes a campaign's names merge fields, in and around its words, the sender's name as sender", () => {
   const doc = campaignTextDoc("Dear {salutation}\n\nOf {constituency} **and** me.\n\n- a point");
   expect(doc.content[0]).toEqual({
     type: "paragraph",
@@ -15,7 +15,7 @@ it("makes a campaign's names merge fields, in and around its words", () => {
   expect(doc.content[2].type).toBe("bulletList");
   expect(campaignTextDoc("{name}").content[0]).toEqual({
     type: "paragraph",
-    content: [{ type: "field", attrs: { field: "name" } }],
+    content: [{ type: "field", attrs: { field: "sender" } }],
   });
   expect(campaignTextDoc("a\nb").content[0]).toEqual({
     type: "paragraph",

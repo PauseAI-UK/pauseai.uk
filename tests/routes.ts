@@ -23,6 +23,7 @@ export const DYNAMIC_EXAMPLES: Record<string, string> = {
   "/staff/asks/[slug]": "/staff/asks/winter-reception-dec-2026",
   "/staff/asks/[slug]/edit": "/staff/asks/winter-reception-dec-2026/edit",
   "/staff/campaigns/[slug]": "/staff/campaigns/regulate-letter-pm",
+  "/staff/campaigns/[slug]/letter": "/staff/campaigns/support-sobel-bill/letter",
   "/staff/one-off/[id]": "/staff/one-off/1",
   // The Postgres error in a staff page (tests/fixtures/staff-data.sql).
   "/staff/errors/[id]": "/staff/errors/1",

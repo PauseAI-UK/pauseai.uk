@@ -31,6 +31,14 @@
 }
 
 /* Over the recipients: which they are, and the way back to them all. */
+/* A campaign letter's draft: Carry on beside Delete draft, over the letter. */
+.letterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 .recipientsHead {
   display: flex;
   flex-wrap: wrap;

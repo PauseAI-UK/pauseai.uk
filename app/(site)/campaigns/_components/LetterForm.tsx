@@ -7,7 +7,7 @@ import { TextInput } from "@/components/ui/Controls";
 import { Field, FieldError, FieldGroup, Label } from "@/components/ui/Field";
 import { FormStack } from "@/components/ui/Form";
 import { copy, type Campaign } from "@/lib/content/email-your-mp";
-import { draftLetter, signatureAddress, type Mp, type MpStatuses } from "@/lib/email-your-mp";
+import { draftLetter, signatureAddress, type CampaignLetter, type Mp, type MpStatuses } from "@/lib/email-your-mp";
 import { campaignPath } from "@/lib/content/campaigns";
 import { looksLikeEmail } from "@/lib/email-address";
 import { draftHash } from "@/lib/letters/changes";
@@ -20,6 +20,8 @@ import styles from "./LetterForm.module.css";
 
 type Props = {
   campaign: Campaign;
+  /** The version of the campaign's letter to start from. */
+  letter: CampaignLetter;
   mp: Mp;
   statuses: MpStatuses;
   senderName: string;
@@ -31,21 +33,30 @@ type Props = {
 };
 
 /** The letter to one MP for one campaign: edit it, then go to the preview, which sends it. */
-export default function LetterForm({ campaign, mp, statuses, senderName, address, postcode, draft }: Props) {
+export default function LetterForm({
+  campaign,
+  letter: version,
+  mp,
+  statuses,
+  senderName,
+  address,
+  postcode,
+  draft,
+}: Props) {
   const router = useRouter();
   const letterId = useId();
   const letterTips = useId();
   const [email, setEmail] = useState(draft?.email ?? "");
-  const [subject, setSubject] = useState(draft?.subject ?? campaign.subject);
+  const [subject, setSubject] = useState(draft?.subject ?? version.subject);
   // The draft the form begins with, and its hash, kept with the letter as it's edited.
   const [start] = useState(() => {
-    if (draft) return { letter: draft.letter, hash: draft.draftHash };
+    if (draft) return { letter: draft.letter, hash: draft.draftHash, version: draft.campaignLetterId };
     const letter = draftLetter(
-      campaign,
-      { salutation: mp.salutation, constituency: mp.constituency, senderName, statuses },
+      version.body,
+      { salutation: mp.salutation, mpName: mp.name, constituency: mp.constituency, senderName, statuses },
       signatureAddress(address, postcode),
     );
-    return { letter, hash: draftHash(toText(letter)) };
+    return { letter, hash: draftHash(toText(letter)), version: version.id };
   });
   const [letter, setLetter] = useState(start.letter);
   const [nickname, setNickname] = useState(draft?.nickname ?? "");
@@ -67,6 +78,7 @@ export default function LetterForm({ campaign, mp, statuses, senderName, address
       subject,
       letter,
       draftHash: start.hash,
+      campaignLetterId: start.version,
       nickname,
     });
     if (!saved) return setError(copy.form.storageFailed);

@@ -244,18 +244,36 @@ letters of its own. Its form is at `/staff/asks/[slug]/edit`.
 One letter many supporters send, for an ask or for none (`campaigns`): sign
 the letter to the PM, come to the Sobel bill's debate. Each is keyed by its
 slug, which its page's URL and its letters use, and its row names its ask.
-The rest is copy, in code (`campaigns` in `lib/content/email-your-mp.ts`):
-its letter, subject and attachments. A campaign an MP can have done also
-names the status of its ask that means they have. A test checks each
-campaign in code has a row with the same title and ask. pauseai.info's old
-campaigns have a row and no code.
+Its page, the page's words and its attachments are in code (`campaigns` in
+`lib/content/email-your-mp.ts`). A campaign an MP can have done also names
+the status of its ask that means they have. A test checks each campaign in
+code has a row with the same title and ask. pauseai.info's old campaigns
+have a row and no code.
+
+Its subject and letter are staff's, written on the staff site and kept in
+`campaign_letters` (`lib/mailings/campaign-letters.server.ts`). A row is a
+version, published or the draft staff are working on, at most one a
+campaign. The letter is a mailing's (`lib/mailings/doc.ts`): the MP's
+salutation, name and constituency and the sender's name as fields, and
+parts only for MPs with an answer to an ask, such as the bill's thanks to
+an MP who signed ControlAI's letter. Publishing stamps the draft with when
+and by whom, and the database refuses any change to it after that.
+Supporters start from the latest published version: the write step
+(`/campaigns/<slug>/write`) reads it on each visit, and says the campaign
+isn't open until there's one. A letter keeps the version it started from
+(`campaign_letter_id`) and the draft filled in for its MP (`draft`), and
+the server rebuilds that draft from the version the form says it began
+with, so how much the supporter changed is measured against what they
+were given. Letters from before staff could edit the letter have no
+version.
 
 The list in code is in priority order: a person writing to their MP is
 shown the first campaign whose ask that MP hasn't met. So the last campaign
 is one nobody has done, and there's always one to move on to.
 
 A new campaign is an entry in that list, its row in a migration, its page
-in `app/(site)/campaigns/<slug>/`, and a link in the nav.
+in `app/(site)/campaigns/<slug>/`, and a link in the nav. Staff then write
+and publish its letter.
 
 Staff see a campaign as a mailing, from supporters rather than PauseAI.
 `/staff/campaigns` lists them under the month of each one's most recent
@@ -264,10 +282,15 @@ letter, with a mailing's counts. A campaign's page
 
 - its header;
 - how many answered its ask;
-- "The letter", with each version of its text and how much people changed it;
+- "The letter", with each version of its text and how much people changed it,
+  and for a campaign in the code, a way to edit it
+  (`/staff/campaigns/[slug]/letter`): the draft beside a preview for an MP
+  chosen as a mailing's preview chooses, then Publish;
 - "Letters", the list its counts choose among.
 
-A campaign in the code's list has one version, the code's text. One of
+A campaign in the code's list has its published versions, newest first,
+each with how many letters started from it, then the letters from before
+there were versions, each of which keeps its own draft. One of
 pauseai.info's old campaigns has a version for each commit of its form that
 was live when a letter was written
 (`FORM_VERSIONS` in `lib/content/pauseai-info-form.ts`).
