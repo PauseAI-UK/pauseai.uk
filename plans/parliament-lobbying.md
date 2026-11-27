@@ -81,10 +81,14 @@ list is the replies that aren't automatic and aren't yet dealt with.
 On the two live campaigns, about four in five replies are automatic,
 which leaves a real reply every day or two to check.
 
-Later, Claude Haiku can read each reply as it
-comes in and suggest its outcome, for staff to confirm. That needs an
-Anthropic API key in the site's settings, and makes Anthropic a new
-processor of MPs' replies, which include constituents' details.
+Later, Claude Haiku can read each reply as it comes in and suggest the
+MP's answer, for staff to confirm. The site already calls Claude, with
+`askClaude()` (`lib/server/outside-services/anthropic.server.ts`) and
+the `ANTHROPIC_API_KEY` the press survey uses. Anthropic is already a
+processor, but only of news articles, with no supporter's data
+(`docs/data-protection.md`). MPs' replies include constituents' names
+and details, so its entry there and the privacy policy would need to
+say so first.
 
 ## Emails
 
