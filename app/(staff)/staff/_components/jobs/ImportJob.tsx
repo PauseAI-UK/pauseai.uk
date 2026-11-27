@@ -1,5 +1,4 @@
 import { Fragment, type ReactNode } from "react";
-import { staffMemberText } from "@/lib/staff-member";
 import { site } from "@/lib/content/site";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK } from "@/lib/asks/asks";
 import { EDM_PAGE } from "@/lib/asks/edm";
@@ -31,11 +30,13 @@ import boxes from "./RunBox.module.css";
 import RunList from "./RunList";
 import RunningNow from "./RunningNow";
 import ExternalLink from "../ui/ExternalLink";
+import StaffLink from "../ui/StaffLink";
 import PageHead from "../ui/PageHead";
 import Band, { BandFact } from "../ui/Band";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 // Every import and check: the overview at /staff/scheduled-jobs, a card each,
 // and each job's own page, with its button and every run it has made.
@@ -155,17 +156,26 @@ const ABOUT: Record<
   },
 };
 
+/** A link in a job's intro: to a staff page in this tab, or out of the site in a new one. */
+function IntroLink({ href, children }: { href: string; children: string }) {
+  return href.startsWith("/staff") ? (
+    <StaffLink href={href}>{children}</StaffLink>
+  ) : (
+    <ExternalLink href={href}>{children}</ExternalLink>
+  );
+}
+
 /** What the job does, with its source linked. */
 function Intro({ job }: { job: ImportJob }) {
   const { intro, href, then, also } = ABOUT[job];
   return (
     <>
       {intro.before}
-      <ExternalLink href={href}>{intro.link}</ExternalLink>
+      <IntroLink href={href}>{intro.link}</IntroLink>
       {intro.after}
       {then?.map((part) => (
         <Fragment key={part.href}>
-          <ExternalLink href={part.href}>{part.link}</ExternalLink>
+          <IntroLink href={part.href}>{part.link}</IntroLink>
           {part.after}
         </Fragment>
       ))}
@@ -274,7 +284,7 @@ export function ImportJobPage({
         lead={<ImportIcon source={SOURCES[job]} large />}
         title={importRunsCopy.jobTitles[job]}
         subtitle={<Intro job={job} />}
-        aside={<JobActions action={run} label={ABOUT[job].button} />}
+        aside={<JobActions action={run} label={ABOUT[job].button} disabled={Boolean(running)} />}
       >
         {/* One never run has neither: the list under it says so. */}
         <BandFact label={words.facts.now}>{jobState(runs[0], running)}</BandFact>
@@ -284,9 +294,14 @@ export function ImportJobPage({
       </Band>
       {running && (
         <RunningNow>
-          {running.startedBy === NIGHTLY
-            ? words.runningScheduled(staffTime(running.startedAt))
-            : words.running(staffMemberText(running.startedBy), staffTime(running.startedAt))}
+          {running.startedBy === NIGHTLY ? (
+            words.runningScheduled(staffTime(running.startedAt))
+          ) : (
+            <StaffSentence
+              words={(who) => words.running(who, staffTime(running.startedAt))}
+              email={running.startedBy}
+            />
+          )}
         </RunningNow>
       )}
       <RunList runs={runs} none={words.never} decide={decide} running={running} />

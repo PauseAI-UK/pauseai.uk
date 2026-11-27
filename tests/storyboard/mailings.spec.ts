@@ -912,11 +912,12 @@ test("A politician's reply to check", async ({ page, request, flowDatabase }) =>
   await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await frame(page, "The mailing's replies to check");
   story(
-    "Her letter's page has Reply and Nothing to do under her reply. Setting her answer to the ask, beside it, would deal with it too.",
+    "Her letter's page has Reply, Set answer and Nothing to do under her reply. Reply is the main one, as her reply came to their own mailbox; setting her answer to the ask would deal with it too.",
   );
   await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
   const answers = mailingsCopy.answers;
   await expect(page.getByRole("button", { name: answers.reply })).toBeVisible();
+  await expect(page.getByRole("button", { name: politiciansCopy.politician.setAnswer })).toBeVisible();
   await frame(page, "Her reply, waiting");
   story("Reply opens an answer at the foot of the thread, from the mailbox her reply came to, in the mailing's name.");
   await page.getByRole("button", { name: answers.reply }).click();
@@ -947,6 +948,35 @@ test("A reply to someone else's mailbox", async ({ page, request, flowDatabase }
   // Said by this flow's staff member, at whatever time.
   await expect(page.getByText(answers.nothingDone(staffEmail(), ""))).toBeVisible();
   await frame(page, "Nothing to do, said");
+});
+
+test("Setting the answer from a reply", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly's reply says she'll come to the Edinburgh conference. Set answer, under her reply, opens the ask's form there, so her answer is set without going back up the page.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  const { mailing, letter } = pollyReplied(flowDatabase, "jo@pauseai.uk");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
+  const words = politiciansCopy.politician;
+  const set = page.getByRole("button", { name: words.setAnswer });
+  await expect(set).toBeVisible();
+  await set.evaluate((button) => button.scrollIntoView({ block: "center", behavior: "instant" }));
+  await frame(page, "Set answer, under her reply", { window: true });
+  story("It opens the form, under who asked her what. They pick Going, with a note, and save.");
+  await openBubble(set);
+  const form = page.locator("#set-answer-edinburgh-conference-2026");
+  await form.getByRole("radio", { name: staffVocabulary.statuses.going }).click();
+  await form.getByLabel(words.note).fill("Said yes in her reply");
+  await frame(page, "The answer's form, under her reply", { window: true });
+  story("Saved, the ask says she's going.");
+  await form.getByRole("button", { name: words.save }).click();
+  // The answer, before the card's own form, which offers it too.
+  await expect(
+    page.locator("#ask-title").locator("..").getByText(staffVocabulary.statuses.going).first(),
+  ).toBeVisible();
+  await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "Her answer, set");
 });
 
 test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {

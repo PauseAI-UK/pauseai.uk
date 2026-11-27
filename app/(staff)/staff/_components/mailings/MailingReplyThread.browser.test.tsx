@@ -12,6 +12,12 @@ import {
   MailingReplyThreadExample,
 } from "./MailingReplyThread.gallery.client";
 import { mailingsCopy } from "./copy";
+import { exampleAsks } from "../asks/AsksList.examples";
+import { examplePolitician } from "../politicians/PoliticianTable.examples";
+import type { SetStatus } from "../politicians/AskRow";
+import { politiciansCopy } from "../politicians/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { buttonClass } from "@/components/ui/Button";
 
 const copy = mailingsCopy.answers;
 
@@ -23,6 +29,46 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("MailingReplyThread", () => {
+  it("puts Set answer among the reply's buttons for an ask staff record, opening its form, plainer beside Reply", async () => {
+    const words = politiciansCopy.politician;
+    const [byHand, , imported] = exampleAsks;
+    const setStatus = vi.fn<SetStatus>(async () => ({ ok: true }));
+    const props = {
+      thread: exampleWaitingThread,
+      waiting: { id: 1, account: "jo@pauseai.uk" },
+      deal: () => Promise.resolve({ ok: true as const }),
+      answer: () => Promise.resolve({ ok: true as const }),
+    };
+    const politician = { ...examplePolitician, airtableId: null };
+    const { rerender } = await render(
+      <MailingReplyThread {...props} canAnswer={false} asked={{ politician, ask: byHand, setStatus }} />,
+    );
+    const set = page.getByRole("button", { name: words.setAnswer });
+    expect(set.element().className).toBe(buttonClass({ variant: "primary", size: "small", fit: true }));
+    await set.click();
+    await page.getByRole("radio", { name: staffVocabulary.statuses.declined }).click();
+    await page.getByLabelText(words.note).fill("Their office said no");
+    // Pressed where it is, as the bubble hangs below the test's short frame.
+    (page.getByRole("button", { name: words.save }).element() as HTMLButtonElement).click();
+    await expect.poll(() => setStatus.mock.calls.length).toBe(1);
+    expect(Object.fromEntries(setStatus.mock.calls[0]![0])).toEqual({
+      politicianId: String(politician.id),
+      ask: byHand!.slug,
+      status: "declined",
+      note: "Their office said no",
+    });
+    // Beside Reply, plainer.
+    await rerender(<MailingReplyThread {...props} canAnswer asked={{ politician, ask: byHand, setStatus }} />);
+    expect(set.element().className).toBe(buttonClass({ variant: "ghost", size: "small", fit: true }));
+    // None for an ask an import answers, a mailing with no ask, or none given.
+    await rerender(<MailingReplyThread {...props} canAnswer asked={{ politician, ask: imported, setStatus }} />);
+    expect(set.all()).toHaveLength(0);
+    await rerender(<MailingReplyThread {...props} canAnswer asked={{ politician, ask: undefined, setStatus }} />);
+    expect(set.all()).toHaveLength(0);
+    await rerender(<MailingReplyThread {...props} canAnswer />);
+    expect(set.all()).toHaveLength(0);
+  });
+
   it("says at the top of the page that someone has already dealt with the reply", async () => {
     await render(
       <RefusalPlace>

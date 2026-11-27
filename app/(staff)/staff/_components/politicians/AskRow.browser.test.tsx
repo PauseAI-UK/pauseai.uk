@@ -4,7 +4,7 @@ import { page } from "vitest/browser";
 import { refused } from "@/lib/form-result";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleAsks } from "../asks/AsksList.examples";
-import AskRow, { AskRows, type SetStatus } from "./AskRow";
+import AskRow, { AskRows, SetAnswer, type SetStatus } from "./AskRow";
 import { examplePolitician } from "./PoliticianTable.examples";
 import { politiciansCopy } from "./copy";
 
@@ -39,5 +39,21 @@ describe("AskRow's form to set an answer", () => {
       { ...sent, note: "  " },
       { ...sent, note: "Their office said no" },
     ]);
+  });
+});
+
+describe("SetAnswer", () => {
+  it("is a button for an ask they've answered, or not yet", async () => {
+    const politician = { ...examplePolitician, airtableId: null };
+    const setStatus = vi.fn<SetStatus>();
+    const answered = exampleAsks.find((one) => politician.statuses[one.slug])!;
+    const not = exampleAsks.find((one) => !politician.statuses[one.slug])!;
+    await render(
+      <>
+        <SetAnswer politician={politician} ask={answered} setStatus={setStatus} look="primary" />
+        <SetAnswer politician={politician} ask={not} setStatus={setStatus} look="ghost" />
+      </>,
+    );
+    expect(page.getByRole("button", { name: copy.setAnswer }).all()).toHaveLength(2);
   });
 });

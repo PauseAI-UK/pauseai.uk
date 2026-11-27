@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Muted } from "@/components/ui/Text";
 import {
   canDeleteNote,
@@ -10,7 +11,7 @@ import {
   type NoteReader,
 } from "@/lib/notes/notes";
 import { staffTime } from "@/lib/staff-time";
-import { staffMemberText } from "@/lib/staff-member";
+import StaffMember from "../ui/StaffMember";
 import NoteChanges from "./NoteChanges";
 import NotesCard from "./NotesCard";
 import styles from "./Notes.module.css";
@@ -68,9 +69,19 @@ export function NoteEntry({
   const text = <NoteText body={note.body} />;
   const meta = (
     <Muted>
-      {[label, staffMemberText(note.writtenBy), dated && staffTime(note.createdAt), note.editedAt && copy.edited]
+      {[
+        label,
+        <StaffMember key="by" email={note.writtenBy} />,
+        dated && staffTime(note.createdAt),
+        note.editedAt && copy.edited,
+      ]
         .filter(Boolean)
-        .join(" · ")}
+        .map((part, i) => (
+          <Fragment key={i}>
+            {i > 0 && " · "}
+            {part}
+          </Fragment>
+        ))}
     </Muted>
   );
   if (editable || canDeleteNote(note, reader, time)) {

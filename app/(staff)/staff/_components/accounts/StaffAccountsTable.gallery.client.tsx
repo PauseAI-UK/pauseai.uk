@@ -30,6 +30,7 @@ export function StaffAccountsTableExample() {
           accounts={[
             {
               email: "admin@pauseai.uk",
+              name: null,
               permissions: ["admin"],
               addedBy: "migration",
               addedAt: new Date("2026-10-16T12:00:00Z"),
@@ -40,6 +41,7 @@ export function StaffAccountsTableExample() {
             },
             {
               email: "jo@pauseai.uk",
+              name: "Jo Bloggs",
               permissions: ["admin"],
               addedBy: "admin@pauseai.uk",
               addedAt: new Date("2026-10-20T09:00:00Z"),
@@ -50,6 +52,7 @@ export function StaffAccountsTableExample() {
             },
             {
               email: "samuel.whitlock@pauseai.uk",
+              name: "Samuel Whitlock",
               permissions: [],
               addedBy: "login",
               addedAt: new Date("2026-10-21T10:30:00Z"),

@@ -1,17 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { page, userEvent } from "vitest/browser";
-import StaffMember from "./StaffMember";
-import { StaffNames } from "./StaffNames";
-
-const NAMES = { "jo@pauseai.uk": "Jo Bloggs" };
+import { page } from "vitest/browser";
+import StaffMember, { StaffSentence } from "./StaffMember";
 
 describe("StaffMember", () => {
   it("names a staff member by their whole address, free to break before its @", async () => {
     await render(<StaffMember email="jo@pauseai.uk" />);
     await expect.element(page.getByText("jo@pauseai.uk")).toBeVisible();
     expect(document.querySelector("span")!.innerHTML).toBe("jo<wbr>@pauseai.uk");
-    expect(document.querySelector("button")).toBeNull();
   });
 
   it("names one with no @, such as a job, as it is", async () => {
@@ -19,34 +15,16 @@ describe("StaffMember", () => {
     await expect.element(page.getByText("nightly")).toBeVisible();
     expect(document.querySelector("wbr")).toBeNull();
   });
+});
 
-  it("opens a bubble with their name, within a sentence, where it's known", async () => {
+describe("StaffSentence", () => {
+  it("names the staff member wherever the sentence does", async () => {
     await render(
-      <StaffNames names={NAMES}>
-        <p>
-          Imported by <StaffMember email="Jo@pauseai.uk" /> and <StaffMember email="sam@pauseai.uk" />
-        </p>
-      </StaffNames>,
+      <p>
+        <StaffSentence words={(who) => `Sent by ${who} at 10:00, after ${who}`} email="jo@pauseai.uk" />
+      </p>,
     );
-    const jo = page.getByRole("button", { name: "Jo@pauseai.uk" });
-    await expect.element(page.getByText("Jo Bloggs")).not.toBeVisible();
-    await userEvent.click(jo);
-    await expect.element(page.getByText("Jo Bloggs")).toBeVisible();
-    // A span, as a div can't go in a paragraph.
-    expect(document.querySelector("p [popover]")!.tagName).toBe("SPAN");
-    // Sam has no name, so no button.
-    expect(document.querySelectorAll("button")).toHaveLength(1);
-  });
-
-  it("is the address alone inside a link or button, even where the name is known", async () => {
-    await render(
-      <StaffNames names={NAMES}>
-        <a href="/staff/me">
-          <StaffMember email="jo@pauseai.uk" plain />
-        </a>
-      </StaffNames>,
-    );
-    await expect.element(page.getByRole("link", { name: "jo@pauseai.uk" })).toBeVisible();
-    expect(document.querySelector("button")).toBeNull();
+    expect(document.querySelector("p")!.textContent).toBe("Sent by jo@pauseai.uk at 10:00, after jo@pauseai.uk");
+    expect(document.querySelectorAll("p wbr")).toHaveLength(2);
   });
 });

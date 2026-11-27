@@ -6,13 +6,13 @@ import { useSave } from "@/components/ui/useSave";
 import type { BroadcastReaction, ReactionResult } from "@/lib/broadcasts/answers.server";
 import type { FormResult } from "@/lib/form-result";
 import { REACTIONS } from "@/lib/broadcasts/broadcasts";
-import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { ChatBubble, ChatWall } from "./TextBubble";
 import chat from "./Broadcasts.module.css";
 import styles from "./ReplyActions.module.css";
 import answers from "../mailings/AnswerableReply.module.css";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = broadcastsCopy.broadcastPages.replies;
 
@@ -140,7 +140,10 @@ export function OurReaction({ reaction, className }: { reaction: BroadcastReacti
   const failure = reaction.events.find((event) => event.kind === "failed");
   return (
     <p className={className}>
-      {copy.reactedBy(reaction.emoji, staffMemberText(reaction.sentBy), staffTime(reaction.sentAt))}
+      <StaffSentence
+        words={(who) => copy.reactedBy(reaction.emoji, who, staffTime(reaction.sentAt))}
+        email={reaction.sentBy}
+      />
       {failure && (
         <>
           <br />

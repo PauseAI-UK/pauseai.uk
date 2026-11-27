@@ -15,6 +15,7 @@ describe("StaffAccountsTable", () => {
   const accounts = [
     {
       email: "admin@pauseai.uk",
+      name: null,
       permissions: ["admin"],
       addedBy: "migration",
       addedAt: new Date("2026-10-16T12:00:00Z"),
@@ -25,6 +26,7 @@ describe("StaffAccountsTable", () => {
     },
     {
       email: "jo@pauseai.uk",
+      name: "Jo Bloggs",
       permissions: ["supporters"],
       addedBy: "admin@pauseai.uk",
       addedAt: new Date("2026-10-20T09:00:00Z"),
@@ -35,6 +37,7 @@ describe("StaffAccountsTable", () => {
     },
     {
       email: "samuel.whitlock@pauseai.uk",
+      name: "Samuel Whitlock",
       permissions: [],
       addedBy: "login",
       addedAt: new Date("2026-10-21T10:30:00Z"),
@@ -74,7 +77,7 @@ describe("StaffAccountsTable", () => {
     await expect.element(heading(copy.permissions)).not.toBeInTheDocument();
   });
 
-  it("says when each was added and by whom, or by its login, when last logged in and seen, its sessions open, and its Gmail", async () => {
+  it("says each one's name, or a dash before they've logged in with one, when each was added and by whom, or by its login, when last logged in and seen, its sessions open, and its Gmail", async () => {
     await renderTable();
     const row = (email: string) =>
       page
@@ -84,14 +87,16 @@ describe("StaffAccountsTable", () => {
         .all()
         .map((cell) => cell.element().textContent);
     const copy = accountsCopy.accounts;
-    expect(row("jo@pauseai.uk").slice(2, 7)).toEqual([
+    expect(row("admin@pauseai.uk")[1]).toBe("–");
+    expect(row("jo@pauseai.uk").slice(1, 2)).toEqual(["Jo Bloggs"]);
+    expect(row("jo@pauseai.uk").slice(3, 8)).toEqual([
       `20 Oct 2026, 10:00 ${copy.addedBy("admin@pauseai.uk")}`,
       copy.never,
       copy.never,
       "0",
       `${copy.gmailConnected} 21 Oct 2026, 10:00`,
     ]);
-    expect(row("samuel.whitlock@pauseai.uk").slice(2, 7)).toEqual([
+    expect(row("samuel.whitlock@pauseai.uk").slice(3, 8)).toEqual([
       `21 Oct 2026, 11:30 ${copy.addedByLogin}`,
       "21 Oct 2026, 11:30",
       "21 Oct 2026, 12:00",
@@ -122,7 +127,7 @@ describe("StaffAccountsTable", () => {
     expect(getComputedStyle(cell.element()).verticalAlign).toBe("middle");
     // Each account's permissions by name, then Edit; none, a dash. Its bubble is shut.
     const permissions = (email: string) =>
-      page.getByRole("row").filter({ hasText: email }).getByRole("cell").nth(1).element().firstElementChild!.firstChild!
+      page.getByRole("row").filter({ hasText: email }).getByRole("cell").nth(2).element().firstElementChild!.firstChild!
         .textContent;
     expect(permissions("admin@pauseai.uk")).toBe(copy.names.admin);
     expect(permissions("jo@pauseai.uk")).toBe(copy.names.supporters);
@@ -130,7 +135,7 @@ describe("StaffAccountsTable", () => {
     expect([...document.querySelectorAll("input[type=checkbox]")].some((box) => box.checkVisibility())).toBe(false);
     // The last row: everyone else at pauseai.uk, who can log in with no permissions.
     const last = [...document.querySelectorAll("tfoot td")].map((td) => td.textContent);
-    expect(last).toEqual([copy.everyone, "–", copy.everyoneNote]);
+    expect(last).toEqual([copy.everyone, "", "–", copy.everyoneNote]);
     // Under its heading, what each permission opens, a row each: its name in bold, then what it opens.
     await expect.element(page.getByRole("heading", { level: 2, name: copy.permissionsKey })).toBeVisible();
     const opens = [...document.querySelectorAll("dl > div")].map((row) => [

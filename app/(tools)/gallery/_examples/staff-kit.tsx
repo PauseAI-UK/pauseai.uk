@@ -18,7 +18,6 @@ import { openInGmailGallery } from "@/app/(staff)/staff/_components/ui/OpenInGma
 import { helpButtonGallery } from "@/app/(staff)/staff/_components/ui/HelpButton.gallery";
 import { testTagGallery } from "@/app/(staff)/staff/_components/ui/TestTag.gallery";
 import { staffMemberGallery } from "@/app/(staff)/staff/_components/ui/StaffMember.gallery";
-import { staffNamesGallery } from "@/app/(staff)/staff/_components/ui/StaffNames.gallery";
 import { formPendingGallery } from "@/app/(staff)/staff/_components/ui/FormPending.gallery";
 import { navFoldGallery } from "@/app/(staff)/staff/_components/ui/NavFold.gallery";
 import { withheldGallery } from "@/app/(staff)/staff/_components/ui/Withheld.gallery";
@@ -79,7 +78,6 @@ export const staffKit: Group = {
     ...helpButtonGallery,
     ...testTagGallery,
     ...staffMemberGallery,
-    ...staffNamesGallery,
     ...formPendingGallery,
     ...navFoldGallery,
     ...navIconGallery,

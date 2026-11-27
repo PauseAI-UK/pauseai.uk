@@ -68,6 +68,11 @@ export default async function MailingLetterPage({ params }: Params) {
           thread={found(thread)}
           link={<FindInGmail find={letter.gmail} />}
           {...reply}
+          asked={{
+            politician,
+            ask: asks.find((one) => one.slug === letter.mailingAsk),
+            setStatus: setAskStatus,
+          }}
           deal={nothingToDoNow}
           answer={answerLetterReplyNow}
         />

@@ -160,6 +160,15 @@ describe("ImportJobPage", () => {
     expect(document.body.textContent).not.toContain(press.startedBy);
   });
 
+  it("can't be run again while a run of it is going", async () => {
+    const props = { job: "import-parliament" as const, runs: [], run: vi.fn(), decide: vi.fn(), now: NOW };
+    const button = page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] });
+    const { rerender } = await render(<ImportJobPage {...props} running={press} />);
+    await expect.element(button).toBeDisabled();
+    await rerender(<ImportJobPage {...props} />);
+    await expect.element(button).toBeEnabled();
+  });
+
   it("says what each job does, linking where it reads from", async () => {
     /** The paragraph under the title of `job`'s page. */
     const about = async (job: ImportJob) => {
@@ -185,6 +194,12 @@ describe("ImportJobPage", () => {
     // ControlAI's imports link the ask they mark, the quotes around its name left out of the link.
     const askLinks = (i: number) =>
       [...cards[i].querySelectorAll("a")].slice(1).map((a) => [a.getAttribute("href"), a.textContent]);
+    // A staff page in this tab, with no arrow; another site in a new one.
+    const tabs = (i: number) => [...cards[i].querySelectorAll("a")].map((a) => [a.getAttribute("href"), a.target]);
+    expect(tabs(8)).toEqual([
+      ["https://controlai.org/uk-pm-letter", "_blank"],
+      ["/staff/asks/controlai-letter", ""],
+    ]);
     expect(askLinks(8)).toEqual([["/staff/asks/controlai-letter", "ControlAI's letter to the Prime Minister"]]);
     expect(askLinks(9)).toEqual([["/staff/asks/controlai-statement", "ControlAI's campaign statement"]]);
     expect(cards[9].textContent).toContain("“ControlAI's campaign statement”.");

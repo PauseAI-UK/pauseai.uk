@@ -1,5 +1,4 @@
 import StaffLink from "../ui/StaffLink";
-import { staffMemberText } from "@/lib/staff-member";
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
 import type { ReactNode } from "react";
@@ -18,6 +17,7 @@ import Progress from "../ui/Progress";
 import styles from "./MailingsOverview.module.css";
 import { asksCopy } from "@/lib/asks/copy";
 import { mailingsCopy } from "./copy";
+import { StaffSentence } from "../ui/StaffMember";
 
 const copy = mailingsCopy.mailingPages;
 
@@ -208,7 +208,7 @@ function Row<T extends MailingBase>({
         (mailing.oldLetters ? mailingsCopy.mailings.notRecorded : mailingsCopy.mailings.imported))
       : named(mailing.fromName === mailing.sentFrom ? null : mailing.fromName, mailing.sentFrom));
   // Mostly the policy inbox, so also who wrote it, where the look has no From of its own.
-  const by = !look.from && mailing.createdBy ? copy.by(staffMemberText(mailing.createdBy)) : null;
+  const by = !look.from && mailing.createdBy ? <StaffSentence words={copy.by} email={mailing.createdBy} /> : null;
   const paused = look.paused?.(mailing);
   return (
     <li className={styles.row}>
