@@ -165,7 +165,7 @@ export const copy = {
     // Opened with no MP looked up in this browser: straight from a link, say.
     none: "Find your MP first.",
     // For a campaign staff haven't published a letter for yet.
-    notOpen: "⁂ This campaign isn't open for letters yet. Please come back soon.",
+    notOpen: "This campaign isn't set up properly yet.",
   },
   // The page between the form and sending: the letter exactly as it will go.
   preview: {
