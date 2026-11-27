@@ -128,7 +128,7 @@ function LinkCard({ link, setLink }: { link?: CommunityLink; setLink: WaitingRoo
 /**
  * The WhatsApp waiting room: the community's link and the form to change
  * it; then tabs of who's held, let in, dismissed or hasn't replied, with how
- * many; and the tab's people, each with their chat, and for those not yet
+ * many where there are any; and the tab's people, each with their chat, and for those not yet
  * decided, buttons to let them in or dismiss them.
  */
 export default function WaitingRoom({
@@ -148,7 +148,8 @@ export default function WaitingRoom({
     key,
     label: copy.tabs[key],
     href: key === "held" ? WAITING_ROOM_PATH : `${WAITING_ROOM_PATH}?show=${key}`,
-    badge: counts[key],
+    // A tab with nobody in it says so by having no count.
+    badge: counts[key] || undefined,
   }));
   return (
     <>

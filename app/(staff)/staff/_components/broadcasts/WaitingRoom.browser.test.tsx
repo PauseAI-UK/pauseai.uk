@@ -61,10 +61,12 @@ describe("WaitingRoom", () => {
     const sent = actions(refused("no-link"));
     await render(
       <RefusalPlace>
-        <WaitingRoom state="asked" people={[exampleAsked]} counts={exampleCounts} actions={sent} />
+        <WaitingRoom state="asked" people={[exampleAsked]} counts={{ ...exampleCounts, held: 0 }} actions={sent} />
       </RefusalPlace>,
     );
     await expect.element(page.getByText(copy.link.none)).toBeVisible();
+    // Nobody held: that tab has no count.
+    await expect.element(page.getByRole("link", { name: copy.tabs.held, exact: true })).toBeVisible();
     await page.getByRole("button", { name: copy.letIn }).click();
     await expect.element(page.getByText(copy.refused["no-link"])).toBeVisible();
     await page.getByRole("textbox", { name: copy.link.label }).fill("https://example.com/x");

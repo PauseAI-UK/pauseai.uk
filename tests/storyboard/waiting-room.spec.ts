@@ -2,6 +2,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { waitingRoomJoinCopy } from "@/lib/content/whatsapp";
 import { waitingRoomCopy } from "@/lib/broadcasts/waiting-room-copy";
 import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
+import { runSql } from "@/scripts/fresh-database.mjs";
 import { postWhatsAppWebhook } from "../whatsapp-webhooks";
 import { logIn } from "./login-steps";
 import { fakeTurnstile } from "./turnstile-steps";
@@ -18,13 +19,14 @@ export const section: Section = { name: "The WhatsApp waiting room", part: "Publ
 // (lib/server/fixtures/fakes/anthropic.ts: a reply of four words or more
 // passes, a shorter one or one with a link is held); and the staff page,
 // where those held are let in or dismissed, and the community's link set.
-// Each flow's person has a number of their own; the fixtures' Sam is held.
+// Each flow's person has a number of their own, and a flow that sends the
+// community's link sets one first, as staff would.
 
 const page = waitingRoomCopy.page;
 const texts = waitingRoomCopy.texts;
 
 let messages = 0;
-/** A message to our number from `number` (digits alone), named `name` in WhatsApp, `minutes` after the clock. */
+/** A message to our number from `number` (digits alone), named `name` in WhatsApp, `minutes` from the clock: before it, so ours, sent at its time, come after. */
 async function messageUs(request: APIRequestContext, number: string, name: string, words: string, minutes: number) {
   await postWhatsAppWebhook(request, BASE, {
     object: "whatsapp_business_account",
@@ -55,6 +57,15 @@ async function messageUs(request: APIRequestContext, number: string, name: strin
   });
 }
 
+/** The community's link, as a staff member set it a while ago. */
+const LINK = "https://chat.whatsapp.com/FixtureInvite";
+function linkSet(database: string) {
+  runSql(
+    database,
+    `INSERT INTO waiting_room_links (link, set_by, set_at) VALUES ('${LINK}', 'jo@pauseai.uk', now() - interval '20 days')`,
+  );
+}
+
 /** The newest words our number sent `number` (+447…). */
 function ourNewest(number: string): string {
   const text = newestText(number);
@@ -77,18 +88,19 @@ test("Asking to join on WhatsApp", { tag: "@phone" }, async ({ page: browser }) 
     "Past it, the button opens WhatsApp with a message to our number typed for them, saying they came from Parents.",
   );
   const button = browser.getByRole("link", { name: waitingRoomJoinCopy.button });
-  await expect(button).toHaveAttribute("href", /^https:\/\/wa\.me\/447700900000\?text=.*%28parents%29$/);
+  await expect(button).toHaveAttribute("href", /^https:\/\/wa\.me\/447700900000\?text=.*\(parents\)$/);
   await frame(browser, "The button to message us");
 });
 
 test("Let in by the check", async ({ page: browser, request, flowDatabase }) => {
+  linkSet(flowDatabase);
   story("Jane sends the message the button typed. Our number welcomes her and asks why she's interested.");
-  await messageUs(request, "447700900321", "Jane", "Hi PauseAI UK, I'd like to join (parents)", 0);
+  await messageUs(request, "447700900321", "Jane", "Hi PauseAI UK, I'd like to join (parents)", -10);
   await expect.poll(() => newestText("+447700900321")).toBeTruthy();
   await textFrame(browser, OUR_CHAT, { words: ourNewest("+447700900321") }, "Our number's welcome");
   story("She says why, with her postcode. The check reads it as a real person's, so the community's link goes to her.");
-  await messageUs(request, "447700900321", "Jane", "I'm a parent worried about AI and my kids. LS6 1AA", 2);
-  await expect.poll(() => ourNewest("+447700900321")).toContain("chat.whatsapp.com/FixtureInvite");
+  await messageUs(request, "447700900321", "Jane", "I'm a parent worried about AI and my kids. LS6 1AA", -8);
+  await expect.poll(() => ourNewest("+447700900321")).toContain(LINK);
   await textFrame(browser, OUR_CHAT, { words: ourNewest("+447700900321") }, "The link to the community");
   story("Staff see her among those let in, with the whole chat, and she's a supporter, the chat on her page too.");
   await logIn(browser, flowDatabase, ["supporters"]);
@@ -103,11 +115,12 @@ test("Let in by the check", async ({ page: browser, request, flowDatabase }) => 
 });
 
 test("Held, then let in by staff", async ({ page: browser, request, flowDatabase }) => {
+  linkSet(flowDatabase);
   story('Alex asks to join, then answers only "hi". The check holds that for a person.');
-  await messageUs(request, "447700900322", "Alex", "Hi PauseAI UK, I'd like to join (footer)", 0);
-  await messageUs(request, "447700900322", "Alex", "hi", 3);
+  await messageUs(request, "447700900322", "Alex", "Hi PauseAI UK, I'd like to join (footer)", -15);
+  await messageUs(request, "447700900322", "Alex", "hi", -12);
   story("Alex writes again. Our number says, once, that someone will check.");
-  await messageUs(request, "447700900322", "Alex", "hello? I want to help with the campaign", 10);
+  await messageUs(request, "447700900322", "Alex", "hello? I want to help with the campaign", -5);
   await expect.poll(() => ourNewest("+447700900322")).toBe(texts.checking);
   await textFrame(browser, OUR_CHAT, { words: ourNewest("+447700900322") }, "We'll check");
   story("Staff find Alex held, with why, and the second message that makes the case. They let Alex in.");
@@ -119,7 +132,7 @@ test("Held, then let in by staff", async ({ page: browser, request, flowDatabase
   await alex.getByRole("button", { name: page.letIn }).click();
   await expect(browser.getByRole("region", { name: "Alex" })).toHaveCount(0);
   story("The link goes to Alex, who's now among those let in, by the staff member.");
-  await expect.poll(() => ourNewest("+447700900322")).toContain("chat.whatsapp.com/FixtureInvite");
+  await expect.poll(() => ourNewest("+447700900322")).toContain(LINK);
   await openWaitingRoom(browser, "let-in");
   await expect(browser.getByRole("region", { name: "Alex" })).toBeVisible();
   await frame(browser, "Let in by staff");
@@ -127,8 +140,8 @@ test("Held, then let in by staff", async ({ page: browser, request, flowDatabase
 
 test("Dismissing an advert", async ({ page: browser, request, flowDatabase }) => {
   story("An investment club asks to join, and answers with an advert. The check holds it.");
-  await messageUs(request, "447700900323", "Gains Club", "join (site)", 0);
-  await messageUs(request, "447700900323", "Gains Club", "Our club: https://chat.whatsapp.com/AbC123", 2);
+  await messageUs(request, "447700900323", "Gains Club", "join (site)", -10);
+  await messageUs(request, "447700900323", "Gains Club", "Our club: https://chat.whatsapp.com/AbC123", -8);
   await logIn(browser, flowDatabase, ["supporters"]);
   await openWaitingRoom(browser);
   const club = browser.getByRole("region", { name: "Gains Club" });

@@ -115,9 +115,11 @@ Mocked up: https://claude.ai/artifact/P8TCoTdXUwt1oX5ZnjvKYk
 - **The `/whatsapp` page**: the Turnstile check, then the WhatsApp button,
   and what joining means for texts.
 - **The chat**: their typed message, our question, their reply, the link.
-- **Staff's waiting room page**, in the supporters area, with a count in
-  the sidebar: Held, Let in, Dismissed and No reply. Each held reply shows
-  the message, why the LLM held it, and Let in or Dismiss.
+- **Staff's waiting room page**, in the supporters area: the community's
+  link and the form to change it, then tabs of who's held, let in,
+  dismissed or hasn't replied, each with how many. Each person's card shows
+  their chat, why the LLM held them, and Let in or Dismiss. A count beside
+  the sidebar's link waits for the notifications plan.
 - **A daily email to staff** while anyone is held. The notifications plan
   (`plans/notifications.md`) takes this over once it's built.
 
