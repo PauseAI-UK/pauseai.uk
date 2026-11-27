@@ -101,10 +101,12 @@ export function SetAnswer({
       trigger={buttonClass({ variant: look, size: "small", fit: true })}
       className={styles.editPopover}
     >
-      <div className={styles.asked}>
-        <AskLead ask={ask} />
+      <div className={styles.setAnswer}>
+        <div className={styles.asked}>
+          <AskLead ask={ask} />
+        </div>
+        <AnswerForm politician={politician} ask={ask} setStatus={setStatus} />
       </div>
-      <AnswerForm politician={politician} ask={ask} setStatus={setStatus} />
     </Bubble>
   );
 }

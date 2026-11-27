@@ -102,6 +102,12 @@
   --bubble-width: 28rem;
 }
 
+/* Set answer's bubble: who asked them what, a space, then the form. */
+.setAnswer {
+  display: grid;
+  gap: var(--space-3);
+}
+
 @media (max-width: 720px) {
   .editPopover {
     --bubble-width: 100vw;
