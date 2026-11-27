@@ -12,6 +12,9 @@ import {
 } from "../../../../_components/mailings/actions";
 import CampaignLetterWriter from "../../../../_components/mailings/CampaignLetterWriter";
 import Page from "../../../../_components/ui/Page";
+import { mailingsCopy as staffMailingsCopy } from "../../../../_components/mailings/copy";
+
+const campaignsCopy = staffMailingsCopy.campaigns;
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -35,7 +38,12 @@ export default async function CampaignLetterPage({ params }: Params) {
     campaignWriterData(),
   ]);
   return (
-    <Page kind="record" under="campaigns" here={campaign.title}>
+    <Page
+      kind="record"
+      under="campaigns"
+      via={[{ href: `/staff/campaigns/${slug}`, label: campaign.title }]}
+      here={campaignsCopy.editLetter}
+    >
       <CampaignLetterWriter
         title={campaign.title}
         draft={draft}
