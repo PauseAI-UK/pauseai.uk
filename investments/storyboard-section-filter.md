@@ -13,3 +13,4 @@ Have `scripts/storyboard.mjs` turn a bare section name into its spec's path (`te
 ## Hits
 
 - 2026-11-25: `press` ran all 777 flows with pictures, not the press section's, ~25 min
+- 2026-11-27 (x2): `whatsapp-join` and `waiting-room`, in worktrees named after them, ran every flow, ~15 min

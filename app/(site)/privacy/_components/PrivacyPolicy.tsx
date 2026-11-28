@@ -64,12 +64,11 @@ export default function PrivacyPolicy() {
 
       <h2>Signing up</h2>
       <p>
-        When you sign up to a march on this site, or on a paper form when we&apos;re out leafleting, we keep your name
-        and email, and your phone number, city and postcode if you gave them. We register you on Luma for the event, and
-        keep you updated on our campaigns if you said yes (legal basis: legitimate interest in running the event, and
-        your consent).
+        When you sign up to a march or on a paper form, we keep the name, email, phone number, city and postcode you
+        give, register you on Luma for the event, and keep you updated on our campaigns if you said yes (legal basis:
+        legitimate interest in running the event, and your consent). When you join our WhatsApp community, we keep your
+        profile name, number, the groups you&apos;re in, and our chat, with any postcode and email you give in it.
       </p>
-      <p>If you join our WhatsApp community, we keep your profile name and number, and which groups you joined.</p>
 
       <h2>Events and Luma</h2>
       <p>
@@ -119,6 +118,7 @@ export default function PrivacyPolicy() {
         <li>Netlify: hosting the site and its database.</li>
         <li>Cloudflare: backups, and Turnstile, the anti-spam check.</li>
         <li>postcodes.io: looking up postcodes; it keeps nothing.</li>
+        <li>Anthropic (Claude): reading replies to our WhatsApp waiting room, to keep bots out.</li>
       </ul>
       <p>
         We do not sell your personal data. Where a provider is outside the UK, the transfer is protected by UK adequacy

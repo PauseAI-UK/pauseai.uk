@@ -57,6 +57,25 @@ describe("Notes", () => {
       .toHaveAttribute("href", "https://www.example.com/rota");
   });
 
+  it("shows why they joined, their own words from the WhatsApp waiting room, last, with no way to change it", async () => {
+    const at = new Date("2026-10-16T12:52:00Z");
+    await render(
+      <Notes
+        supporterId={4}
+        notes={exampleNotes}
+        reader={exampleNoteWriter}
+        at={exampleNotesAt}
+        reason={{ words: "I'm a parent worried about AI", at }}
+        add={vi.fn()}
+        edit={vi.fn()}
+        remove={vi.fn()}
+      />,
+    );
+    const last = notes().nth(exampleNotes.length);
+    await expect.element(last).toHaveTextContent(`I'm a parent worried about AI${copy.joiningReason(staffTime(at))}`);
+    expect(last.getByRole("button").elements()).toHaveLength(0);
+  });
+
   it("lets the writer edit only her note still young enough: Save, Cancel, and Delete, red, while editing", async () => {
     const { edit, remove } = await renderNotes();
     const first = notes().nth(0);

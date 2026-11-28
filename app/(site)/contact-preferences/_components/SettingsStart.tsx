@@ -10,6 +10,7 @@ import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import { spamCheckCopy } from "@/lib/content/spam-check";
 import type { LinkAsked } from "@/lib/supporters/settings-view";
 import { focusOnMount } from "./EmailSettings";
+import card from "@/components/ui/Card.module.css";
 import styles from "./EmailSettings.module.css";
 
 /**
@@ -47,7 +48,7 @@ export default function SettingsStart({
       <h1>{copy.start.title}</h1>
       <p className={styles.lead}>{copy.start.lead}</p>
       <FormStack
-        className={styles.card}
+        className={`${card.card} ${styles.card}`}
         action={async (form) => {
           const result = await ask(form);
           if (result.ok) setSent(result.sent);

@@ -1,5 +1,6 @@
 // The staff interface's broadcasts to supporters: from the supporters list, the
-// writer, the list of them, each one's page, and one copy as sent.
+// writer, the list of them, each one's page, and one copy as sent; and the
+// WhatsApp waiting room.
 import { optOutFormGallery } from "@/app/(staff)/staff/_components/supporters/OptOutForm.gallery";
 import type { Group } from "../_components/types";
 import { draftWriterGallery } from "@/app/(staff)/staff/_components/mailings/DraftWriter.gallery";
@@ -23,6 +24,8 @@ import { replyReactionsGallery } from "@/app/(staff)/staff/_components/broadcast
 import { copyReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/CopyReply.gallery";
 import { supporterBroadcastsGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterBroadcasts.gallery";
 import { textBubbleGallery } from "@/app/(staff)/staff/_components/broadcasts/TextBubble.gallery";
+import { waitingRoomGallery } from "@/app/(staff)/staff/_components/broadcasts/WaitingRoom.gallery";
+import { communityLinkFormGallery } from "@/app/(staff)/staff/_components/broadcasts/CommunityLinkForm.gallery";
 import { writtenTextGallery } from "@/app/(staff)/staff/_components/broadcasts/WrittenText.gallery";
 import { textFoldGallery } from "@/app/(staff)/staff/_components/broadcasts/TextFold.gallery";
 
@@ -61,5 +64,7 @@ export const staffBroadcasts: Group = {
     ...textBubbleGallery,
     ...writtenTextGallery,
     ...textFoldGallery,
+    ...waitingRoomGallery,
+    ...communityLinkFormGallery,
   ],
 };

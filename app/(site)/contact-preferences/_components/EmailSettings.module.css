@@ -35,16 +35,6 @@
   margin: 0;
 }
 
-/* A white card: a topic, the form to ask for a link, or an offer of a fresh one. */
-.card {
-  margin: 0;
-  padding: var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  min-width: 0;
-}
-
 /* A topic's name and its lozenge, as the card's legend, inside it. */
 .topic {
   float: left;
@@ -168,10 +158,6 @@
 
 /* On a phone: tighter cards, so a topic's boxes fit on one row. */
 @media (max-width: 720px) {
-  .card {
-    padding: var(--space-4);
-  }
-
   .ways {
     gap: var(--space-2);
   }

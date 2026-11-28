@@ -8,11 +8,12 @@ import type { PhoneNumber } from "@/lib/phone";
 // linked to a supporter in the same transaction.
 
 /** The forms whose entries this keeps; Email your MP's are kept with their letter (./mp-letters.ts). */
-export type EntryForm = "march-2026-11" | "march-2027-04";
+export type EntryForm = "march-2026-11" | "march-2027-04" | "whatsapp-join";
 
 export type FormEntry = {
   name: string;
-  email: string;
+  /** None for someone let in from the WhatsApp waiting room who gave none: the entry is then linked by its number. */
+  email: string | null;
   phone: PhoneNumber | null;
   city: string | null;
   postcode: string | null;

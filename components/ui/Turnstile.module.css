@@ -1,0 +1,6 @@
+/* Where Cloudflare's widget goes: the room it takes, held before its script
+   has drawn it, so what's under it doesn't move as it loads. 65px is the
+   height of its normal size, the one rendered here. */
+.widget {
+  min-height: 65px;
+}

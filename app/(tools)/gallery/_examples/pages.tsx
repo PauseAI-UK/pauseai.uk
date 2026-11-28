@@ -32,6 +32,7 @@ import { people, personSlug, type Person } from "@/lib/content/people";
 import { pausefest } from "@/lib/content/pausefest";
 import ProsePage from "@/components/ui/ProsePage";
 import type { Group } from "../_components/types";
+import { WaitingRoomJoinExample } from "./waiting-room-join.client";
 
 /** Who's going to an event, with Luma's featured guests made up and none with a photo, which a fixture build won't fetch. */
 const GOING = {
@@ -203,6 +204,20 @@ export const pages: Group = {
           render: () => (
             <ProsePage>
               <WaitingRoomDown />
+            </ProsePage>
+          ),
+        },
+      ],
+    },
+    {
+      name: "WaitingRoomJoin",
+      file: "app/(site)/whatsapp/beta/_components/WaitingRoomJoin.tsx",
+      variants: [
+        {
+          label: "Joining the WhatsApp community: the button to message us, once the spam check has passed",
+          render: () => (
+            <ProsePage>
+              <WaitingRoomJoinExample />
             </ProsePage>
           ),
         },

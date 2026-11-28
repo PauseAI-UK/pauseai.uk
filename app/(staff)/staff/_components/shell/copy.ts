@@ -35,6 +35,7 @@ export const shellCopy = {
     newTag: "new",
     supporterEmails: "Blocked addresses",
     signupUpload: "Import sign-ups",
+    waitingRoom: "Waiting room",
     mpEmails: "Addresses to fix",
     logout: "Log out",
   },

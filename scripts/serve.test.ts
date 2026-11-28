@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { checkoutPorts } from "@/tests/checkout.mjs";
-import { networkAddress, parseArgs, servePorts, towardsNext, withoutSecure, worktreeOf } from "./serve.mjs";
+import {
+  networkAddress,
+  parseArgs,
+  servedEnv,
+  servePorts,
+  towardsNext,
+  TURNSTILE_TEST_SITE_KEY,
+  withoutSecure,
+  worktreeOf,
+} from "./serve.mjs";
 
 describe("servePorts", () => {
   it("serves 2000 above the checkout's storyboard, next dev on the port after the proxy's", () => {
@@ -127,5 +136,18 @@ describe("withoutSecure", () => {
 
   it("leaves a response with no cookies without", () => {
     expect(withoutSecure(undefined)).toBeUndefined();
+  });
+});
+
+describe("servedEnv", () => {
+  it("runs the clock, leaves out analytics, and draws Turnstile with Cloudflare's test key", () => {
+    const fixture = {
+      FIXTURE_NOW: "2026-11-01",
+      ANALYTICS: "1",
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "fixture",
+      KEPT: "yes",
+    };
+    expect(servedEnv(fixture)).toEqual({ NEXT_PUBLIC_TURNSTILE_SITE_KEY: TURNSTILE_TEST_SITE_KEY, KEPT: "yes" });
+    expect(fixture.FIXTURE_NOW).toBe("2026-11-01");
   });
 });

@@ -10,6 +10,7 @@ const PAGES: Record<StaffPageName, true> = {
   me: true,
   supporters: true,
   signupUpload: true,
+  waitingRoom: true,
   campaigns: true,
   broadcasts: true,
   sentEmails: true,

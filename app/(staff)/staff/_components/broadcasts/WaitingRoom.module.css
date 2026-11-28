@@ -1,0 +1,33 @@
+/* The WhatsApp waiting room's page: its quiet lines, its buttons in a row, and the community's link. */
+
+.quiet {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* The community's link on one line, cut short with an ellipsis where it's too long. */
+.link {
+  margin: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The bubble the community's link button opens, a little wider than most: the link, who set it, and the form, a column. */
+.linkBubbleBox {
+  --bubble-width: 24rem;
+}
+
+.linkBubble {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

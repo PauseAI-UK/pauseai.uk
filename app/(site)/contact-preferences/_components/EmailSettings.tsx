@@ -25,6 +25,7 @@ import {
   type SettingsView,
   type Unsubscribed,
 } from "@/lib/supporters/settings-view";
+import card from "@/components/ui/Card.module.css";
 import styles from "./EmailSettings.module.css";
 
 /**
@@ -129,7 +130,7 @@ function TopicCard({
 }) {
   const reason = why(topic.why);
   return (
-    <fieldset className={styles.card}>
+    <fieldset className={`${card.card} ${styles.card}`}>
       <legend className={styles.topic}>
         <span>{copy.topics[topic.topic]}</span>
         {reason && (
@@ -197,7 +198,7 @@ function LumaCard({
     </>
   );
   return (
-    <fieldset className={styles.card}>
+    <fieldset className={`${card.card} ${styles.card}`}>
       <legend className={styles.topic}>
         <span>{copy.topics.events}</span>
         {reason && (
@@ -388,7 +389,7 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   const [sent, setSent] = useState(false);
   if (opened.number) {
     return (
-      <div className={`${styles.card} ${styles.offer}`}>
+      <div className={`${card.card} ${styles.card} ${styles.offer}`}>
         <h2>{copy.expired.title}</h2>
         <p className={styles.boxText}>{copy.numberExpired}</p>
       </div>
@@ -396,7 +397,7 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   }
   const words = opened.kind === "copy" ? copy.pageExpired : copy.expired;
   return (
-    <div className={`${styles.card} ${styles.offer}`}>
+    <div className={`${card.card} ${styles.card} ${styles.offer}`}>
       <h2>{words.title}</h2>
       <p className={styles.boxText}>{words.body}</p>
       {sent ? (
@@ -428,7 +429,7 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
  */
 function GlobalEmails({ held }: { held: boolean }) {
   return (
-    <section className={`${styles.card} ${styles.global}`} aria-labelledby="global">
+    <section className={`${card.card} ${styles.card} ${styles.global}`} aria-labelledby="global">
       <h2 id="global" className={styles.topic}>
         {copy.global.title}
       </h2>

@@ -18,7 +18,7 @@ import type {
   SupporterRow,
   SupporterSummary,
 } from "./supporters";
-import { MARCH_SOURCES, SUPPORTERS_PAGE_SIZE } from "./supporters";
+import { MARCH_SOURCES, SUPPORTERS_PAGE_SIZE, WHATSAPP_SOURCES } from "./supporters";
 import { channelOf, type Channel, type ContactPermission } from "./contact-permissions";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
@@ -33,8 +33,8 @@ import { REPLIES } from "@/lib/letters/reply-count.server";
 
 // Supporters: one per person, tied to each record about them in a source
 // (supporter_links). Linking is by email, trimmed and lowercased and
-// nothing more: jane+luma@ and jane@ are two people. A WhatsApp entry, which
-// has no email, links by its number. It only adds links,
+// nothing more: jane+luma@ and jane@ are two people. A form entry with no
+// email, a WhatsApp member's or one from the waiting room, links by its number. It only adds links,
 // so running it again does nothing, and a Luma user who changes their
 // email stays linked by user ID. Then two supporters who gave the same UK
 // mobile number, or the same number in a WhatsApp entry, are one, merged
@@ -57,7 +57,7 @@ const CANDIDATE_COLUMNS = SUPPORTER_SOURCES.map((s) => `c.${s.column}`).join(", 
 /**
  * Links every unlinked source record to a supporter: to the supporter an
  * existing link matched on the same email, or else to a new one, made for
- * each new email, and each WhatsApp entry by its number (linkByNumber());
+ * each new email, and each entry with no email by its number (linkByNumber());
  * then merges those who share a UK mobile number, or a WhatsApp one, by the
  * numbers of the supporters it linked, or with `everyone`, by everyone's,
  * which catches a number given since a record was linked, as the Luma
@@ -122,16 +122,16 @@ export async function linkSupporters(db?: Queryable, everyone = false): Promise<
 }
 
 /**
- * Links each unlinked WhatsApp entry, which has a number and no email: to a
- * supporter who gave the number anywhere, the oldest if several did, or else
- * to a new one, made for each number nobody has. Says the supporters it
- * linked to, and those it made.
+ * Links each unlinked form entry with a number and no email, a WhatsApp
+ * member's or one from the waiting room: to a supporter who gave the number
+ * anywhere, the oldest if several did, or else to a new one, made for each
+ * number nobody has. Says the supporters it linked to, and those it made.
  */
 async function linkByNumber(db: Queryable): Promise<{ linked: { id: number }[]; added: { id: number }[] }> {
   await query(
     `CREATE TEMP TABLE by_number ON COMMIT DROP AS
      SELECT f.id AS form_entry_id, f.phone AS number FROM form_entries f
-     WHERE f.form = 'whatsapp-community' AND NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.form_entry_id = f.id)`,
+     WHERE f.email IS NULL AND NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.form_entry_id = f.id)`,
     [],
     db,
   );
@@ -217,7 +217,7 @@ const BADGE_CONDITIONS: Record<SupporterBadge, string> = {
   letter: "s.letters > 0",
   march: `s.sources && ARRAY[${MARCH_SOURCES.map((source) => `'${source}'`).join(", ")}]`,
   paper: "'paper-signup' = ANY(s.sources)",
-  whatsapp: "'whatsapp-community' = ANY(s.sources)",
+  whatsapp: `s.sources && ARRAY[${WHATSAPP_SOURCES.map((source) => `'${source}'`).join(", ")}]`,
 };
 
 export type SupportersPage = {

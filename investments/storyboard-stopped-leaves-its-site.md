@@ -13,3 +13,4 @@ Have the storyboard stop its fixture server when it's interrupted (SIGINT, SIGTE
 ## Hits
 
 - 2026-11-26: a gate stopped during its storyboard left the site running; the next review waited on it for nearly two hours unseen
+- 2026-11-27: a killed review left its fixture server on the port, and the next review waited on it for 25 minutes without saying so

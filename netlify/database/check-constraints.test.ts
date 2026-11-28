@@ -38,6 +38,7 @@ import { COVERAGE_STATES, LEANS, MEDIA } from "@/lib/press/coverage";
 import { SOURCE_KINDS } from "@/lib/press/sources";
 import { FIND_STATES } from "@/lib/press/finds";
 import { ORGS, VERDICTS } from "@/lib/press/review";
+import { WAITING_STATES } from "@/lib/broadcasts/waiting-room";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
 // A column whose CHECK lists the values it allows lists them in TypeScript
@@ -167,6 +168,7 @@ const LISTED: Record<string, readonly string[]> = {
   "whatsapp_template_variants.header": every<TextHeader>()(["location", "image"]),
   "broadcast_headers.variant": ["default", "conditional"],
   "text_pictures.content_type": PICTURE_TYPES,
+  "waiting_room.state": WAITING_STATES,
 };
 
 /** The columns whose values TypeScript lists nowhere it can be read from, written only as SQL or as a function's own literals. */

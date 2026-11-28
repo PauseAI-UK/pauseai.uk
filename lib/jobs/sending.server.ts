@@ -8,6 +8,7 @@ import { sendDueLetters, startDueMailings } from "@/lib/mailings/sending.server"
 import { sendDueBroadcasts, startDueBroadcasts } from "@/lib/broadcasts/sending.server";
 import { checkTemplates } from "@/lib/broadcasts/whatsapp-templates.server";
 import { alertWaitingTexts } from "@/lib/broadcasts/text-alerts.server";
+import { emailHeld } from "@/lib/broadcasts/waiting-room.server";
 
 const JOB = "send-mailings";
 
@@ -20,7 +21,8 @@ const JOB = "send-mailings";
  * (whatsapp-templates.server.ts), then the broadcasts to supporters due and their
  * copies (lib/broadcasts/sending.server.ts), then the email to staff about
  * replies to texts left waiting (lib/broadcasts/text-alerts.server.ts),
- * for its budget (JOBS) in all, short of what Netlify
+ * and the day's email about who's held in the WhatsApp waiting room
+ * (lib/broadcasts/waiting-room.server.ts), for its budget (JOBS) in all, short of what Netlify
  * gives a function, so a slow last send still finishes. The background
  * function that runs every job (netlify/functions/run-job-background) runs it again until
  * it's done. `request` is the job's call, for links in alerts; a staff
@@ -38,6 +40,7 @@ export async function runSending(startedBy: string, request?: Request): Promise<
     const broadcasts = { started: await startDueBroadcasts(), ...(await sendDueBroadcasts(until)) };
     result.broadcasts = broadcasts;
     await alertWaitingTexts(request);
+    await emailHeld(request);
     const anything =
       started.length + result.sent + result.failed + queue.sent + broadcasts.started.length + broadcasts.sent > 0;
     return { status: anything ? "ok" : "unchanged", result } as const;

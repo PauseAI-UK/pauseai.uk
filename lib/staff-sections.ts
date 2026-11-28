@@ -12,6 +12,7 @@ export type StaffPageId =
   | "supporters"
   | "broadcasts"
   | "signupUpload"
+  | "waitingRoom"
   | "campaigns"
   | "events"
   | "press"
@@ -56,6 +57,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
       { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters" },
       { id: "supporterEmails", href: "/staff/supporters/blocked-addresses", permission: "supporters" },
       { id: "signupUpload", href: "/staff/supporters/import", permission: "supporters" },
+      { id: "waitingRoom", href: "/staff/supporters/waiting-room", permission: "supporters", added: "2026-11-27" },
     ],
   },
   {

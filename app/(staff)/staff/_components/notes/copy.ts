@@ -7,6 +7,8 @@ export const notesCopy = {
     none: "No notes yet.",
     // After who wrote it and when, once it's been edited.
     edited: "edited",
+    // Under why a supporter joined, their reply in the WhatsApp waiting room, shown with their notes.
+    joiningReason: (when: string) => `Why they joined, in their words on WhatsApp · ${when}`,
     // The field's name, for a screen reader.
     note: "Note",
     // When the server wouldn't change a note, as its day is up: under its field, editing, or under its Delete.

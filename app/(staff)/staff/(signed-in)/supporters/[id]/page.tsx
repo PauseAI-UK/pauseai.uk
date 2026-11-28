@@ -20,6 +20,7 @@ import SupporterDetails from "../../../_components/supporters/SupporterDetails";
 import { supporterOneOffs } from "@/lib/letters/one-off-emails.server";
 import { OneOffTable } from "../../../_components/letters/OneOffList";
 import Page from "../../../_components/ui/Page";
+import { joiningReason } from "@/lib/broadcasts/waiting-room.server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,10 +40,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function SupporterPage({ params }: Params) {
   const staff = await requireStaff("supporters");
   const supporter = await supporterOf(params);
-  const [notes, oneOffs, broadcasts] = await Promise.all([
+  const [notes, oneOffs, broadcasts, reason] = await Promise.all([
     notesOn({ supporterId: supporter.summary.id }),
     supporterOneOffs(supporter.summary.id),
     broadcastsToSupporter(supporter.summary.id),
+    joiningReason(supporter.summary.id),
   ]);
   return (
     <Page kind="record" under="supporters" here={supporterTitle(supporter.summary)}>
@@ -70,6 +72,7 @@ export default async function SupporterPage({ params }: Params) {
           <Notes
             notes={notes}
             supporterId={supporter.summary.id}
+            reason={reason}
             reader={staff}
             at={now().toISOString()}
             add={addNoteNow}

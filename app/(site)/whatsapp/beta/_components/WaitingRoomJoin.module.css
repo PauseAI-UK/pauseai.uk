@@ -1,0 +1,42 @@
+/* The WhatsApp join page: its form in a white card (components/ui/Card.module.css), under the heading, its parts a column. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+/* The card's own paragraphs, spaced by its gap, not the reading column's margins. */
+.card > p {
+  margin: 0;
+}
+
+/* Where the spam check is, centred, then the button that takes its place,
+   as tall as it (65px, its normal size) and across the card, so neither
+   moves what's around it. */
+.slot {
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
+.slot > a,
+.slot > button {
+  flex: 1;
+}
+
+/* The line about the newsletter, small and grey. */
+.quiet {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* The privacy line, a gap below the card. */
+.card + .privacy {
+  margin-top: var(--space-5);
+}
+
+/* While it's closed: its one line, a gap under the heading. */
+.closed {
+  margin-top: var(--space-6);
+}
