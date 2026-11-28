@@ -1220,8 +1220,8 @@ is the entry's line in a supporter's history, linked to its upload.
 ### The waiting room
 
 Asking to join our WhatsApp community is a chat with our WhatsApp number.
-`/whatsapp/beta`, linked from nowhere while it's tried, shows Turnstile; past
-it, the server answers with a `wa.me` link that opens a chat with our
+`/whatsapp`, which every button for the community leads to, shows Turnstile;
+past it, the server answers with a `wa.me` link that opens a chat with our
 number, a message asking to join typed in it, ending with the code of the
 button they came by in brackets: "… I'd like to join (parents)". Our number
 is in no page, so a bot reading the site doesn't find it.
@@ -1230,7 +1230,10 @@ The webhook (`lib/broadcasts/whatsapp-webhooks.server.ts`) gives the waiting
 room (`lib/broadcasts/waiting-room.server.ts`) every message from someone in
 it, unless it quotes a broadcast's message; and, from a number not in it,
 one asking to join: "join" anywhere, or a code in brackets at its end, as
-they may change the typed message before sending. Anything else that
+they may change the typed message before sending. From a number we've sent
+a broadcast, only the button's own message, its code in brackets at its
+end, will do, as their "join" may be a reply to the broadcast, which goes
+to its replies. Anything else that
 answers no text of ours is emailed to staff, as it was.
 
 Someone in it (`waiting_room`, one row per number) is in one of four states:

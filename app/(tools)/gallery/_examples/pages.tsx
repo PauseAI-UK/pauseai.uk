@@ -21,7 +21,6 @@ import PersonStory from "@/app/(site)/people/_components/PersonStory";
 import ShareYourStory from "@/app/(site)/people/_components/ShareYourStory";
 import StoryGrid from "@/app/(site)/people/_components/StoryGrid";
 import CoverageList from "@/app/(site)/press/_components/CoverageList";
-import WaitingRoomDown from "@/app/(site)/whatsapp/_components/WaitingRoomDown";
 import PressKit from "@/app/(site)/press/_components/PressKit";
 import { EXAMPLE_COVERAGE } from "@/app/(site)/press/_components/PressKit.examples";
 import PrivacyPolicy from "@/app/(site)/privacy/_components/PrivacyPolicy";
@@ -196,22 +195,8 @@ export const pages: Group = {
       variants: [{ label: "The form, under its invitation", render: () => <ShareYourStory id="example-share" /> }],
     },
     {
-      name: "WaitingRoomDown",
-      file: "app/(site)/whatsapp/_components/WaitingRoomDown.tsx",
-      variants: [
-        {
-          label: "The WhatsApp page while its waiting room is down",
-          render: () => (
-            <ProsePage>
-              <WaitingRoomDown />
-            </ProsePage>
-          ),
-        },
-      ],
-    },
-    {
       name: "WaitingRoomJoin",
-      file: "app/(site)/whatsapp/beta/_components/WaitingRoomJoin.tsx",
+      file: "app/(site)/whatsapp/_components/WaitingRoomJoin.tsx",
       variants: [
         {
           label: "Joining the WhatsApp community: the button to message us, once the spam check has passed",

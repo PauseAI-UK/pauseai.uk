@@ -1,6 +1,6 @@
 // The WhatsApp waiting room's words (docs/domain-concepts.md, "The waiting room"):
 // what our number says in the chat, the staff page's, the daily email of
-// who's to check, and the problems it reports. The /whatsapp/beta page's are
+// who's to check, and the problems it reports. The /whatsapp page's are
 // with the site's (lib/content/whatsapp.ts).
 import { count } from "@/lib/content/plural";
 import { defineProblems } from "@/lib/problems";

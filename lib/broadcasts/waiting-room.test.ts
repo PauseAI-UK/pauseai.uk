@@ -3,6 +3,7 @@ import {
   asksToJoin,
   cameFromCode,
   chatLink,
+  endsAsTheButtons,
   inviteLink,
   isWaitingState,
   joinMessage,
@@ -37,6 +38,14 @@ describe("asksToJoin", () => {
     expect(asksToJoin("Thanks for the update")).toBeUndefined();
     expect(asksToJoin("I'm worried (very) about it")).toBeUndefined();
     expect(asksToJoin("a (two words) aside")).toBeUndefined();
+  });
+});
+
+describe("endsAsTheButtons", () => {
+  it("knows a message that ends as the button's does, with its code in brackets", () => {
+    expect(endsAsTheButtons("Hi PauseAI UK, I'd like to join (parents) ")).toBe(true);
+    expect(endsAsTheButtons("Can I join the march (Saturday) please?")).toBe(false);
+    expect(endsAsTheButtons("Can I join?")).toBe(false);
   });
 });
 

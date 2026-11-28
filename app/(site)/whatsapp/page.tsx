@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import ProsePage from "@/components/ui/ProsePage";
-import { whatsappCopy as copy } from "@/lib/content/whatsapp";
+import { waitingRoomJoinCopy as copy } from "@/lib/content/whatsapp";
 import { pageMetadata } from "@/lib/metadata";
-import WaitingRoomDown from "./_components/WaitingRoomDown";
+import { config } from "@/lib/server/config.server";
+import { connection } from "next/server";
+import { joiningNumber } from "@/lib/broadcasts/waiting-room.server";
+import WaitingRoomJoin from "./_components/WaitingRoomJoin";
 
-export const metadata: Metadata = pageMetadata({
-  title: copy.title,
-  description: copy.body,
-  path: "/whatsapp",
-});
+export const metadata: Metadata = pageMetadata({ title: copy.title, description: copy.description, path: "/whatsapp" });
 
-/** Where every button for the WhatsApp community leads. */
-export default function WhatsAppPage() {
+/** Joining the WhatsApp community, which every button for it leads to: a chat with our number, or that it's closed. */
+export default async function WaitingRoomPage() {
+  await connection();
   return (
     <ProsePage>
-      <WaitingRoomDown />
+      <WaitingRoomJoin open={Boolean(await joiningNumber())} turnstileSiteKey={config.turnstileSiteKey} />
     </ProsePage>
   );
 }
