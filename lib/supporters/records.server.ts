@@ -574,7 +574,8 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
        FROM supporter_activity a LEFT JOIN campaigns c ON a.kind IN ('letter', 'letter-replied') AND c.slug = a.title
          LEFT JOIN luma_events e ON a.kind IN ('luma-registered', 'luma-hosted') AND a.href = 'https://luma.com/' || e.url
          LEFT JOIN LATERAL (${OPT_OUT_RECORDED}) o ON true
-       WHERE a.supporter_id = $1 ORDER BY a.at DESC, a.kind`,
+       -- At the same time and of a kind, by link then title, so the page is the same each time it's opened.
+       WHERE a.supporter_id = $1 ORDER BY a.at DESC, a.kind, a.href, a.title`,
       [id],
     ),
     permissionsFor(summary.emails, summary.phones),

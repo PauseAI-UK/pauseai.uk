@@ -11,6 +11,7 @@ import type { MailingChoice } from "@/lib/mailings/fields";
 import { CampaignLetterCards, type CampaignLetterValues } from "./CampaignLetterWriter";
 import Grid, { Card } from "../ui/Grid";
 import { RefusedTextInput, Refusal, ResultForm } from "../ui/ResultForm";
+import forms from "../ui/StaffForms.module.css";
 import styles from "./MailingWriter.module.css";
 import { mailingsCopy } from "./copy";
 
@@ -46,21 +47,19 @@ export default function NewCampaignWriter({
       <input type="hidden" name="body" value={JSON.stringify(values.body)} />
       <Grid>
         <Card span={6} title={copy.campaign} id="campaign-title">
-          <div className={styles.ask}>
-            <Field label={copy.title}>
-              <RefusedTextInput name="title" wrong={["no-title"]} />
-            </Field>
-            <Field label={mailingsCopy.mailingPages.ask}>
-              <Select name="ask" aria-label={mailingsCopy.mailingPages.ask} defaultValue="">
-                <option value="">{mailingsCopy.mailingPages.noAsk}</option>
-                {asks.map((ask) => (
-                  <option key={ask.slug} value={ask.slug}>
-                    {ask.title}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
+          <Field label={copy.title} className={forms.narrow}>
+            <RefusedTextInput name="title" wrong={["no-title"]} />
+          </Field>
+          <Field label={mailingsCopy.mailingPages.ask} className={forms.narrow}>
+            <Select name="ask" aria-label={mailingsCopy.mailingPages.ask} defaultValue="">
+              <option value="">{mailingsCopy.mailingPages.noAsk}</option>
+              {asks.map((ask) => (
+                <option key={ask.slug} value={ask.slug}>
+                  {ask.title}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </Card>
         <CampaignLetterCards
           values={values}

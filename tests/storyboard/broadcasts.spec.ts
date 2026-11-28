@@ -304,7 +304,8 @@ test("An email asking readers to write to their MP", async ({ page, request, flo
   await page.getByRole("button", { name: copy.mpFieldWords.name, exact: true }).click();
   // Back in the email, as putting a field in leaves the cursor after it, before typing on.
   await expect(words).toBeFocused();
-  await page.keyboard.type(" about the bill? ");
+  // Saved before the frame, so its pill says so rather than however far the save has got.
+  await savedAfter(page, () => page.keyboard.type(" about the bill? "));
   story("The link is one lozenge for every campaign, whose menu picks which.");
   await page.getByRole("button", { name: copy.mpFieldWords.linkGroup }).click();
   await expect(page.getByRole("menuitem", { name: CAMPAIGN_NAMES[1].title })).toBeVisible();
