@@ -1,7 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CAMPAIGN_NAMES, OTHER_CAMPAIGN_PAGES } from "@/lib/content/campaigns";
+import { CAMPAIGN_NAMES } from "@/lib/content/campaigns";
+import { OTHER_CAMPAIGN_PAGES } from "@/lib/mailings/campaign-slug";
 import { campaigns } from "@/lib/content/email-your-mp";
 
 // A campaign's page can move on to another's, and goes on to writing the

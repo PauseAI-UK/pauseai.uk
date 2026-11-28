@@ -1,10 +1,17 @@
-import { CAMPAIGN_NAMES, OTHER_CAMPAIGN_PAGES } from "@/lib/content/campaigns";
+import { CAMPAIGN_NAMES } from "@/lib/content/campaigns";
 
 // The slug of a campaign staff make, from its title: what its page's
 // address ends with, and its letters are kept by.
 
 /** The longest a slug from a title gets, before the number that makes it unique. */
 const LONGEST = 60;
+
+/**
+ * The other pages in the code beside a campaign's, on the site under
+ * /campaigns/ and on the staff site under /staff/campaigns/
+ * (app/(site)/campaigns/pages.test.ts).
+ */
+export const OTHER_CAMPAIGN_PAGES = ["briefings", "dear-sir-demis-2025", "new"];
 
 /** The names a page in the code has, which a campaign staff make never takes. */
 export const CODE_PAGES: readonly string[] = [
