@@ -1,3 +1,4 @@
+import { codeCampaign } from "@/lib/email-your-mp";
 import { config } from "@/lib/server/config.server";
 import { pageMetadata } from "@/lib/metadata";
 import Signatories from "../_components/Signatories";
@@ -5,6 +6,8 @@ import CampaignContext from "../_components/CampaignContext";
 import CampaignDocs, { DocCard } from "../_components/CampaignDocs";
 import CampaignHero from "../_components/CampaignHero";
 import EmailYourMpSection from "../_components/EmailYourMpSection";
+
+const campaign = codeCampaign("regulate-letter-pm");
 
 // The letter to the PM, and the first campaign in priority order.
 export const metadata = pageMetadata({
@@ -53,7 +56,7 @@ export default function Page() {
       </CampaignDocs>
 
       <EmailYourMpSection
-        campaignSlug="regulate-letter-pm"
+        campaign={campaign}
         // Outside production, letters only go to the test MPs, so say how to find them.
         showTestMps={!config.production}
       />

@@ -75,9 +75,23 @@ export const mailingsCopy = {
       gone: "This draft has been deleted, so it can't be published.",
     },
   },
+  // A campaign staff make, its title over the site's form, before it's made.
+  newCampaign: {
+    pageTitle: "⁂ New campaign",
+    campaign: "⁂ The campaign",
+    title: "⁂ Title",
+    makeTitle: "⁂ Make it",
+    // Makes the campaign and its draft letter, then opens the draft to publish.
+    make: "⁂ Make the campaign",
+    refusals: {
+      "no-title": "⁂ Give the campaign a title.",
+    },
+  },
   campaigns: {
     title: "Campaigns",
     intro: "Letters supporters write to politicians, through a form on the site",
+    // The button over the list.
+    newCampaign: "⁂ New campaign",
     none: "No campaigns yet.",
     fromSupporters: "From supporters",
     noLetters: "No letters",

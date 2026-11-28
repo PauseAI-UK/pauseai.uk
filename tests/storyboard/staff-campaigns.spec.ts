@@ -5,6 +5,7 @@ import { campaigns, copy as emailYourMpCopy } from "@/lib/content/email-your-mp"
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { BILL_THANKS, openLookup, sentLetterId, SUBJECTS } from "./letter-steps";
+import { caretInEmpty } from "./editor-steps";
 import { addFilter } from "./list-steps";
 import { logIn } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
@@ -105,6 +106,68 @@ test("Staff edit a campaign's letter", async ({ page, flowDatabase }) => {
   await openLookup(page, BASE, "ZZ9 9ZZ", `/campaigns/${bill.slug}`);
   await page.getByRole("button", { name: emailYourMpCopy.lookup.button }).click();
   await expect(page).toHaveURL(`${BASE}/campaigns/${bill.slug}/write`);
+  await expect(page.getByLabel(emailYourMpCopy.form.subjectLabel)).toHaveValue(subject);
+  await frame(page, "The letter a supporter starts from");
+});
+
+test("Staff make a campaign", async ({ page, flowDatabase }) => {
+  const making = mailingsCopy.newCampaign;
+  const writer = mailingsCopy.campaignLetter;
+  const title = "Stop the superintelligence race";
+  const subject = "Please speak up against the race to superintelligence";
+  story("New campaign, over the list of campaigns, opens its title and ask over its letter.");
+  await logIn(page, flowDatabase, ["supporters"]);
+  await page.goto(`${BASE}/staff/campaigns`);
+  await page.getByRole("link", { name: copy.newCampaign }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/campaigns/new`);
+  await expect(page.getByRole("region", { name: writer.preview })).toContainText(writer.exampleSender);
+  await frame(page, "A new campaign");
+
+  story("Nothing is kept until it's made, and it can't be made without a title.");
+  await page.getByRole("button", { name: making.make }).click();
+  await expect(page.getByRole("alert")).toHaveText(making.refusals["no-title"]);
+  await frame(page, "Refused, with no title");
+
+  story("She gives it a title, a subject and a line, and the preview shows it as an MP's constituent starts from it.");
+  await page.getByLabel(making.title).fill(title);
+  await page.getByLabel(mailingsCopy.mailingPages.subject).fill(subject);
+  await caretInEmpty(page.getByRole("textbox", { name: mailingsCopy.mailingPages.letter }), 1);
+  await page.keyboard.type("Please speak up for a ban on superintelligence.");
+  const preview = page.getByRole("region", { name: writer.preview });
+  await expect(preview.getByText("Please speak up for a ban on superintelligence.")).toBeVisible();
+  await frame(page, "Its title and letter");
+
+  story("Make the campaign keeps it, and opens its letter's draft, to publish.");
+  await page.getByRole("button", { name: making.make }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/campaigns/stop-the-superintelligence-race/letter`);
+  await expect(page.getByLabel(mailingsCopy.mailingPages.subject)).toHaveValue(subject);
+  await frame(page, "Its draft, made");
+
+  story("Until it's published, supporters who find their MP are told the campaign isn't ready.");
+  await openLookup(page, BASE, "ZZ9 9ZZ", "/campaigns/stop-the-superintelligence-race");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  await page.getByRole("button", { name: emailYourMpCopy.lookup.button }).click();
+  await expect(page).toHaveURL(`${BASE}/campaigns/stop-the-superintelligence-race/write`);
+  await expect(page.getByText(emailYourMpCopy.write.notOpen)).toBeVisible();
+  await frame(page, "Not open yet");
+
+  story("Publish makes it the letter they start from. The campaign's page leads to its page on the site.");
+  await page.goto(`${BASE}/staff/campaigns/stop-the-superintelligence-race/letter`);
+  await page.getByRole("button", { name: writer.publish }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/campaigns/stop-the-superintelligence-race`);
+  await expect(page.getByRole("link", { name: copy.seePublicPage })).toHaveAttribute(
+    "href",
+    "/campaigns/stop-the-superintelligence-race",
+  );
+  await frame(page, "The campaign's page");
+
+  story("Its page on the site is its title over the form, with nothing else of its own.");
+  await openLookup(page, BASE, "ZZ9 9ZZ", "/campaigns/stop-the-superintelligence-race");
+  await frame(page, "Its page on the site");
+
+  story("A supporter who finds their MP starts from its letter.");
+  await page.getByRole("button", { name: emailYourMpCopy.lookup.button }).click();
+  await expect(page).toHaveURL(`${BASE}/campaigns/stop-the-superintelligence-race/write`);
   await expect(page.getByLabel(emailYourMpCopy.form.subjectLabel)).toHaveValue(subject);
   await frame(page, "The letter a supporter starts from");
 });

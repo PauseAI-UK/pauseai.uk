@@ -91,10 +91,10 @@ export function threading(messageId: string | undefined) {
   return messageId ? ["In-Reply-To", "References"].map((Name) => ({ Name, Value: `<${messageId}>` })) : undefined;
 }
 
+/** The campaign's files, sent with each letter: those in the code's; none for one staff made. */
 async function attachments(campaignSlug: string) {
-  const campaign = campaignBySlug(campaignSlug)!;
   return Promise.all(
-    campaign.attachments.map(async ({ file }) => ({
+    (campaignBySlug(campaignSlug)?.attachments ?? []).map(async ({ file }) => ({
       Name: file,
       Content: (await readFile(join(process.cwd(), "public", "pdfs", file))).toString("base64"),
       ContentType: "application/pdf",

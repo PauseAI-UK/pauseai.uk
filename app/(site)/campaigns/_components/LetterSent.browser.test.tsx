@@ -15,7 +15,7 @@ describe("LetterSent", () => {
     markSent({ campaign: letterToPm.slug, mpName: "Polly Placeholder" });
     await render(
       <LetterStep title={copy.sent.title}>
-        <LetterSent campaignSlug={letterToPm.slug} />
+        <LetterSent campaign={letterToPm} />
       </LetterStep>,
     );
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(copy.sent.title);
@@ -25,17 +25,17 @@ describe("LetterSent", () => {
 
   it("says a queued letter will go soon, or once the MP's address works", async () => {
     markSent({ campaign: letterToPm.slug, mpName: "Polly Placeholder", queued: "soon" });
-    const { unmount } = await render(<LetterSent campaignSlug={letterToPm.slug} />);
+    const { unmount } = await render(<LetterSent campaign={letterToPm} />);
     await expect.element(page.getByRole("status")).toHaveTextContent(copy.sent.queued("Polly Placeholder"));
     await unmount();
     markSent({ campaign: letterToPm.slug, mpName: "Polly Placeholder", queued: "blocked" });
-    await render(<LetterSent campaignSlug={letterToPm.slug} />);
+    await render(<LetterSent campaign={letterToPm} />);
     await expect.element(page.getByRole("status")).toHaveTextContent(copy.sent.waiting("Polly Placeholder"));
   });
 
   it("says nothing's been sent for another campaign, or none at all, and links to the form", async () => {
     markSent({ campaign: letterToPm.slug, mpName: "Polly Placeholder" });
-    await render(<LetterSent campaignSlug={bill.slug} />);
+    await render(<LetterSent campaign={bill} />);
     await expect.element(page.getByText(copy.sent.none)).toBeVisible();
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.sent.more)).not.toBeInTheDocument();

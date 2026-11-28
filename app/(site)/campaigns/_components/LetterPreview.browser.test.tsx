@@ -40,7 +40,7 @@ const send = () => page.getByRole("button", { name: copy.preview.send });
 describe("LetterPreview", () => {
   it("shows the letter exactly as it will be sent", async () => {
     saveDraft(DRAFT);
-    const { container } = await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    const { container } = await render(<LetterPreview campaign={letterToPm} />);
     await expect.element(page.getByText(MP.name)).toBeVisible();
     await expect.element(page.getByText("My subject")).toBeVisible();
     expect(container.querySelector("article div")!.innerHTML).toBe("<p>My <strong>letter</strong></p>");
@@ -61,20 +61,20 @@ describe("LetterPreview", () => {
       address: "<img src=x onerror=alert(1)>",
       letter: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "<b>hi</b>" }] }] },
     });
-    const { container } = await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    const { container } = await render(<LetterPreview campaign={letterToPm} />);
     await expect.element(page.getByText("<b>hi</b>")).toBeVisible();
     expect(container.querySelector("article b, article div img")).toBeNull();
   });
 
   it("leaves out attachments when there are none", async () => {
     saveDraft({ ...DRAFT, campaign: bill.slug });
-    await render(<LetterPreview campaignSlug={bill.slug} />);
+    await render(<LetterPreview campaign={bill} />);
     await expect.element(send()).toBeVisible();
     await expect.element(page.getByRole("list", { name: copy.form.attachments })).not.toBeInTheDocument();
   });
 
   it("says there's nothing to preview without a draft, and links back to the form", async () => {
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await expect.element(page.getByText(copy.preview.none)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.preview.backToForm }))
@@ -84,7 +84,7 @@ describe("LetterPreview", () => {
 
   it("sends the draft, counts the conversion once, and goes to the sent page", async () => {
     saveDraft({ ...DRAFT, nickname: "bot" });
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await page.getByLabelText(copy.preview.consent).click();
     await send().click();
 
@@ -116,14 +116,14 @@ describe("LetterPreview", () => {
   it("says on the sent page a letter that's queued will go soon, or once its MP's address works", async () => {
     respond = async () => Response.json({ ok: true, queued: "daily_limit" });
     saveDraft(DRAFT);
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await send().click();
     await vi.waitFor(() =>
       expect(readSent(letterToPm.slug)).toEqual({ campaign: letterToPm.slug, mpName: MP.name, queued: "soon" }),
     );
     respond = async () => Response.json({ ok: true, queued: "blocked" });
     saveDraft(DRAFT);
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await page.getByRole("button", { name: copy.preview.send }).last().click();
     await vi.waitFor(() =>
       expect(readSent(letterToPm.slug)).toEqual({ campaign: letterToPm.slug, mpName: MP.name, queued: "blocked" }),
@@ -133,7 +133,7 @@ describe("LetterPreview", () => {
   it("adds to an existing dataLayer", async () => {
     w.dataLayer = ["gtm"];
     saveDraft(DRAFT);
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await send().click();
     await vi.waitFor(() => expect(w.dataLayer).toEqual(["gtm", { event: "mp_email_sent" }]));
   });
@@ -141,7 +141,7 @@ describe("LetterPreview", () => {
   it("shows the server's refusal, counts nothing, keeps the draft, and lets the sender try again", async () => {
     respond = async () => Response.json({ ok: false, reason: "already-sent" });
     saveDraft(DRAFT);
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await send().click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.errors.alreadySent);
     expect(w.dataLayer).toBeUndefined();
@@ -160,7 +160,7 @@ describe("LetterPreview", () => {
     let finish!: (res: Response) => void;
     respond = () => new Promise((resolve) => (finish = resolve));
     saveDraft(DRAFT);
-    await render(<LetterPreview campaignSlug={letterToPm.slug} />);
+    await render(<LetterPreview campaign={letterToPm} />);
     await send().click();
     await expect.element(send()).toHaveAttribute("aria-busy", "true");
     finish(Response.json({ ok: false, reason: "failed" }));
@@ -178,7 +178,7 @@ describe("LetterPreview", () => {
     };
     respond = async () => Response.json({ ok: false, reason: "spam-failed" });
     saveDraft(DRAFT);
-    await render(<LetterPreview campaignSlug={letterToPm.slug} turnstileSiteKey="site-key" />);
+    await render(<LetterPreview campaign={letterToPm} turnstileSiteKey="site-key" />);
 
     await expect.element(send()).toBeDisabled();
     await vi.waitFor(() => expect(widgets).toHaveLength(1));

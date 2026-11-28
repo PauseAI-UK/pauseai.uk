@@ -20,7 +20,7 @@ const editor = () => page.getByRole("textbox", { name: copy.form.letterLabel, ex
 describe("LetterWrite", () => {
   it("shows the MP found, and the campaign's letter to them, from the sender", async () => {
     saveLookup(LOOKUP);
-    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
+    await render(<LetterWrite campaign={letterToPm} letter={toPm} />);
     await expect.element(page.getByRole("heading", { name: "Polly Placeholder" })).toBeVisible();
     await expect.element(page.getByText(MP.email)).toBeVisible();
     await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue(toPm.subject);
@@ -30,7 +30,7 @@ describe("LetterWrite", () => {
 
   it("says so above the bill's letter when the MP signed ControlAI's letter, with the letter's part for them, and nowhere else", async () => {
     saveLookup({ ...LOOKUP, campaign: bill.slug, statuses: { [CONTROLAI_LETTER_ASK]: "signed" } });
-    const signed = await render(<LetterWrite campaignSlug={bill.slug} letter={toBill} />);
+    const signed = await render(<LetterWrite campaign={bill} letter={toBill} />);
     await expect.element(page.getByText(copy.sobelBill.signedNote.after, { exact: false })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.sobelBill.signedNote.link }))
@@ -39,14 +39,14 @@ describe("LetterWrite", () => {
     await signed.unmount();
 
     saveLookup({ ...LOOKUP, campaign: bill.slug });
-    const unsigned = await render(<LetterWrite campaignSlug={bill.slug} letter={toBill} />);
+    const unsigned = await render(<LetterWrite campaign={bill} letter={toBill} />);
     await expect.element(editor()).toBeVisible();
     await expect.element(page.getByText(copy.sobelBill.signedNote.after, { exact: false })).not.toBeInTheDocument();
     await expect.element(editor().getByText("Thank you for signing.")).not.toBeInTheDocument();
     await unsigned.unmount();
 
     saveLookup({ ...LOOKUP, statuses: { [CONTROLAI_LETTER_ASK]: "signed" } });
-    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
+    await render(<LetterWrite campaign={letterToPm} letter={toPm} />);
     await expect.element(editor()).toBeVisible();
     await expect.element(page.getByText(copy.sobelBill.signedNote.after, { exact: false })).not.toBeInTheDocument();
   });
@@ -62,14 +62,14 @@ describe("LetterWrite", () => {
       draftHash: "0badcafe",
       nickname: "",
     });
-    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
+    await render(<LetterWrite campaign={letterToPm} letter={toPm} />);
     await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue("Kept subject");
     await expect.element(editor().getByText("Kept letter")).toBeVisible();
   });
 
   it("says to find the MP first, without a lookup for this campaign, and links to the form", async () => {
     saveLookup({ ...LOOKUP, campaign: bill.slug });
-    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={toPm} />);
+    await render(<LetterWrite campaign={letterToPm} letter={toPm} />);
     await expect.element(page.getByText(copy.write.none)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: copy.preview.backToForm }))
@@ -79,7 +79,7 @@ describe("LetterWrite", () => {
 
   it("says the campaign isn't open yet, before staff have published its letter", async () => {
     saveLookup(LOOKUP);
-    await render(<LetterWrite campaignSlug={letterToPm.slug} letter={null} />);
+    await render(<LetterWrite campaign={letterToPm} letter={null} />);
     await expect.element(page.getByText(copy.write.notOpen)).toBeVisible();
     await expect.element(page.getByLabelText(copy.form.subjectLabel)).not.toBeInTheDocument();
   });

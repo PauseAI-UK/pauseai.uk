@@ -115,7 +115,7 @@ function WithFakeTurnstile({ children }: { children: ReactNode }) {
 export function EmailYourMpToolExample() {
   return (
     <Seeded lookup={exampleLookup}>
-      <EmailYourMpTool campaignSlug={letterToPm.slug} />
+      <EmailYourMpTool campaign={letterToPm} />
     </Seeded>
   );
 }
@@ -124,7 +124,7 @@ export function EmailYourMpToolExample() {
 export function EmailYourMpToolTestMpsExample() {
   return (
     <Seeded lookup={{ ...exampleLookup, address: "7 Fake Lane", postcode: "ZZ99ZZ" }}>
-      <EmailYourMpTool campaignSlug={letterToPm.slug} showTestMps />
+      <EmailYourMpTool campaign={letterToPm} showTestMps />
     </Seeded>
   );
 }
@@ -173,7 +173,7 @@ export function LetterPreviewExample() {
   return (
     <WithFakeTurnstile>
       <Seeded lookup={exampleLookup} draft={exampleDraft}>
-        <LetterPreview campaignSlug={letterToPm.slug} turnstileSiteKey="fixture" />
+        <LetterPreview campaign={letterToPm} turnstileSiteKey="fixture" />
       </Seeded>
     </WithFakeTurnstile>
   );
@@ -183,7 +183,7 @@ export function LetterPreviewExample() {
 export function LetterPreviewPlainExample() {
   return (
     <Seeded lookup={{ ...exampleLookup, campaign: bill.slug }} draft={{ ...exampleDraft, campaign: bill.slug }}>
-      <LetterPreview campaignSlug={bill.slug} />
+      <LetterPreview campaign={bill} />
     </Seeded>
   );
 }
@@ -192,7 +192,7 @@ export function LetterPreviewPlainExample() {
 export function LetterSentExample() {
   return (
     <Seeded lookup={exampleLookup} sent={{ campaign: letterToPm.slug, mpName: exampleMp.name }}>
-      <LetterSent campaignSlug={letterToPm.slug} />
+      <LetterSent campaign={letterToPm} />
     </Seeded>
   );
 }
@@ -201,7 +201,7 @@ export function LetterSentExample() {
 export function LetterWriteExample() {
   return (
     <Seeded lookup={exampleLookup}>
-      <LetterWrite campaignSlug={letterToPm.slug} letter={exampleLetters[letterToPm.slug]} />
+      <LetterWrite campaign={letterToPm} letter={exampleLetters[letterToPm.slug]} />
     </Seeded>
   );
 }
@@ -210,7 +210,7 @@ export function LetterWriteExample() {
 export function LetterWriteNotOpenExample() {
   return (
     <Seeded lookup={exampleLookup}>
-      <LetterWrite campaignSlug={letterToPm.slug} letter={null} />
+      <LetterWrite campaign={letterToPm} letter={null} />
     </Seeded>
   );
 }
@@ -219,7 +219,7 @@ export function LetterWriteNotOpenExample() {
 export function LetterWriteSignedExample() {
   return (
     <Seeded lookup={{ ...exampleLookup, campaign: bill.slug, statuses: { [CONTROLAI_LETTER_ASK]: "signed" } }}>
-      <LetterWrite campaignSlug={bill.slug} letter={exampleLetters[bill.slug]} />
+      <LetterWrite campaign={bill} letter={exampleLetters[bill.slug]} />
     </Seeded>
   );
 }

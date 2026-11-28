@@ -46,7 +46,7 @@ export function MovedOnNoticeExample() {
 export function EmailYourMpSectionExample() {
   return (
     <Seeded lookup={exampleLookup}>
-      <EmailYourMpSection campaignSlug={letterToPm.slug} showTestMps />
+      <EmailYourMpSection campaign={letterToPm} showTestMps />
     </Seeded>
   );
 }

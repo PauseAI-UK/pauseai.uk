@@ -1,8 +1,11 @@
+import { codeCampaign } from "@/lib/email-your-mp";
 import { config } from "@/lib/server/config.server";
 import { copy } from "@/lib/content/email-your-mp";
 import { pageMetadata } from "@/lib/metadata";
 import LetterPreview from "../../_components/LetterPreview";
 import LetterStep from "../../_components/LetterStep";
+
+const campaign = codeCampaign("regulate-letter-pm");
 
 // The letter from this campaign's form, before it's sent. Unlisted, and kept out of search.
 export const metadata = {
@@ -17,7 +20,7 @@ export const metadata = {
 export default function Page() {
   return (
     <LetterStep title={copy.preview.title}>
-      <LetterPreview campaignSlug="regulate-letter-pm" turnstileSiteKey={config.turnstileSiteKey} />
+      <LetterPreview campaign={campaign} turnstileSiteKey={config.turnstileSiteKey} />
     </LetterStep>
   );
 }

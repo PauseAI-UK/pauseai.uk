@@ -1,8 +1,11 @@
+import { codeCampaign } from "@/lib/email-your-mp";
 import { config } from "@/lib/server/config.server";
 import { pageMetadata } from "@/lib/metadata";
 import CampaignContext from "../_components/CampaignContext";
 import CampaignHero from "../_components/CampaignHero";
 import EmailYourMpSection from "../_components/EmailYourMpSection";
+
+const campaign = codeCampaign("support-sobel-bill");
 
 // Support Alex Sobel's bill. Its documents and supporters are to come.
 export const metadata = pageMetadata({
@@ -44,7 +47,7 @@ export default function Page() {
       </CampaignContext>
 
       <EmailYourMpSection
-        campaignSlug="support-sobel-bill"
+        campaign={campaign}
         // Outside production, letters only go to the test MPs, so say how to find them.
         showTestMps={!config.production}
       />

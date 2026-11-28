@@ -14,6 +14,13 @@ export const CAMPAIGN_NAMES = [
   { slug: "support-sobel-bill", title: "Support the Artificial Superintelligence Bill" },
 ] as const;
 
+/**
+ * The other pages in the code beside a campaign's, on the site under
+ * /campaigns/ and on the staff site under /staff/campaigns/, whose names a
+ * campaign staff make can't take (app/(site)/campaigns/pages.test.ts).
+ */
+export const OTHER_CAMPAIGN_PAGES = ["briefings", "dear-sir-demis-2025", "new"];
+
 /** The first campaign in priority order, where plain /campaigns goes. */
 export const FIRST_CAMPAIGN_SLUG = CAMPAIGN_NAMES[0].slug;
 

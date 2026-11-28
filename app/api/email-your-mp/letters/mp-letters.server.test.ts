@@ -4,6 +4,7 @@ import { HttpResponse } from "msw";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { draftLetter, signatureAddress, type CampaignLetter } from "@/lib/email-your-mp";
 import { publishedLetter } from "@/lib/mailings/campaign-letters.server";
+import { createCampaign } from "@/lib/mailings/made-campaigns.server";
 import { draftHash } from "@/lib/letters/changes";
 import { docFromMarkup, toText } from "@/lib/letters/format";
 import {
@@ -271,6 +272,27 @@ describeWithDatabase("submitLetter", () => {
     const sent = recordGmail();
     await submitLetter({ ...FORM, campaign: "support-sobel-bill" });
     expect(sent[0].mime.parts).toHaveLength(2);
+  });
+
+  it("sends a letter for a campaign staff made once its letter's published, with no attachments", async () => {
+    const latest = (await publishedLetter("regulate-letter-pm"))!;
+    const slug = await createCampaign(
+      { title: "Stop the race", ask: null, subject: "Stop", body: latest.body },
+      "jo@pauseai.uk",
+    );
+    expect(await submitLetter({ ...FORM, campaign: slug })).toEqual({ ok: false, reason: "unknown-campaign" });
+    await query(
+      "UPDATE campaign_letters SET published_at = now(), published_by = 'jo@pauseai.uk' WHERE campaign = $1",
+      [slug],
+    );
+    const sent = recordGmail();
+    expect(await submitLetter({ ...FORM, campaign: slug })).toEqual({ ok: true });
+    expect(sent[0].mime.parts).toHaveLength(2);
+    expect(await query("SELECT campaign FROM letters_from_supporters")).toEqual([{ campaign: slug }]);
+    // pauseai.info's old campaigns, with no letter published, take none.
+    expect(await submitLetter({ ...FORM, campaign: "pauseai-info-liability" })).toMatchObject({
+      reason: "unknown-campaign",
+    });
   });
 
   it("pretends to accept a bot's letter, and sends nothing", async () => {

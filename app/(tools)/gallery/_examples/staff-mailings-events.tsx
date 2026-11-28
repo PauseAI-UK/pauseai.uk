@@ -17,6 +17,7 @@ import { mailingFilesGallery } from "@/app/(staff)/staff/_components/mailings/Ma
 import { mailingsOverviewGallery } from "@/app/(staff)/staff/_components/mailings/MailingsOverview.gallery";
 import { mailingWriterGallery } from "@/app/(staff)/staff/_components/mailings/MailingWriter.gallery";
 import { campaignLetterWriterGallery } from "@/app/(staff)/staff/_components/mailings/CampaignLetterWriter.gallery";
+import { newCampaignWriterGallery } from "@/app/(staff)/staff/_components/mailings/NewCampaignWriter.gallery";
 import { recipientChoiceGallery } from "@/app/(staff)/staff/_components/mailings/RecipientChoice.gallery";
 import { mailingViewGallery } from "@/app/(staff)/staff/_components/mailings/MailingView.gallery";
 import { copyCountsGallery } from "@/app/(staff)/staff/_components/mailings/CopyCounts.gallery";
@@ -57,6 +58,7 @@ export const staffMailingsEvents: Group = {
     ...mailingsOverviewGallery,
     ...mailingWriterGallery,
     ...campaignLetterWriterGallery,
+    ...newCampaignWriterGallery,
     ...recipientChoiceGallery,
     ...mailingViewGallery,
     ...copyCountsGallery,

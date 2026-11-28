@@ -1,9 +1,12 @@
+import { codeCampaign } from "@/lib/email-your-mp";
 import { copy } from "@/lib/content/email-your-mp";
 import { pageMetadata } from "@/lib/metadata";
 import { connection } from "next/server";
 import { publishedLetter } from "@/lib/mailings/campaign-letters.server";
 import LetterStep from "../../_components/LetterStep";
 import LetterWrite from "../../_components/LetterWrite";
+
+const campaign = codeCampaign("regulate-letter-pm");
 
 // Writing this campaign's letter, after finding the MP, from the version
 // staff last published. Unlisted, and kept out of search. Made on each
@@ -23,7 +26,7 @@ export default async function Page() {
   const letter = await publishedLetter("regulate-letter-pm");
   return (
     <LetterStep title={copy.write.title}>
-      <LetterWrite campaignSlug="regulate-letter-pm" letter={letter} />
+      <LetterWrite campaign={campaign} letter={letter} />
     </LetterStep>
   );
 }

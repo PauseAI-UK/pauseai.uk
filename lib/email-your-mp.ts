@@ -61,6 +61,13 @@ export function campaignBySlug(slug: string): Campaign | undefined {
   return campaigns.find((campaign) => campaign.slug === slug);
 }
 
+/** A campaign in the code, by its slug, as its own pages name it: thrown for none, a mistake in the page. */
+export function codeCampaign(slug: string): Campaign {
+  const campaign = campaignBySlug(slug);
+  if (!campaign) throw new Error(`No campaign in the code has the slug "${slug}"`);
+  return campaign;
+}
+
 /** The first campaign, in priority order, that makes this ask. */
 export function campaignForAsk(ask: string): Campaign | undefined {
   return campaigns.find((campaign) => campaign.ask === ask);

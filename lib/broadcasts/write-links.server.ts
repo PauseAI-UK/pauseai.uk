@@ -1,5 +1,6 @@
 import "server-only";
-import { campaignNamed, campaignPath } from "@/lib/content/campaigns";
+import { campaignPath } from "@/lib/content/campaigns";
+import { siteCampaign } from "@/lib/mailings/made-campaigns.server";
 import type { MailingRecipientValues } from "@/lib/mailings/doc";
 import { displayPostcode } from "@/lib/postcodes";
 import { query } from "@/lib/server/db.server";
@@ -41,10 +42,11 @@ export type WriteLinkFill = { name: string | null; postcode: string | null };
  * after its #, which browsers never send on, so they stay out of logs. With
  * nothing after it for a token no copy has, one sent more than PAGE_DAYS
  * ago, or one whose supporter was erased. For a campaign with no page now,
- * the campaigns' own page, which leads to the first.
+ * in the code or made by staff, the campaigns' own page, which leads to the
+ * first.
  */
 export async function writeLinkPath(token: string, slug: string): Promise<string> {
-  const campaign = campaignNamed(slug);
+  const campaign = await siteCampaign(slug);
   if (!campaign) return "/campaigns";
   const [found] = await query<WriteLinkFill>(
     `SELECT c.merge_values ->> 'name' AS name, CASE WHEN p.basis = 'postcode' THEN p.given END AS postcode

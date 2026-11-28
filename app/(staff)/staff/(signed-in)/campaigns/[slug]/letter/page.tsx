@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { requireStaff } from "@/lib/accounts/auth.server";
-import { campaignBySlug } from "@/lib/email-your-mp";
 import { campaignWriterData, openDraft } from "@/lib/mailings/campaign-letters.server";
 import { found } from "@/lib/found";
 import { getCampaignSummary } from "@/lib/mailings/campaigns.server";
+import { siteCampaign } from "@/lib/mailings/made-campaigns.server";
 import { mailingsCopy } from "@/lib/mailings/copy";
 import {
   discardCampaignLetter,
@@ -25,13 +25,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 /**
  * Writing a campaign's letter: its draft, opened as a copy of the latest
- * version if there's none, for a campaign in the code, whose page and the
- * rest are there.
+ * version if there's none, for a campaign in the code or one staff made.
  */
 export default async function CampaignLetterPage({ params }: Params) {
   const { email } = await requireStaff("supporters");
   const { slug } = await params;
-  found(campaignBySlug(slug));
+  found(await siteCampaign(slug));
   const campaign = found(await getCampaignSummary(slug));
   const [draft, data] = await Promise.all([
     openDraft(slug, email, mailingsCopy.mailingPages.greeting),

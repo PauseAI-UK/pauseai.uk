@@ -3,9 +3,9 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { copy } from "@/lib/content/email-your-mp";
+import { copy, type Campaign } from "@/lib/content/email-your-mp";
 import { postJson } from "@/lib/ask-server";
-import { campaignBySlug, campaignToMoveTo, isDone, type Mp, type MpLookup, type MpStatuses } from "@/lib/email-your-mp";
+import { campaignToMoveTo, isDone, type Mp, type MpLookup, type MpStatuses } from "@/lib/email-your-mp";
 import { campaignPath } from "@/lib/content/campaigns";
 import { TEST_MPS, type TestMp } from "@/lib/politicians/test-mps";
 import { readLookup, saveLookup } from "./draft.client";
@@ -38,7 +38,7 @@ const REFUSED: Record<Extract<MpLookup, { ok: false }>["reason"], string> = {
  * campaigns hold functions, which can't be passed from the server.)
  */
 type Props = {
-  campaignSlug: string;
+  campaign: Campaign;
   /** Lists the test MPs' postcodes under the form: for sites other than production. */
   showTestMps?: boolean;
 };
@@ -69,8 +69,7 @@ function linkFill(): { name: string; postcode: string } | undefined {
   return { name, postcode };
 }
 
-export default function EmailYourMpTool({ campaignSlug, showTestMps }: Props) {
-  const campaign = campaignBySlug(campaignSlug)!;
+export default function EmailYourMpTool({ campaign, showTestMps }: Props) {
   const router = useRouter();
   const testPostcodes = useId();
   const addressHint = useId();

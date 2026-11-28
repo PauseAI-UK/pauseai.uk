@@ -1,6 +1,7 @@
 import "server-only";
 import { listAsks, type Ask } from "@/lib/asks/records.server";
-import { campaignBySlug, unpublishable, type CampaignLetter, type UnpublishableReason } from "@/lib/email-your-mp";
+import { unpublishable, type CampaignLetter, type UnpublishableReason } from "@/lib/email-your-mp";
+import { siteCampaign } from "./made-campaigns.server";
 import { checkMailingDoc, greetingLetter, type MailingDoc, type MailingRecipientValues } from "./doc";
 import type { SaveResult } from "./drafts.server";
 import type { MailingChoice } from "./fields";
@@ -77,13 +78,13 @@ export async function publishedVersions(campaign: string): Promise<{ versions: P
 export type UnpublishedDraft = { id: number; updatedAt: Date; updatedBy: string | null };
 
 /**
- * A campaign in the code's draft, if it says something the latest version
- * doesn't, so it's work waiting to be published; null if there's none, or
- * one opened and left as it was. For a campaign not in the code, whose
- * letter isn't staff's, undefined.
+ * The draft of a campaign whose letter staff write, if it says something
+ * the latest version doesn't, so it's work waiting to be published; null if
+ * there's none, or one opened and left as it was. For one of pauseai.info's
+ * old campaigns, whose letter isn't staff's, undefined.
  */
 export async function unpublishedDraft(campaign: string): Promise<UnpublishedDraft | null | undefined> {
-  if (!campaignBySlug(campaign)) return undefined;
+  if (!(await siteCampaign(campaign))) return undefined;
   const [row] = await query<UnpublishedDraft>(
     `SELECT d.id::int AS id, d.updated_at AS "updatedAt", d.updated_by AS "updatedBy"
      FROM campaign_letters d
@@ -106,17 +107,17 @@ export async function campaignDraft(campaign: string): Promise<CampaignLetterRow
   return row && checked(row);
 }
 
+/** A campaign's letter before anything's written: no subject, and a letter to an MP, `greeting` and their salutation. */
+export function firstLetter(greeting: string): { subject: string; body: MailingDoc } {
+  return { subject: "", body: greetingLetter(greeting, "salutation") };
+}
+
 /**
  * The campaign's draft, opened by `by` if there's none: a copy of the
- * latest version, or for a campaign with none, a letter to an MP to start
- * from, `greeting` and their salutation.
+ * latest version, or for a campaign with none, its first letter.
  */
 export async function openDraft(campaign: string, by: string, greeting: string): Promise<CampaignLetterRow> {
-  const latest = await publishedLetter(campaign);
-  const start: { subject: string; body: MailingDoc } = latest ?? {
-    subject: "",
-    body: greetingLetter(greeting, "salutation"),
-  };
+  const start = (await publishedLetter(campaign)) ?? firstLetter(greeting);
   await query(
     `INSERT INTO campaign_letters (campaign, subject, body, updated_by) VALUES ($1, $2, $3, $4)
      ON CONFLICT (campaign) WHERE published_at IS NULL DO NOTHING`,
