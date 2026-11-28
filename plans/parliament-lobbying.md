@@ -2,6 +2,42 @@
 
 This plan is a draft.
 
+## Features
+
+Each feature is built and merged on its own, and each is useful beyond
+lobbying days.
+
+Done:
+
+- Each event has a staff page, with its guests and their postcodes
+  (#514).
+- Broadcast fields for the reader's MP, and a link of their own to
+  write to them on a campaign (#515).
+- Staff edit a campaign's subject and letter, keeping each published
+  version (#516).
+
+In flight:
+
+- Staff make a new campaign, with no page in code. Each lobbying day
+  is a campaign of its own.
+
+To build:
+
+- A9. Luma registration answers, so a sign-up on our form fills in
+  the lobby's postcode question on Luma (`plans/pausecon-2027.md`).
+- A14. Replies to check. A staff list of MPs' replies to campaign
+  letters that aren't automatic and aren't yet dealt with, from which
+  staff set the MP's answer to the campaign's ask, or mark the reply
+  dealt with. See "What the MP said", below.
+- A15. A broadcast condition on the reader's MP's answer to an ask:
+  not answered, going, declined or other. Needs nothing but #515.
+- A16. The lobby's guests grouped by MP, on its event page, with what
+  each MP said, for staff to form the groups. Needs A14's answers to
+  be useful.
+
+Later: Claude Haiku suggesting an MP's answer from their reply (after
+A14), and the site forming the groups itself (after A16).
+
 ## What a lobbying day is
 
 On a lobbying day, supporters go to Parliament to meet their own MPs.
@@ -49,8 +85,8 @@ inbox under an address of its own, so the MP never sees the supporter's
 email. Replies are passed on to the supporter, and we keep a copy, so
 the site sees every reply.
 
-Staff edit a campaign's subject and letter on the staff site (#516,
-open), so each lobbying day's letter is written by staff for that day.
+Each lobbying day is a campaign of its own, which staff make and whose
+letter they write for that day.
 
 ## What the MP said
 
@@ -89,10 +125,8 @@ say so first.
 
 The broadcasts already have conditions for going to an event and for
 having written to their MP on a campaign, and fields for the reader's
-MP and a link of their own to write to that MP on a campaign (#515).
-They need one more: a condition on the reader's MP's answer to an ask
-(not answered, going, declined or other). Every ask can use it, not
-just a lobbying day's.
+MP and their link to write to that MP (#515). They need one more, A15:
+a condition on the reader's MP's answer to an ask.
 
 ## The day itself
 

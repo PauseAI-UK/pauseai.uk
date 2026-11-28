@@ -19,6 +19,50 @@ Around 300 people are expected at PauseCon, and the lobby is aiming
 for 500 to 1,000. People need about two months' notice, so sign-ups
 should open by the end of December.
 
+## Features
+
+Each feature is built and merged on its own, and each is useful beyond
+PauseCon. They're listed in the order they can be built.
+
+Done:
+
+- Each event has a staff page, with its guests and a button to email
+  them (#514).
+- Broadcast fields for the reader's MP, and a link of their own to
+  write to them on a campaign (#515).
+
+In flight:
+
+- Emailing an event's guests about that event, under a consent of its
+  own for event messages, whatever lists they're on (#517, a plan).
+
+To build:
+
+- A8. Conferences. The `conferences` and `conference_events` tables, a
+  Conferences entry in the staff sidebar, and a page for each
+  conference showing its events together. The supporters list and the
+  broadcasts get a "going to any event of a conference" filter and
+  condition. No applications yet. See "Conferences", below.
+- A9. Shared sign-up pieces. `form_entry_luma` takes several events
+  per form entry, and `addLumaGuest()` sends answers to an event's
+  registration questions and an approval status as well as name and
+  email. Any later form gets both. The lobby needs it for the postcode.
+  See "Keeping the answers", below.
+- A10. Applications. The `conference_applications` table, with
+  answers kept as question-and-answer pairs. Staff decide and edit
+  applications on the conference's page, with each edit in the audit
+  log. The broadcasts and the supporters list get conditions and
+  filters on an application's state. The CSV download gains the nights.
+  Needs A8. See "Applications", below.
+- A11. PauseCon's form 1, a bespoke page and route like the march's,
+  as a plain mockup for our designer. Needs A9 and A10.
+- A12. Form 2 and the hotel's confirmation: a personal link to form 2,
+  and a personal link that records someone's yes to the hotel. Needs
+  A10.
+- A13. The emails the site sends itself when something happens: the
+  application received, the decision, and the accommodation confirmed.
+  Needs A10 and #517's consent.
+
 ## Conferences
 
 A conference is a group of events, with accommodation. Conferences
@@ -164,13 +208,13 @@ beside their application. Showing it to staff is safer to begin with.
 
 When an application is approved, the site registers them on Luma for
 the panel, if they ticked it, as already approved (Luma's add-guests
-call takes an `approval_status`), and emails them.
+call takes an `approval_status`), and emails them. Its email links to
+form 2 if they need accommodation.
 
 The panel's Luma event requires approval in Luma too, so someone who
 RSVPs there directly waits for staff, who approve them on Luma. The
 import already keeps each guest's Luma status, so the conference's page
-can show those waiting on Luma beside the applications. Its email links to form
-2 if they need accommodation.
+can show those waiting on Luma beside the applications.
 
 Staff can edit an application's columns on the conference's page, such
 as someone's nights after they email to change them, or their
@@ -226,8 +270,8 @@ used to them.
 
 I recommend O21, if Luma lets reminders be turned off for each event.
 
-#517 plans broadcasts to an event's guests whatever lists they're on,
-which these would use.
+These broadcasts go to an event's guests about the event, under #517's
+consent for event messages.
 
 ## Personal data
 
