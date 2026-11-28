@@ -58,8 +58,8 @@ export function asksToJoin(words: string): { cameFrom: string | null } | undefin
 /**
  * What the waiting room's page is answered (app/api/whatsapp/waiting-room):
  * the link that opens a chat with our number, the message typed in it; or
- * why not, the spam check's reason, or "closed" while our number can't be
- * reached.
+ * why not, the spam check's reason, or "closed" while no community link is
+ * set or our number can't be reached.
  */
 export type ChatLinkResult = { ok: true; link: string } | Refused<SpamReason | "closed">;
 

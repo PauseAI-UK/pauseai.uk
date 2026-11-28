@@ -1422,7 +1422,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE (f.contact_consent AND (f.email IS NOT NULL) AND (f.form <> 'whatsapp-join'::text))
+  WHERE (f.contact_consent AND (f.email IS NOT NULL))
 UNION ALL
  SELECT f.phone AS address,
     'text'::text AS way,

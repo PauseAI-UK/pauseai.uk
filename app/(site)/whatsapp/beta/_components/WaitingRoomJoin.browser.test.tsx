@@ -33,7 +33,7 @@ describe("WaitingRoomJoin", () => {
     await render(<WaitingRoomJoin turnstileSiteKey="site" ask={ask} />);
     await expect.element(page.getByRole("link", { name: copy.button })).toHaveAttribute("href", LINK);
     expect(ask).toHaveBeenCalledWith("token-1", "parents");
-    await expect.element(page.getByText(copy.opens)).toBeVisible();
+    await expect.element(page.getByText(copy.newsletter)).toBeVisible();
   });
 
   it("asks at once without Turnstile, and says why there's no link: the spam check, closed, or the server unreachable", async () => {
@@ -48,8 +48,10 @@ describe("WaitingRoomJoin", () => {
     expect(ask).toHaveBeenCalledWith("", "");
 
     answers.push({ ok: false, reason: "closed" });
-    await render(<WaitingRoomJoin ask={ask} key="2" />);
-    await expect.element(page.getByText(copy.closed)).toBeVisible();
+    const closed = await render(<WaitingRoomJoin ask={ask} key="2" />);
+    await expect.element(closed.getByText(copy.closed)).toBeVisible();
+    // Closed, it says only that.
+    expect(closed.container.textContent).not.toContain(copy.body);
 
     answers.push(new Error("offline"));
     await render(<WaitingRoomJoin ask={ask} key="3" />);
@@ -60,8 +62,16 @@ describe("WaitingRoomJoin", () => {
     fakeTurnstile("");
     const ask = vi.fn();
     await render(<WaitingRoomJoin turnstileSiteKey="site" ask={ask} />);
-    await expect.element(page.getByText(copy.check)).toBeVisible();
+    await expect.element(page.getByRole("link", { name: copy.button })).not.toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(ask).not.toHaveBeenCalled();
+  });
+
+  it("says only that it's closed, with no spam check, when the page was made closed", async () => {
+    const ask = vi.fn();
+    await render(<WaitingRoomJoin open={false} turnstileSiteKey="site" ask={ask} />);
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.closed);
+    expect(document.querySelector("iframe, [data-turnstile]")).toBeNull();
     expect(ask).not.toHaveBeenCalled();
   });
 
@@ -70,7 +80,7 @@ describe("WaitingRoomJoin", () => {
     vi.spyOn(document.head, "append").mockImplementation(() => {});
     const ask = vi.fn();
     await render(<WaitingRoomJoin turnstileSiteKey="site" ask={ask} />);
-    await expect.element(page.getByText(copy.check)).toBeVisible();
+    await expect.element(page.getByRole("link", { name: copy.button })).not.toBeInTheDocument();
     expect(ask).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });

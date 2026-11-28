@@ -25,7 +25,7 @@ import { copyReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/Cop
 import { supporterBroadcastsGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterBroadcasts.gallery";
 import { textBubbleGallery } from "@/app/(staff)/staff/_components/broadcasts/TextBubble.gallery";
 import { waitingRoomGallery } from "@/app/(staff)/staff/_components/broadcasts/WaitingRoom.gallery";
-import { supporterWaitingRoomGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterWaitingRoom.gallery";
+import { communityLinkFormGallery } from "@/app/(staff)/staff/_components/broadcasts/CommunityLinkForm.gallery";
 import { writtenTextGallery } from "@/app/(staff)/staff/_components/broadcasts/WrittenText.gallery";
 import { textFoldGallery } from "@/app/(staff)/staff/_components/broadcasts/TextFold.gallery";
 
@@ -65,6 +65,6 @@ export const staffBroadcasts: Group = {
     ...writtenTextGallery,
     ...textFoldGallery,
     ...waitingRoomGallery,
-    ...supporterWaitingRoomGallery,
+    ...communityLinkFormGallery,
   ],
 };

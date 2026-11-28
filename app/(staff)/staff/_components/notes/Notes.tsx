@@ -108,15 +108,36 @@ export function NoteEntry({
 /**
  * A supporter's notes, a card of their page (NotesCard): newest first, each
  * a NoteEntry, or a line saying there are none, with the way to write one.
+ * With `reason`, why they joined, in their own words, from their chat with
+ * the WhatsApp waiting room: last, as the first thing known of them, like a
+ * note but theirs, so with no way to change it.
  */
-export default function Notes({ supporterId, ...props }: NotesProps & { supporterId: number }) {
+export default function Notes({
+  supporterId,
+  reason,
+  ...props
+}: NotesProps & { supporterId: number; reason?: { words: string; at: Date } }) {
   return (
     <NotesCard target={{ name: "supporterId", value: supporterId }} writer={props.reader.email} add={props.add}>
-      {props.notes.map((note) => (
-        <li key={note.id}>
-          <NoteEntry note={note} {...props} />
-        </li>
-      ))}
+      {[
+        ...props.notes.map((note) => (
+          <li key={note.id}>
+            <NoteEntry note={note} {...props} />
+          </li>
+        )),
+        ...(reason
+          ? [
+              <li key="reason">
+                <div className={styles.note}>
+                  <NoteText body={reason.words} />
+                  <div className={styles.meta}>
+                    <Muted>{copy.joiningReason(staffTime(reason.at))}</Muted>
+                  </div>
+                </div>
+              </li>,
+            ]
+          : []),
+      ]}
     </NotesCard>
   );
 }

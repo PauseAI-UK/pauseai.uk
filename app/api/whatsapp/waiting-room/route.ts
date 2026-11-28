@@ -4,11 +4,11 @@
 // number is in no page, so a bot reading the site doesn't find it. A route
 // rather than a Server Action, as an action's ID changes with every build.
 import { NextResponse } from "next/server";
-import { textSenderNumber } from "@/lib/broadcasts/channels.server";
 import { waitingRoomJoinCopy } from "@/lib/content/whatsapp";
 import { readJsonIfAny } from "@/lib/server/json.server";
 import { checkNotSpam } from "@/lib/server/outside-services/turnstile.server";
 import { cameFromCode, chatLink, joinMessage, type ChatLinkResult } from "@/lib/broadcasts/waiting-room";
+import { joiningNumber } from "@/lib/broadcasts/waiting-room.server";
 
 /** Answers with a ChatLinkResult, always 200. */
 export async function POST(request: Request) {
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 async function answer(turnstileToken: string, utmSource: string): Promise<ChatLinkResult> {
   const spam = await checkNotSpam({ turnstileToken });
   if (!spam.drop && spam.reason) return { ok: false, reason: spam.reason };
-  const number = await textSenderNumber();
+  const number = await joiningNumber();
   if (!number) return { ok: false, reason: "closed" };
   return { ok: true, link: chatLink(number, joinMessage(waitingRoomJoinCopy.message, cameFromCode(utmSource))) };
 }

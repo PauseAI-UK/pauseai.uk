@@ -72,12 +72,13 @@ WHERE o.list = 'newsletter' AND o.way IN ('email', 'text') AND o.resubscribed_at
 UNION ALL
 -- A box ticked on one of our forms, or a paper sign-up; or left unticked. A
 -- march's sign-up and a paper one ask for a number too. Joining the WhatsApp
--- community through the waiting room is a yes by text alone: an email given
--- in its chat is kept, but is no yes.
+-- community through the waiting room is a yes by text, and by email for an
+-- email given in its chat, which our welcome asks for to tell them of
+-- chances to contact their MP.
 SELECT lower(trim(f.email)), 'email', 'newsletter', 'said', 'yes',
   CASE WHEN f.form = 'paper-signup' THEN 'signed-up' ELSE 'asked' END, f.created_at, f.form
 FROM form_entries f
-WHERE f.contact_consent AND f.email IS NOT NULL AND f.form <> 'whatsapp-join'
+WHERE f.contact_consent AND f.email IS NOT NULL
 UNION ALL
 SELECT f.phone, 'text', 'newsletter', 'said', 'yes',
   CASE WHEN f.form = 'paper-signup' THEN 'signed-up' ELSE 'asked' END, f.created_at, f.form

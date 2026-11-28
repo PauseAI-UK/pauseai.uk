@@ -4,7 +4,7 @@ import { waitingRoomCopy } from "@/lib/broadcasts/waiting-room-copy";
 import { waitingStateOf } from "@/lib/broadcasts/waiting-room";
 import { communityLink, waitingRoom } from "@/lib/broadcasts/waiting-room.server";
 import { dismissNow, letInNow, setLinkNow } from "../../../_components/broadcasts/waiting-room-actions";
-import WaitingRoom from "../../../_components/broadcasts/WaitingRoom";
+import WaitingRoom, { CommunityLinkButton } from "../../../_components/broadcasts/WaitingRoom";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
 import { shellCopy } from "../../../_components/shell/copy";
@@ -18,12 +18,13 @@ export default async function WaitingRoomPage({ searchParams }: { searchParams: 
   const [{ people, counts }, link] = await Promise.all([waitingRoom(state), communityLink()]);
   return (
     <Page kind="list">
-      <PageHead intro={waitingRoomCopy.page.intro}>{shellCopy.nav.waitingRoom}</PageHead>
+      <PageHead intro={waitingRoomCopy.page.intro} action={<CommunityLinkButton link={link} setLink={setLinkNow} />}>
+        {shellCopy.nav.waitingRoom}
+      </PageHead>
       <WaitingRoom
         state={state}
         people={people}
         counts={counts}
-        link={link}
         actions={{ letIn: letInNow, dismiss: dismissNow, setLink: setLinkNow }}
       />
     </Page>

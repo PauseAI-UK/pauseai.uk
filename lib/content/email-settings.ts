@@ -56,8 +56,10 @@ const sources: Record<string, string> = {
   "email-your-mp": "when you wrote to your MP",
   "web-form": "when you wrote to your MP",
   "paper-signup": "on a paper sign-up form",
+  // An upload of the community's members, as an admin exports them from WhatsApp.
   "whatsapp-community": "when you joined our WhatsApp community",
-  "whatsapp-join": "⁂ when you joined our WhatsApp community",
+  // Approved in the WhatsApp waiting room, which is joining the community too, as they see it.
+  "whatsapp-join": "when you joined our WhatsApp community",
   civicrm: "with PauseAI Global",
   luma: "on Luma",
   "luma-webhook": "in a Luma email",

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { checkReply } from "./waiting-room-check.server";
-import { waitingRoomProblems } from "./waiting-room-copy";
+import { waitingRoomCopy, waitingRoomProblems } from "./waiting-room-copy";
 
 beforeEach(() => {
   vi.stubEnv("ANTHROPIC_API_KEY", "key");
@@ -42,7 +42,7 @@ describe("the waiting room's check", () => {
       postcode: "LS6 1AA",
       email: "jane@example.com",
     });
-    expect(asked[0].system).toContain("Thanks for asking to join");
+    expect(asked[0].system).toContain(waitingRoomCopy.texts.welcome);
     expect(asked[0].messages[0].content).toBe("Their reply:\n<reply>\nWorried, LS6 1AA\n</reply>");
   });
 

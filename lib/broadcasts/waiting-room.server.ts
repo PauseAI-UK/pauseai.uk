@@ -1,5 +1,5 @@
 import "server-only";
-import { textBackend } from "./channels.server";
+import { textBackend, textSenderNumber } from "./channels.server";
 import { broadcastsCopy } from "./copy";
 import { keptInWords, type KeptWords } from "./whatsapp-messages";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
@@ -63,6 +63,16 @@ export async function communityLink(): Promise<CommunityLink | undefined> {
   return link;
 }
 
+/**
+ * Our number, for the link that opens a chat with it, while joining is
+ * open: while there's a community link to send, and our number can be had.
+ * None while it's closed.
+ */
+export async function joiningNumber(): Promise<string | undefined> {
+  const [number, link] = await Promise.all([textSenderNumber(), communityLink()]);
+  return number && link ? number : undefined;
+}
+
 /** A message from them, kept once: false if WhatsApp sent it before, as it may. */
 async function keepTheirs(personId: number, messageId: string, at: Date, kept: KeptWords): Promise<boolean> {
   const added = await query(
@@ -93,24 +103,27 @@ async function say(person: Row, words: string): Promise<boolean> {
   return true;
 }
 
-/** The postcode on the form entry they became, if any. */
-async function entryPostcode(entryId: number | null): Promise<string | null> {
-  const [entry] = await query<{ postcode: string | null }>("SELECT postcode FROM form_entries WHERE id = $1", [
-    entryId,
-  ]);
-  return entry?.postcode ?? null;
+/** What they haven't given of their postcode and email, by the form entry they became: the words under the link to ask for it, if any. */
+async function askForMissing(entryId: number | null): Promise<string | undefined> {
+  const [entry] = await query<{ postcode: string | null; email: string | null }>(
+    "SELECT postcode, email FROM form_entries WHERE id = $1",
+    [entryId],
+  );
+  const [postcode, email] = [Boolean(entry?.postcode), Boolean(entry?.email)];
+  if (postcode && email) return undefined;
+  return waitingRoomCopy.texts.missing(postcode ? "email" : email ? "postcode" : "both");
 }
 
 /**
- * Sends someone let in the community's link, asking for their postcode
- * under it if they gave none; marks it sent if it went. Says whether it did.
+ * Sends someone let in the community's link, asking under it for their
+ * postcode and email, whichever they haven't given; marks it sent if it went. Says whether it did.
  */
 async function sendLink(person: Row): Promise<boolean> {
   const link = await communityLink();
   if (!link) return false;
   const words = waitingRoomCopy.texts;
-  const postcode = await entryPostcode(person.entryId);
-  const sent = await say(person, postcode ? words.link(link.link) : `${words.link(link.link)}\n\n${words.postcode}`);
+  const missing = await askForMissing(person.entryId);
+  const sent = await say(person, missing ? `${words.link(link.link)}\n\n${missing}` : words.link(link.link));
   if (sent) await query("UPDATE waiting_room SET link_sent_at = $2 WHERE id = $1", [person.id, now()]);
   return sent;
 }
@@ -128,8 +141,9 @@ async function theirReply(personId: number): Promise<string> {
 
 /**
  * Lets someone in, by `by` (a staff member) or none (the check), with what
- * they gave: made a form entry, so a supporter, and sent the link, now if
- * WhatsApp lets us, else when they next write.
+ * they gave: made a form entry, so a supporter, and sent the link, if
+ * WhatsApp takes it: not more than a day after they last wrote, when the
+ * staff page says it wasn't sent.
  */
 async function letIn(person: Row, by: string | null, gave: Pick<Checked, "postcode" | "email">): Promise<void> {
   const entryId = await addFormEntry("whatsapp-join", {
@@ -233,7 +247,7 @@ export async function receiveWaitingRoomMessage(incoming: Incoming): Promise<boo
       }
       break;
     case "let-in":
-      if (!person.linkSentAt || asksToJoin(words)) await sendLink(person);
+      if (asksToJoin(words)) await sendLink(person);
       else await laterMessage(person, number, kept);
       break;
     case "dismissed":
@@ -335,13 +349,24 @@ export async function waitingRoom(
   return { people: await withChats(rows), counts };
 }
 
-/** A supporter's place in the waiting room, with their chat, if they came through it. */
-export async function waitingRoomOf(supporterId: number): Promise<WaitingPerson | undefined> {
-  const rows = await query<Row & { supporterId: number | null }>(
-    `SELECT ${LISTED} WHERE l.supporter_id = $1 ORDER BY w.asked_at DESC LIMIT 1`,
+/** Why someone joined: their reply to our welcome, in their own words, and when they sent it. */
+export type JoiningReason = { words: string; at: Date };
+
+/**
+ * Why a supporter joined, if they came through the waiting room and were
+ * approved: their reply, kept only in the chat, which their page shows with
+ * their notes. None if they didn't reply.
+ */
+export async function joiningReason(supporterId: number): Promise<JoiningReason | undefined> {
+  const [person] = await query<{ id: number; at: Date | null }>(
+    `SELECT w.id::int AS id, (SELECT m.at FROM waiting_room_messages m WHERE m.person_id = w.id AND NOT m.ours
+       ORDER BY m.id OFFSET 1 LIMIT 1) AS at
+     FROM waiting_room w JOIN supporter_links l ON l.form_entry_id = w.entry_id
+     WHERE l.supporter_id = $1 AND w.state = 'let-in'`,
     [supporterId],
   );
-  return (await withChats(rows))[0];
+  if (!person?.at) return undefined;
+  return { words: await theirReply(person.id), at: person.at };
 }
 
 /** How long after one email of who's held another can go. */

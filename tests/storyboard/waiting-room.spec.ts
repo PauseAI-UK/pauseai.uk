@@ -19,8 +19,9 @@ export const section: Section = { name: "The WhatsApp waiting room", part: "Publ
 // (lib/server/fixtures/fakes/anthropic.ts: a reply of four words or more
 // passes, a shorter one or one with a link is held); and the staff page,
 // where those held are let in or dismissed, and the community's link set.
-// Each flow's person has a number of their own, and a flow that sends the
-// community's link sets one first, as staff would.
+// Each flow's person has a number of their own, and a flow that needs the
+// community's link sets one first, as staff would: without one, joining is
+// closed.
 
 const page = waitingRoomCopy.page;
 const texts = waitingRoomCopy.texts;
@@ -79,7 +80,8 @@ async function openWaitingRoom(staffPage: Page, show?: string) {
   await hydrated(staffPage);
 }
 
-test("Asking to join on WhatsApp", { tag: "@phone" }, async ({ page: browser }) => {
+test("Asking to join on WhatsApp", { tag: "@phone" }, async ({ page: browser, flowDatabase }) => {
+  linkSet(flowDatabase);
   story("Someone on the Parents page wants to join our WhatsApp community. The page asks them to pass the spam check.");
   await fakeTurnstile(browser);
   await browser.goto(`${BASE}/whatsapp/beta?utm_source=parents`);
@@ -102,16 +104,18 @@ test("Let in by the check", async ({ page: browser, request, flowDatabase }) => 
   await messageUs(request, "447700900321", "Jane", "I'm a parent worried about AI and my kids. LS6 1AA", -8);
   await expect.poll(() => ourNewest("+447700900321")).toContain(LINK);
   await textFrame(browser, OUR_CHAT, { words: ourNewest("+447700900321") }, "The link to the community");
-  story("Staff see her among those let in, with the whole chat, and she's a supporter, the chat on her page too.");
+  story(
+    "Staff see her among those let in, with the whole chat, and she's a supporter, why she joined the first note on her page.",
+  );
   await logIn(browser, flowDatabase, ["supporters"]);
   await openWaitingRoom(browser, "let-in");
   const jane = browser.getByRole("region", { name: "Jane" });
   await expect(jane.getByText("I'm a parent worried about AI")).toBeVisible();
   await frame(browser, "Let in by the check");
-  await jane.getByRole("link", { name: page.supporter }).click();
-  await expect(browser.getByRole("region", { name: page.chat })).toBeVisible();
+  await jane.getByRole("link", { name: "Jane" }).click();
+  await expect(browser.getByText("I'm a parent worried about AI and my kids. LS6 1AA")).toBeVisible();
   await hydrated(browser);
-  await frame(browser, "Her supporter page, with the chat");
+  await frame(browser, "Her supporter page, with why she joined as a note");
 });
 
 test("Held, then let in by staff", async ({ page: browser, request, flowDatabase }) => {

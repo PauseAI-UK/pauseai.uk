@@ -1249,15 +1249,19 @@ Someone in it (`waiting_room`, one row per number) is in one of four states:
   WhatsApp profile name, number, where they came from as its `utm_source`,
   and the postcode (whole, or its first half) and email the check read in
   their reply. They're sent the community's link, with a line asking for
-  their postcode if they gave none; if WhatsApp won't take it, as their day
-  has passed, it goes when they next write. A later message with a postcode
+  their postcode and email, whichever they didn't give. If WhatsApp won't
+  take it, as it's over a day since they last wrote, it isn't sent, and the
+  staff page says so; asking to join again sends it. A later message with a postcode
   or email updates their entry; anything else goes to staff.
 - **dismissed**: by staff, for good. Their messages are kept, unanswered,
   and reach neither the check nor staff.
 
 Every message both ways is kept (`waiting_room_messages`) and shown as a
-chat, on the waiting room page and the supporter's page, in the order they
-came, as theirs are timed by WhatsApp's clock and ours by ours.
+chat on the waiting room page, in the order they came, as theirs are timed
+by WhatsApp's clock and ours by ours. Someone approved who replied has
+their reply, in their own words, shown on their supporter page as the
+oldest of their notes, read from the chat: not a note anyone wrote, so it
+can't be changed, and isn't kept twice.
 
 The community's link is the newest staff set on the waiting room page
 (`waiting_room_links`), logged in the audit log. They reset it in WhatsApp
@@ -1265,8 +1269,8 @@ when there's reason to, such as the link seen in public, and paste the new
 one.
 
 Joining is a yes to the newsletter by text, as the page and our first
-message say, and to nothing else: an email given in the chat is kept but is
-no yes. Erasing a supporter removes their place in the waiting room and its
+message say; and by email, for an email they give in the chat, which our
+first message asks for to tell them of chances to contact their MP. Erasing a supporter removes their place in the waiting room and its
 chat; asking again starts afresh.
 
 ## Phone numbers

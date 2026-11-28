@@ -1,7 +1,7 @@
 // WaitingRoom in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import { WaitingRoomExample } from "./WaitingRoom.gallery.client";
+import { CommunityLinkButtonExample, WaitingRoomExample } from "./WaitingRoom.gallery.client";
 import { WaitingChat } from "./WaitingRoom";
 import { exampleDismissed, exampleHeld, exampleLetIn, exampleLetInByStaff, exampleLink } from "./WaitingRoom.examples";
 
@@ -39,6 +39,28 @@ export const waitingRoomGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <WaitingRoomExample state="held" people={[]} />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "CommunityLinkButton",
+    file: "app/(staff)/staff/_components/broadcasts/WaitingRoom.tsx",
+    variants: [
+      {
+        label: "The page's button for the community's link, once one is set",
+        render: () => (
+          <StaffPage as="div">
+            <CommunityLinkButtonExample link={exampleLink} />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "While none is set",
+        render: () => (
+          <StaffPage as="div">
+            <CommunityLinkButtonExample />
           </StaffPage>
         ),
       },

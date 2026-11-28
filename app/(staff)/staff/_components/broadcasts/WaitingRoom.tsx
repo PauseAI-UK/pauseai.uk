@@ -1,12 +1,13 @@
-import { TextInput } from "@/components/ui/Controls";
-import { Field, Hint } from "@/components/ui/Field";
+import Bubble from "@/components/ui/Bubble";
+import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { FormResult } from "@/lib/form-result";
 import { phoneWords } from "@/lib/phone";
 import { staffTime } from "@/lib/staff-time";
-import { waitingRoomCopy } from "@/lib/broadcasts/waiting-room-copy";
+import { cameFromWords, waitingRoomCopy } from "@/lib/broadcasts/waiting-room-copy";
 import { WAITING_STATES, type WaitingState } from "@/lib/broadcasts/waiting-room";
 import type { CommunityLink, DecisionRefusal, WaitingPerson } from "@/lib/broadcasts/waiting-room.server";
+import CommunityLinkForm from "./CommunityLinkForm";
 import { ChatBubble, ChatWall, LinkedText } from "./TextBubble";
 import Empty from "../ui/Empty";
 import Grid, { Card } from "../ui/Grid";
@@ -78,11 +79,25 @@ function Buttons({ person, actions }: { person: WaitingPerson; actions: WaitingR
   );
 }
 
-/** One person: who, where from and when; their chat; and what's become of them, or the buttons to decide. */
+/** One person: who, their name a link to their supporter page once they're one, where from and when; their chat; and what's become of them, or the buttons to decide. */
 function Person({ person, actions }: { person: WaitingPerson; actions: WaitingRoomActions }) {
-  const facts = [phoneWords(person.number), person.cameFrom && copy.from(person.cameFrom), staffTime(person.askedAt)];
+  const facts = [
+    phoneWords(person.number),
+    person.cameFrom && cameFromWords(person.cameFrom),
+    staffTime(person.askedAt),
+  ];
   return (
-    <Card span={6} title={whoOf(person)} id={`waiting-${person.id}`}>
+    <Card
+      span={6}
+      title={
+        person.supporterId ? (
+          <StaffLink href={`/staff/supporters/${person.supporterId}`}>{whoOf(person)}</StaffLink>
+        ) : (
+          whoOf(person)
+        )
+      }
+      id={`waiting-${person.id}`}
+    >
       <p className={styles.quiet}>{facts.filter(Boolean).join(" · ")}</p>
       <WaitingChat person={person} />
       {person.state === "held" && (
@@ -91,43 +106,50 @@ function Person({ person, actions }: { person: WaitingPerson; actions: WaitingRo
         </p>
       )}
       {person.decidedAt ? <Decided person={person} /> : <Buttons person={person} actions={actions} />}
-      {person.state === "let-in" && !person.linkSentAt && <p className={styles.quiet}>{copy.linkWaiting}</p>}
-      {person.supporterId && <StaffLink href={`/staff/supporters/${person.supporterId}`}>{copy.supporter}</StaffLink>}
-    </Card>
-  );
-}
-
-/** The community's link, who set it and when, and the form to set another. */
-function LinkCard({ link, setLink }: { link?: CommunityLink; setLink: WaitingRoomActions["setLink"] }) {
-  return (
-    <Card title={copy.link.title} id="waiting-room-link" look="aside">
-      {link ? (
-        <>
-          <p className={styles.link}>{link.link}</p>
-          <p className={styles.quiet}>
-            <StaffSentence words={(who) => copy.link.setBy(who, staffTime(link.setAt))} email={link.setBy} />
-          </p>
-        </>
-      ) : (
-        <p>{copy.link.none}</p>
-      )}
-      <ResultForm action={setLink} says={copy.refused} stack>
-        <Field label={copy.link.label}>
-          <TextInput name="link" type="url" required aria-describedby="waiting-room-link-hint" />
-        </Field>
-        <Hint id="waiting-room-link-hint">{copy.link.hint}</Hint>
-        <Refusal />
-        <SubmitButton variant="primary" size="small" fit>
-          {copy.link.save}
-        </SubmitButton>
-      </ResultForm>
+      {person.state === "let-in" && !person.linkSentAt && <p className={styles.quiet}>{copy.linkNotSent}</p>}
     </Card>
   );
 }
 
 /**
- * The WhatsApp waiting room: the community's link and the form to change
- * it; then tabs of who's held, let in, dismissed or hasn't replied, with how
+ * The page's button at its top right, for the community's link: it opens a
+ * bubble with the link, who set it and when, or that none is set, and the
+ * form to set another.
+ */
+export function CommunityLinkButton({
+  link,
+  setLink,
+}: {
+  link?: CommunityLink;
+  setLink: WaitingRoomActions["setLink"];
+}) {
+  return (
+    <Bubble
+      id="community-link"
+      trigger={buttonClass({ variant: link ? "ghost" : "primary", size: "small", fit: true })}
+      label={link ? copy.link.title : copy.link.set}
+      className={styles.linkBubbleBox}
+    >
+      <div className={styles.linkBubble}>
+        {link && (
+          <>
+            <p className={styles.link} title={link.link}>
+              {link.link.replace(/^https:\/\//, "")}
+            </p>
+            <p className={styles.quiet}>
+              <StaffSentence words={(who) => copy.link.setBy(who, staffTime(link.setAt))} email={link.setBy} />
+            </p>
+          </>
+        )}
+        <CommunityLinkForm setLink={setLink} />
+      </div>
+    </Bubble>
+  );
+}
+
+/**
+ * The WhatsApp waiting room, under its page head, whose button is the
+ * community's link (CommunityLinkButton): tabs of who's held, let in, dismissed or hasn't replied, with how
  * many where there are any; and the tab's people, each with their chat, and for those not yet
  * decided, buttons to let them in or dismiss them.
  */
@@ -135,13 +157,11 @@ export default function WaitingRoom({
   state,
   people,
   counts,
-  link,
   actions,
 }: {
   state: WaitingState;
   people: WaitingPerson[];
   counts: Record<WaitingState, number>;
-  link?: CommunityLink;
   actions: WaitingRoomActions;
 }) {
   const tabs = WAITING_STATES.map((key) => ({
@@ -153,7 +173,6 @@ export default function WaitingRoom({
   }));
   return (
     <>
-      <LinkCard link={link} setLink={actions.setLink} />
       <Tabs label={copy.tabsLabel} tabs={tabs} current={state} />
       {people.length === 0 ? (
         <Empty>{copy.none[state]}</Empty>

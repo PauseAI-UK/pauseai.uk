@@ -10,11 +10,11 @@ import {
   communityLink,
   dismiss,
   emailHeld,
+  joiningReason,
   letInByStaff,
   receiveWaitingRoomMessage,
   setCommunityLink,
   waitingRoom,
-  waitingRoomOf,
   type Incoming,
 } from "./waiting-room.server";
 
@@ -146,7 +146,15 @@ describeWithDatabase("the waiting room", () => {
   it("asks for a postcode under the link when they gave none", async () => {
     await setLink();
     await asksAndReplies("I'm worried about where AI is heading");
-    expect(said.at(-1)?.words).toBe(`${texts.link(LINK)}\n\n${texts.postcode}`);
+    expect(said.at(-1)?.words).toBe(`${texts.link(LINK)}\n\n${texts.missing("both")}`);
+    for (const [number, reply, missing] of [
+      ["+447700900456", "Worried about AI, my postcode is E15", "email"],
+      ["+447700900789", "Worried about AI, write to jane.smith@example.com", "postcode"],
+    ] as const) {
+      await receiveWaitingRoomMessage(from(JOIN, { number }));
+      await receiveWaitingRoomMessage(from(reply, { number }));
+      expect(said.at(-1)?.words).toBe(`${texts.link(LINK)}\n\n${texts.missing(missing)}`);
+    }
   });
 
   it("holds a reply the check holds, with why", async () => {
@@ -191,7 +199,7 @@ describeWithDatabase("the waiting room", () => {
     expect(await jane()).toMatchObject({ name: "Jane S" });
   });
 
-  it("sends the link when they next write, if WhatsApp wouldn't take it, and again if they ask to join again", async () => {
+  it("doesn't send the link when WhatsApp won't take it, nor later, but again if they ask to join again", async () => {
     await setLink();
     await receiveWaitingRoomMessage(from(JOIN));
     refusing = true;
@@ -200,9 +208,11 @@ describeWithDatabase("the waiting room", () => {
     expect(console.error).toHaveBeenCalledWith(waitingRoomProblems.notSent({ code: 131047 }).what);
     refusing = false;
     await receiveWaitingRoomMessage(from("thanks!"));
-    expect(await jane()).toMatchObject({ linkSent: true });
+    expect(await jane()).toMatchObject({ linkSent: false });
     await receiveWaitingRoomMessage(from("Can I join again? lost the link"));
-    expect(said.filter((message) => message.words === texts.link(LINK))).toHaveLength(2);
+    expect(await jane()).toMatchObject({ linkSent: true });
+    await receiveWaitingRoomMessage(from("I'd like to join, lost it again"));
+    expect(said.filter((message) => message.words.startsWith(texts.link(LINK)))).toHaveLength(2);
   });
 
   it("keeps a postcode or email they send later, and sends staff anything else", async () => {
@@ -234,15 +244,12 @@ describeWithDatabase("the waiting room", () => {
     expect(console.error).toHaveBeenCalledWith(waitingRoomProblems.notSent({ code: 0 }).what);
   });
 
-  it("sends no link to someone let in once there's none to send", async () => {
+  it("sends no link to someone who asks again once there's none to send", async () => {
     await setLink();
-    await receiveWaitingRoomMessage(from(JOIN));
-    refusing = true;
-    await receiveWaitingRoomMessage(from(REASON));
-    refusing = false;
+    await asksAndReplies(REASON);
     await query("DELETE FROM waiting_room_links");
-    await receiveWaitingRoomMessage(from("thanks!"));
-    expect(await jane()).toMatchObject({ state: "let-in", linkSent: false });
+    await receiveWaitingRoomMessage(from("Can I join again?"));
+    expect(said.filter((message) => message.words.startsWith(texts.link(LINK)))).toHaveLength(1);
   });
 
   it("takes a message quoting one of its own as its own", async () => {
@@ -320,8 +327,9 @@ describeWithDatabase("staff in the waiting room", () => {
       [false, REASON],
       [true, texts.link(LINK)],
     ]);
-    expect(await waitingRoomOf(people[0].supporterId!)).toEqual(people[0]);
-    expect(await waitingRoomOf(people[0].supporterId! + 1)).toBeUndefined();
+    // Why she joined, her reply, for her supporter page; none for someone who isn't one.
+    expect(await joiningReason(people[0].supporterId!)).toEqual({ words: REASON, at: expect.any(Date) });
+    expect(await joiningReason(people[0].supporterId! + 1)).toBeUndefined();
     expect((await waitingRoom("asked")).people[0]).toMatchObject({ profileName: "", supporterId: null });
   });
 

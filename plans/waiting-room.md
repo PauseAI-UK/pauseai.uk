@@ -33,7 +33,9 @@ community's link to those who look real, holding the rest for staff.
    Dismissed is for good: a later message from that number goes nowhere.
 7. **Joining is a yes to the newsletter by text**, as the CSV import of the
    community treats it now. The page and the first reply say so plainly,
-   with STOP to stop it.
+   with STOP to stop it. An email they give in the chat is a yes by email
+   too, as our first message asks for it to tell them of chances to contact
+   their MP.
 
 Someone who never replies gets no reminder.
 
@@ -92,10 +94,12 @@ second join message from someone already in gets the link again. Once
 dismissed, nothing is said back and nothing reaches the LLM or staff;
 their messages are kept for their record.
 
-**Staff see the whole chat** on the person's waiting room entry and their
-supporter page, drawn as a broadcast copy's conversation is
-(`ChatWall` and `ChatBubble`, `app/(staff)/staff/_components/broadcasts/TextBubble.tsx`):
-theirs at the left, ours at the right in green.
+**Staff see the whole chat** on the person's waiting room card, drawn as a
+broadcast copy's conversation is (`ChatWall` and `ChatBubble`,
+`app/(staff)/staff/_components/broadcasts/TextBubble.tsx`): theirs at the
+left, ours at the right in green. Their reason for joining, their reply,
+shows as the oldest of the notes on their supporter page, read from the
+chat, not kept as a note.
 
 **The LLM is lenient.** Any sincere reply from a person passes, however
 short: "worried about AI", "a friend told me about you". It holds what's
@@ -156,8 +160,7 @@ and when. The newest is the one sent.
 when they're let in, so they become a supporter as every form's sender
 does: their profile name, number, email and postcode if they gave them,
 where they came from as its `utm_source`, and the box to hear from us
-ticked, for the newsletter by text. Their email is kept, but joining is no
-yes to email. A later message with a postcode or email updates it.
+ticked, for the newsletter by text, and by email if they gave one. A later message with a postcode or email updates it.
 
 For example, Jane taps the button on the Parents page, sends the message,
 and replies "I'm a parent worried about AI, LS6 1AA":

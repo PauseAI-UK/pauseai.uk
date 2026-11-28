@@ -2,11 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { refused } from "@/lib/form-result";
-import { waitingRoomCopy } from "@/lib/broadcasts/waiting-room-copy";
+import { cameFromWords, waitingRoomCopy } from "@/lib/broadcasts/waiting-room-copy";
 import { staffTime } from "@/lib/staff-time";
 import { RefusalPlace } from "../ui/ResultForm";
-import SupporterWaitingRoom from "./SupporterWaitingRoom";
-import WaitingRoom, { type WaitingRoomActions } from "./WaitingRoom";
+import WaitingRoom, { CommunityLinkButton, type WaitingRoomActions } from "./WaitingRoom";
 import { WaitingRoomExample } from "./WaitingRoom.gallery.client";
 import {
   exampleAsked,
@@ -39,15 +38,14 @@ describe("WaitingRoom", () => {
     const sent = actions();
     await render(
       <RefusalPlace>
-        <WaitingRoom state="held" people={[exampleHeld]} counts={exampleCounts} link={exampleLink} actions={sent} />
+        <WaitingRoom state="held" people={[exampleHeld]} counts={exampleCounts} actions={sent} />
       </RefusalPlace>,
     );
-    await expect.element(page.getByText(exampleLink.link)).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: `${copy.tabs["let-in"]} 37` }))
       .toHaveAttribute("href", "/staff/supporters/waiting-room?show=let-in");
     await expect.element(page.getByRole("heading", { name: "Sam" })).toBeVisible();
-    await expect.element(page.getByText("07700 900456 · ⁂ from footer", { exact: false })).toBeVisible();
+    await expect.element(page.getByText(`07700 900456 · ${cameFromWords("footer")}`, { exact: false })).toBeVisible();
     await expect.element(page.getByText(exampleHeld.heldWhy!, { exact: false })).toBeVisible();
     await expect.element(page.getByText("voice")).toBeVisible();
     await page.getByRole("button", { name: copy.letIn }).click();
@@ -57,21 +55,17 @@ describe("WaitingRoom", () => {
     await expect.poll(() => sent.dismiss.mock.calls.length).toBe(1);
   });
 
-  it("says why it couldn't let someone in, and why a link wasn't taken", async () => {
+  it("says why it couldn't let someone in", async () => {
     const sent = actions(refused("no-link"));
     await render(
       <RefusalPlace>
         <WaitingRoom state="asked" people={[exampleAsked]} counts={{ ...exampleCounts, held: 0 }} actions={sent} />
       </RefusalPlace>,
     );
-    await expect.element(page.getByText(copy.link.none)).toBeVisible();
     // Nobody held: that tab has no count.
     await expect.element(page.getByRole("link", { name: copy.tabs.held, exact: true })).toBeVisible();
     await page.getByRole("button", { name: copy.letIn }).click();
     await expect.element(page.getByText(copy.refused["no-link"])).toBeVisible();
-    await page.getByRole("textbox", { name: copy.link.label }).fill("https://example.com/x");
-    await page.getByRole("button", { name: copy.link.save }).click();
-    await expect.element(page.getByText(copy.refused["not-a-link"])).toBeVisible();
   });
 
   it("says who let someone in, the check or a staff member, and that the link waits, with their supporter page", async () => {
@@ -80,17 +74,14 @@ describe("WaitingRoom", () => {
         state="let-in"
         people={[exampleLetIn, exampleLetInByStaff]}
         counts={exampleCounts}
-        link={exampleLink}
         actions={actions()}
       />,
     );
     await expect.element(page.getByText(copy.letInByCheck(staffTime(exampleLetIn.decidedAt!)))).toBeVisible();
-    await expect.element(page.getByText(copy.linkWaiting)).toBeVisible();
+    await expect.element(page.getByText(copy.linkNotSent)).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "06 12 34 56 78" })).not.toBeInTheDocument();
     await expect.element(page.getByRole("heading", { name: "+33612345678" })).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: copy.supporter }).first())
-      .toHaveAttribute("href", "/staff/supporters/7");
+    await expect.element(page.getByRole("link", { name: "Jane" })).toHaveAttribute("href", "/staff/supporters/7");
     expect(page.getByRole("button", { name: copy.letIn }).elements()).toHaveLength(0);
   });
 
@@ -114,14 +105,33 @@ describe("WaitingRoom", () => {
   });
 });
 
-describe("SupporterWaitingRoom", () => {
-  it("shows a supporter's chat, linking to the tab they're on; and nothing for someone who didn't come through it", async () => {
-    const { container, rerender } = await render(<SupporterWaitingRoom person={exampleLetIn} />);
-    await expect.element(page.getByRole("heading", { name: copy.chat })).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: copy.tabs["let-in"] }))
-      .toHaveAttribute("href", "/staff/supporters/waiting-room?show=let-in");
-    await rerender(<SupporterWaitingRoom />);
-    expect(container.textContent).toBe("");
+describe("CommunityLinkButton", () => {
+  it("opens on the link, without its https://, and who set it; refuses one that isn't a link, and closes once one's saved", async () => {
+    const setLink = vi
+      .fn<WaitingRoomActions["setLink"]>()
+      .mockResolvedValueOnce(refused("not-a-link"))
+      .mockResolvedValueOnce({ ok: true });
+    await render(
+      <RefusalPlace>
+        <CommunityLinkButton link={exampleLink} setLink={setLink} />
+      </RefusalPlace>,
+    );
+    await page.getByRole("button", { name: copy.link.title }).click();
+    await expect.element(page.getByText("chat.whatsapp.com/ExampleInvite", { exact: true })).toBeVisible();
+    const field = page.getByRole("textbox", { name: copy.link.label });
+    await field.fill("https://example.com/x");
+    await page.getByRole("button", { name: copy.link.save }).click();
+    await expect.element(page.getByText(copy.refused["not-a-link"])).toBeVisible();
+    await field.fill("https://chat.whatsapp.com/New");
+    await page.getByRole("button", { name: copy.link.save }).click();
+    // Saved, the bubble closes.
+    await expect.poll(() => document.querySelector("[popover]")?.matches(":popover-open")).toBe(false);
+    expect(setLink.mock.calls[1][0].get("link")).toBe("https://chat.whatsapp.com/New");
+  });
+
+  it("asks for a link while none is set", async () => {
+    await render(<CommunityLinkButton setLink={vi.fn()} />);
+    await page.getByRole("button", { name: copy.link.set }).click();
+    await expect.element(page.getByRole("textbox", { name: copy.link.label })).toBeVisible();
   });
 });

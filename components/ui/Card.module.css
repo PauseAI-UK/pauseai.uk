@@ -1,0 +1,15 @@
+/* A white card on the page: a form, or a part of one, such as a topic on the contact preferences page. */
+.card {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .card {
+    padding: var(--space-4);
+  }
+}
