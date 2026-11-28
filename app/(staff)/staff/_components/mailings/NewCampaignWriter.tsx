@@ -51,7 +51,7 @@ export default function NewCampaignWriter({
               <RefusedTextInput name="title" wrong={["no-title"]} />
             </Field>
             <Field label={mailingsCopy.mailingPages.ask}>
-              <Select name="ask" defaultValue="">
+              <Select name="ask" aria-label={mailingsCopy.mailingPages.ask} defaultValue="">
                 <option value="">{mailingsCopy.mailingPages.noAsk}</option>
                 {asks.map((ask) => (
                   <option key={ask.slug} value={ask.slug}>

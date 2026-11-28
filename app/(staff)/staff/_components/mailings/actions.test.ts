@@ -538,8 +538,10 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
       expect(await expectRedirect(() => publishCampaignLetter("stop-the-race", draft.id, 1))).toBe(
         "/staff/campaigns/stop-the-race",
       );
-      // One with no ask, and the same title, which takes the next slug.
-      await expectRedirect(() => newCampaign(made()));
+      // One whose form sends no ask, and the same title, which takes the next slug.
+      const noAsk = made();
+      noAsk.delete("ask");
+      await expectRedirect(() => newCampaign(noAsk));
       expect(await query("SELECT ask FROM campaigns WHERE slug = 'stop-the-race-2'")).toEqual([{ ask: null }]);
     });
 
