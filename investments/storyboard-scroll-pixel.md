@@ -14,3 +14,4 @@ Run the flow until it differs, read `window.scrollY` before the frame in both, a
 
 - 2026-11-24: differed from main in a review of a branch that doesn't reach its page's look, then matched main in three reruns, ~10 min
 - 2026-11-24: the mailings flow "A test copy for someone who's no longer a recipient" (phone), frame 1, a pixel lower than main's in the same way, after Send test, so it isn't one flow's
+- 2026-11-28: the same flow (desktop), frame 1, a pixel lower than main's, in a review of a branch that changes nothing on that page
