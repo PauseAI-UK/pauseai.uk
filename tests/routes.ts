@@ -17,7 +17,8 @@ const APP_DIR = join(__dirname, "..", "app");
 export const DYNAMIC_EXAMPLES: Record<string, string> = {
   "/blog/[slug]": `/blog/${posts[0].slug}`,
   "/campaigns/briefings/[slug]": `/campaigns/briefings/${briefings[0].slug}`,
-  // Jo's campaign, made on the staff site (tests/fixtures/staff-data.sql).
+  // Jo's campaign, made on the staff site (tests/fixtures/staff-data.sql). The public pages section leaves
+  // them out, as its database has no campaign staff made.
   "/campaigns/[slug]": "/campaigns/ban-superintelligence",
   "/campaigns/[slug]/write": "/campaigns/ban-superintelligence/write",
   "/campaigns/[slug]/preview": "/campaigns/ban-superintelligence/preview",

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { BlogPost } from "../posts";
 
 const post: BlogPost = {
@@ -9,8 +10,8 @@ const post: BlogPost = {
   tldrContent: (
     <em>
       We should regulate AI development, and emailing your MP with the tool found at{" "}
-      <a href="/campaigns/">https://pauseai.uk/campaigns</a> is the best place to start - it takes just a few minutes,
-      and is significantly impactful.
+      <Link href="/campaigns/">https://pauseai.uk/campaigns</Link> is the best place to start - it takes just a few
+      minutes, and is significantly impactful.
     </em>
   ),
   cover: {
@@ -56,13 +57,13 @@ const post: BlogPost = {
           UK law neither requires developers to guard against frontier AI risks, nor exposes them to any financial
           consequence if they fail to do so.
         </strong>{" "}
-        (<a href="/campaigns/">PauseAI</a>)
+        (<Link href="/campaigns/">PauseAI</Link>)
       </p>
       <p>
         Now, alarm bells should be ringing. What can we do to fix this disaster waiting to happen? Well, there is some
         good news. The <strong>best</strong> thing you do in the next 5 minutes is to{" "}
-        <a href="/campaigns/">email your MP</a>. Legislation is likely the only way we can stop these huge companies
-        from{" "}
+        <Link href="/campaigns/">email your MP</Link>. Legislation is likely the only way we can stop these huge
+        companies from{" "}
         <a href="https://epoch.ai/data-insights/company-spending-breakdown" target="_blank" rel="noreferrer">
           spending billions
         </a>{" "}
@@ -71,8 +72,8 @@ const post: BlogPost = {
         we are to have something stopping this reckless AI development.
       </p>
       <p>
-        PauseAI have a great <a href="/campaigns/#email-your-mp">email template</a> that finds your MP, and makes sure
-        your email will get through. If you want to make the world a safer and better place, this is{" "}
+        PauseAI have a great <Link href="/campaigns/#email-your-mp">email template</Link> that finds your MP, and makes
+        sure your email will get through. If you want to make the world a safer and better place, this is{" "}
         <strong>genuinely one of the best things to do</strong>. You should also encourage your similarly concerned
         friends to follow suit!
       </p>

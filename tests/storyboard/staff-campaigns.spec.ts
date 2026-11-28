@@ -125,7 +125,7 @@ test("Staff make a campaign", async ({ page, flowDatabase }) => {
 
   story("Nothing is kept until it's made, and it can't be made without a title.");
   await page.getByRole("button", { name: making.make }).click();
-  await expect(page.getByRole("alert")).toHaveText(making.refusals["no-title"]);
+  await expect(page.getByRole("alert").filter({ hasText: making.refusals["no-title"] })).toBeVisible();
   await frame(page, "Refused, with no title");
 
   story("She gives it a title, a subject and a line, and the preview shows it as an MP's constituent starts from it.");

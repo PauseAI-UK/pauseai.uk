@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { BlogPost } from "../posts";
 
 const post: BlogPost = {
@@ -27,8 +28,8 @@ const post: BlogPost = {
         </a>
         , and legislation is not guaranteed - right now is a <em>vital</em> time to make a push for legislative change
         on frontier AI development. The public eye is on AI risk, and this is when decisions get made. So please, spend
-        time now making a difference: <a href="/campaigns/#email-your-mp">email</a> or cold-call your MP, volunteer for
-        pro-pause organisations
+        time now making a difference: <Link href="/campaigns/#email-your-mp">email</Link> or cold-call your MP,
+        volunteer for pro-pause organisations
         <sup>
           <a id="fnref-1" href="#fn-1" aria-label="Footnote 1">
             1
