@@ -6,10 +6,10 @@ import {
   type CountedLetterState,
 } from "@/lib/letters/copy-states";
 import { cache } from "react";
-import { campaignBySlug } from "@/lib/email-your-mp";
 import { FORM_VERSIONS, formVersionAt } from "@/lib/content/pauseai-info-form";
 import { query } from "@/lib/server/db.server";
 import { publishedVersions } from "@/lib/mailings/campaign-letters.server";
+import { siteCampaign } from "./made-campaigns.server";
 import { campaignTextDoc } from "./campaign-versions";
 import type { MailingDoc } from "./doc";
 
@@ -24,6 +24,8 @@ export type CampaignSummary = {
   askTitle: string | null;
   askKind: string | null;
   url: string | null;
+  /** The staff member who made it on the staff site; null for one in the code, or from pauseai.info. */
+  createdBy: string | null;
   /** All its letters, and how many are in each state (LETTER_STATES). */
   letters: number;
   states: Record<CountedLetterState, number>;
@@ -37,7 +39,7 @@ export type CampaignSummary = {
 };
 
 const SELECT_CAMPAIGNS = `
-  SELECT c.slug, c.title, c.ask, a.title AS "askTitle", a.kind AS "askKind", c.url,
+  SELECT c.slug, c.title, c.ask, a.title AS "askTitle", a.kind AS "askKind", c.url, c.created_by AS "createdBy",
     count(l.id)::int AS letters,
     json_build_object(${LETTER_STATES.map((one) => `'${one}', count(l.id) FILTER (WHERE ls.state = '${one}')`).join(", ")}) AS states,
     count(DISTINCT l.notable_person_id) FILTER (WHERE ${CAMPAIGN_ANSWERED})::int AS answered,
@@ -82,9 +84,10 @@ export type CampaignVersion = {
 
 /**
  * A campaign's versions, newest first, and how many of its letters changed
- * the wording. A campaign in the code has the versions staff published,
- * then any letters from before them; one from pauseai.info's old form, its
- * form's versions, counted from its letters' dates.
+ * the wording. A campaign whose letter staff write, in the code or made by
+ * them, has the versions they published, then any letters from before
+ * them; one from pauseai.info's old form, its form's versions, counted from
+ * its letters' dates.
  */
 export async function campaignVersions(slug: string): Promise<{ versions: CampaignVersion[]; changed: number }> {
   const rows = await query<{ at: Date; own: number | null }>(
@@ -92,7 +95,7 @@ export async function campaignVersions(slug: string): Promise<{ versions: Campai
     [slug],
   );
   const changed = rows.filter(({ own }) => (own ?? 0) > 0).length;
-  if (campaignBySlug(slug)) {
+  if (await siteCampaign(slug)) {
     const { versions, before } = await publishedVersions(slug);
     const published = versions.map((version) => ({
       key: String(version.id),

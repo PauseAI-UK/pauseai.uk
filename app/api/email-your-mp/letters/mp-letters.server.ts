@@ -1,6 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { campaignBySlug, draftLetter, signatureAddress, type LetterSubmitted } from "@/lib/email-your-mp";
+import { draftLetter, signatureAddress, type LetterSubmitted } from "@/lib/email-your-mp";
 import { looksLikeEmail } from "@/lib/email-address";
 import { refused } from "@/lib/form-result";
 import { draftHash, ownWords } from "@/lib/letters/changes";
@@ -103,12 +103,11 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
   }
   if (!looksLikeEmail(form.email)) return refused("invalid-email");
   if (isOurAddress(form.email)) return refused("our-address");
-  const campaign = campaignBySlug(form.campaign);
-  if (!campaign) return refused("unknown-campaign");
-  // The version the form began with, or for a form that doesn't say, the latest.
+  // The version the form began with, or for a form that doesn't say, the latest. A campaign with none
+  // published, one of pauseai.info's old ones or one staff haven't finished, takes no letters.
   const version =
-    (form.campaignLetterId !== undefined && (await publishedVersion(campaign.slug, form.campaignLetterId))) ||
-    (await publishedLetter(campaign.slug));
+    (form.campaignLetterId !== undefined && (await publishedVersion(form.campaign, form.campaignLetterId))) ||
+    (await publishedLetter(form.campaign));
   if (!version) return refused("unknown-campaign");
 
   const found = await findMp(form.postcode);
@@ -141,7 +140,7 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
           `SELECT count(*)::int AS count FROM letters_from_supporters s JOIN letters l ON l.id = s.id
              JOIN form_entries f ON f.id = s.entry_id JOIN politicians p ON p.id = l.notable_person_id
            WHERE lower(trim(f.email)) = lower(trim($1)) AND s.campaign = $2 AND NOT p.is_test AND l.status <> 'not_sent'`,
-          [form.email, campaign.slug],
+          [form.email, form.campaign],
           db,
         );
         if (count > 0) return undefined;
@@ -166,7 +165,7 @@ export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
         [
           id,
           entry.id,
-          campaign.slug,
+          form.campaign,
           form.subject,
           proxy.id,
           JSON.stringify(letter),

@@ -53,7 +53,7 @@ describe("EmailYourMpTool", () => {
       draftHash: "0badcafe",
       nickname: "",
     });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp(" Jane Smith ", " SW1A 1AA ", " 1 High St ");
 
     await vi.waitFor(() => expect(navigation.pushed).toEqual([`/campaigns/${letterToPm.slug}/write`]));
@@ -75,7 +75,7 @@ describe("EmailYourMpTool", () => {
 
   it("goes on to the next campaign's page if the MP has done this one, saying where it came from", async () => {
     respond = async () => Response.json({ ok: true, mp: MP, statuses: { [letterToPm.ask!]: "signed" } });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
 
     await vi.waitFor(() => expect(navigation.pushed).toEqual([`/campaigns/${bill.slug}`]));
@@ -91,7 +91,7 @@ describe("EmailYourMpTool", () => {
       mp: MP,
       statuses: {},
     });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("Jane Smith");
     await expect.element(page.getByLabelText(copy.lookup.addressLabel)).toHaveValue("1 High St");
     await expect.element(page.getByLabelText(copy.lookup.postcodeLabel)).toHaveValue("SW1A 1AA");
@@ -103,7 +103,7 @@ describe("EmailYourMpTool", () => {
     saveLookup({ campaign: bill.slug, name: "Old", address: "1 High St", postcode: "X", mp: MP, statuses: {} });
     const before = window.location.href;
     window.history.replaceState(null, "", "?from=email#name=Jane+Smith&postcode=M1+1AE");
-    await render(<EmailYourMpTool campaignSlug={bill.slug} />);
+    await render(<EmailYourMpTool campaign={bill} />);
     await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("Jane Smith");
     await expect.element(page.getByLabelText(copy.lookup.postcodeLabel)).toHaveValue("M1 1AE");
     // The address they type themselves.
@@ -116,12 +116,12 @@ describe("EmailYourMpTool", () => {
   it("opens with just the postcode, or just the name, where the link gave only one", async () => {
     const before = window.location.href;
     window.history.replaceState(null, "", "#postcode=M1+1AE");
-    const { unmount } = await render(<EmailYourMpTool campaignSlug={bill.slug} />);
+    const { unmount } = await render(<EmailYourMpTool campaign={bill} />);
     await expect.element(page.getByLabelText(copy.lookup.postcodeLabel)).toHaveValue("M1 1AE");
     await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("");
     await unmount();
     window.history.replaceState(null, "", "#name=Jane");
-    await render(<EmailYourMpTool campaignSlug={bill.slug} />);
+    await render(<EmailYourMpTool campaign={bill} />);
     await expect.element(page.getByLabelText(copy.lookup.nameLabel)).toHaveValue("Jane");
     window.history.replaceState(null, "", before);
   });
@@ -129,7 +129,7 @@ describe("EmailYourMpTool", () => {
   it("moves on from the PM letter to the bill even when the MP signed ControlAI's letter, as nobody has done the bill's", async () => {
     respond = async () =>
       Response.json({ ok: true, mp: MP, statuses: { [letterToPm.ask!]: "signed", "controlai-letter": "signed" } });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
 
     await vi.waitFor(() => expect(navigation.pushed).toEqual([`/campaigns/${bill.slug}`]));
@@ -140,7 +140,7 @@ describe("EmailYourMpTool", () => {
       throw new DOMException("blocked", "SecurityError");
     });
     respond = async () => Response.json({ ok: true, mp: MP, statuses: { [letterToPm.ask!]: "signed" } });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
 
     await expect.element(page.getByText(letterToPm.alreadyDone!)).toBeVisible();
@@ -156,9 +156,9 @@ describe("EmailYourMpTool", () => {
   });
 
   it("lists the test MPs' postcodes, only when asked to", async () => {
-    const { rerender } = await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    const { rerender } = await render(<EmailYourMpTool campaign={letterToPm} />);
     await expect.element(page.getByText(/ZZ9 9ZZ/)).not.toBeInTheDocument();
-    await rerender(<EmailYourMpTool campaignSlug={letterToPm.slug} showTestMps />);
+    await rerender(<EmailYourMpTool campaign={letterToPm} showTestMps />);
     // The first is always shown; the rest, with what each is for, unfold.
     await expect.element(page.getByText(`${copy.lookup.testPostcodes} ZZ9 9ZZ (Testy McTestface MP)`)).toBeVisible();
     // Folded: the rest aren't in the accessibility tree until the arrow is pressed.
@@ -185,7 +185,7 @@ describe("EmailYourMpTool", () => {
 
   it("shows an MP with no email, and stays", async () => {
     respond = async () => Response.json({ ok: true, mp: { ...MP, email: null }, statuses: {} });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
 
     await expect.element(page.getByText(copy.lookup.noEmail)).toBeVisible();
@@ -195,13 +195,13 @@ describe("EmailYourMpTool", () => {
 
   it("goes on to write to an MP whose address bounced, as the letter waits until it works", async () => {
     respond = async () => Response.json({ ok: true, mp: { ...MP, unreachable: true }, statuses: {} });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
     await vi.waitFor(() => expect(navigation.pushed).toEqual([`/campaigns/${letterToPm.slug}/write`]));
   });
 
   it("needs a name, an address and a postcode, and says why it wants the address", async () => {
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await expect
       .element(page.getByLabelText(copy.lookup.addressLabel))
       .toHaveAccessibleDescription(copy.lookup.addressHint);
@@ -218,7 +218,7 @@ describe("EmailYourMpTool", () => {
 
   it("shows the server's message, or its own if the request fails", async () => {
     respond = async () => Response.json({ ok: false, reason: "not-found" });
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.lookup.notFound);
 
@@ -233,7 +233,7 @@ describe("EmailYourMpTool", () => {
   it("says it's looking while it waits", async () => {
     let finish!: (res: Response) => void;
     respond = () => new Promise((resolve) => (finish = resolve));
-    await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
+    await render(<EmailYourMpTool campaign={letterToPm} />);
     await lookUp();
     await expect.element(page.getByRole("button", { name: copy.lookup.looking })).toBeDisabled();
     finish(Response.json({ ok: false, reason: "not-found" }));

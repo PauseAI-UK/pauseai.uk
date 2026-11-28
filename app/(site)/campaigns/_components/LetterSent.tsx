@@ -2,16 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug } from "@/lib/email-your-mp";
+import { copy, type Campaign } from "@/lib/content/email-your-mp";
 import { campaignPath } from "@/lib/content/campaigns";
 import { readSent, type Sent } from "./draft.client";
 import { Column } from "./FormParts";
 import styles from "./LetterSent.module.css";
 
 /** Thanks for the letter just sent, under the page's heading. Room for more to do, later. */
-export default function LetterSent({ campaignSlug }: { campaignSlug: string }) {
-  const campaign = campaignBySlug(campaignSlug)!;
+export default function LetterSent({ campaign }: { campaign: Campaign }) {
+  const campaignSlug = campaign.slug;
   // undefined until it's been read from sessionStorage, null if there's none.
   const [sent, setSent] = useState<Sent | null>();
 

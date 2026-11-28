@@ -2,7 +2,7 @@ import { isStaffRoute } from "../../app/sitemap";
 import { BLOG, posts } from "../../lib/content/blog";
 import { BRIEFINGS, briefings } from "../../lib/content/briefings";
 import { feedPath } from "../../lib/content/posts";
-import { ROUTES } from "../routes";
+import { DYNAMIC_EXAMPLES, ROUTES } from "../routes";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
@@ -34,8 +34,20 @@ const EMPTY_STEP = /^\/campaigns\/[^/]+\/(write|preview)$/;
 const GALLERY = /^\/gallery(\/|$)/;
 // Someone's contact preferences open only from a link made for them: email-settings.spec.ts pictures them.
 const SETTINGS_LINK = /^\/contact-preferences\/./;
+// A campaign staff made has pages once they've made it, which this section's database never has:
+// staff-campaigns.spec.ts's "Staff make a campaign" pictures them.
+const MADE_CAMPAIGN = new Set(
+  Object.entries(DYNAMIC_EXAMPLES)
+    .filter(([pattern]) => pattern.startsWith("/campaigns/[slug]"))
+    .map(([, route]) => route),
+);
 const PUBLIC_ROUTES = ROUTES.filter(
-  (route) => !isStaffRoute(route) && !EMPTY_STEP.test(route) && !GALLERY.test(route) && !SETTINGS_LINK.test(route),
+  (route) =>
+    !isStaffRoute(route) &&
+    !EMPTY_STEP.test(route) &&
+    !GALLERY.test(route) &&
+    !SETTINGS_LINK.test(route) &&
+    !MADE_CAMPAIGN.has(route),
 );
 
 // Text a page shows only when it really renders lib/server/fixtures/ rather than

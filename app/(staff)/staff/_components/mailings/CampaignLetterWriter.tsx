@@ -34,16 +34,97 @@ export type CampaignLetterActions = {
   discard: (form: FormData) => Promise<FormResult<never>>;
 };
 
-type Changes = { subject: string; body: MailingDoc };
+/** A campaign's letter as it's written: its subject, and the letter. */
+export type CampaignLetterValues = { subject: string; body: MailingDoc };
+
+/**
+ * Writing a campaign's letter, in the mailings' editor, beside the letter
+ * as an MP's constituent starts from it: an MP chosen as a mailing's
+ * preview chooses a recipient, signed with a made-up sender, as the site
+ * can't know who'll write. Two of a Grid's cards, for the writer it's in.
+ */
+export function CampaignLetterCards({
+  values,
+  change,
+  restored,
+  mps,
+  asks,
+  conditions,
+}: {
+  values: CampaignLetterValues;
+  change: (changes: Partial<CampaignLetterValues>) => void;
+  /** Goes up when a reload's changes are taken back, so the editor, which reads its words once, is made anew. */
+  restored: number;
+  mps: PreviewMp[];
+  asks: Ask[];
+  conditions: MailingChoice[];
+}) {
+  const letterLabel = useId();
+  const fields = CAMPAIGN_FIELDS.map((id) => ({ id, label: mailingsCopy.campaigns.fields[id] }));
+  const { recipient: mp, choice } = useRecipientChoice({
+    recipients: mps,
+    body: values.body,
+    labels: answerLabels(asks),
+  });
+  return (
+    <>
+      <Card span={3} title={copy.write} id="write-title">
+        <Field label={mailingsCopy.mailingPages.subject}>
+          <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
+        </Field>
+        <div className={styles.letter}>
+          <p id={letterLabel} className={styles.label}>
+            {mailingsCopy.mailingPages.letter}
+          </p>
+          {/* Made anew with what a reload kept, as it reads its words once. */}
+          <MailingEditor
+            key={restored}
+            initial={values.body as JSONContent}
+            onChange={(doc) => change({ body: doc as MailingDoc })}
+            fields={fields}
+            conditions={conditions}
+            recipients={mps.length}
+            labelledBy={letterLabel}
+          />
+        </div>
+      </Card>
+      <Card span={3} look="aside" title={copy.preview} id="preview-title">
+        {mps.length === 0 ? (
+          <p>{copy.noMps}</p>
+        ) : (
+          <>
+            {choice}
+            {mp ? (
+              <MailEmail from={<Muted>{copy.exampleSender}</Muted>} to={mp.name} subject={values.subject}>
+                <MailingLetter
+                  doc={draftLetter(
+                    values.body,
+                    {
+                      salutation: mp.values.salutation,
+                      mpName: mp.name,
+                      constituency: mp.values.constituency,
+                      senderName: copy.exampleSender,
+                      statuses: Object.fromEntries(mp.meets.map((meets) => meets.split(":"))),
+                    },
+                    copy.exampleAddress,
+                  )}
+                />
+              </MailEmail>
+            ) : (
+              <p className={styles.noEmail}>{mailingsCopy.mailingPages.noOneMix}</p>
+            )}
+          </>
+        )}
+      </Card>
+    </>
+  );
+}
 
 /**
  * A campaign's draft letter: its subject and its letter, saved as they're
- * typed, in the mailings' editor, with the MP's fields and the sender's
- * name, and parts only for MPs with an answer to an ask. Beside it, the
- * letter as an MP's constituent starts from it, an MP chosen as a
- * mailing's preview chooses a recipient, signed with a made-up sender, as
- * the site can't know who'll write. Publish makes it what supporters start
- * from; Delete draft throws it away.
+ * typed, with the MP's fields and the sender's name, and parts only for MPs
+ * with an answer to an ask (CampaignLetterCards). Publish makes it what
+ * supporters start from; Delete draft throws it away.
  */
 export default function CampaignLetterWriter({
   title,
@@ -61,23 +142,17 @@ export default function CampaignLetterWriter({
   conditions: MailingChoice[];
   actions: CampaignLetterActions;
 }) {
-  const letterLabel = useId();
   // Why the last Publish was refused, but for a save since, which the page says as a save refused does.
   const [refusal, setRefusal] = useState<Exclude<PublishRefusal, "conflict">>();
-  const { values, change, saveNow, saveState, version, stale, conflicted, restored } = useDraftWriter<Changes>({
-    kind: "campaign-letter",
-    id: draft.id,
-    version: draft.version,
-    initial: { subject: draft.subject, body: draft.body },
-    fresh: {},
-    actions,
-  });
-  const fields = CAMPAIGN_FIELDS.map((id) => ({ id, label: mailingsCopy.campaigns.fields[id] }));
-  const { recipient: mp, choice } = useRecipientChoice({
-    recipients: mps,
-    body: values.body,
-    labels: answerLabels(asks),
-  });
+  const { values, change, saveNow, saveState, version, stale, conflicted, restored } =
+    useDraftWriter<CampaignLetterValues>({
+      kind: "campaign-letter",
+      id: draft.id,
+      version: draft.version,
+      initial: { subject: draft.subject, body: draft.body },
+      fresh: {},
+      actions,
+    });
   // What stops it being published, as the server checks too.
   const problems = [unpublishable(values)].filter((one) => one !== undefined);
 
@@ -90,54 +165,14 @@ export default function CampaignLetterWriter({
         </Strip>
       )}
       <Grid>
-        <Card span={3} title={copy.write} id="write-title">
-          <Field label={mailingsCopy.mailingPages.subject}>
-            <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
-          </Field>
-          <div className={styles.letter}>
-            <p id={letterLabel} className={styles.label}>
-              {mailingsCopy.mailingPages.letter}
-            </p>
-            {/* Made anew with what a reload kept, as it reads its words once. */}
-            <MailingEditor
-              key={restored}
-              initial={values.body as JSONContent}
-              onChange={(doc) => change({ body: doc as MailingDoc })}
-              fields={fields}
-              conditions={conditions}
-              recipients={mps.length}
-              labelledBy={letterLabel}
-            />
-          </div>
-        </Card>
-        <Card span={3} look="aside" title={copy.preview} id="preview-title">
-          {mps.length === 0 ? (
-            <p>{copy.noMps}</p>
-          ) : (
-            <>
-              {choice}
-              {mp ? (
-                <MailEmail from={<Muted>{copy.exampleSender}</Muted>} to={mp.name} subject={values.subject}>
-                  <MailingLetter
-                    doc={draftLetter(
-                      values.body,
-                      {
-                        salutation: mp.values.salutation,
-                        mpName: mp.name,
-                        constituency: mp.values.constituency,
-                        senderName: copy.exampleSender,
-                        statuses: Object.fromEntries(mp.meets.map((meets) => meets.split(":"))),
-                      },
-                      copy.exampleAddress,
-                    )}
-                  />
-                </MailEmail>
-              ) : (
-                <p className={styles.noEmail}>{mailingsCopy.mailingPages.noOneMix}</p>
-              )}
-            </>
-          )}
-        </Card>
+        <CampaignLetterCards
+          values={values}
+          change={change}
+          restored={restored}
+          mps={mps}
+          asks={asks}
+          conditions={conditions}
+        />
         <Card span={6} title={copy.publishTitle} id="publish-title">
           <div className={styles.send}>
             <ScheduleButton

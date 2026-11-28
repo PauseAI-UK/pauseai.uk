@@ -436,6 +436,17 @@ INSERT INTO event_owners (event_id, owner, assigned_by, assigned_at) VALUES
 INSERT INTO event_docs (event_id, url, set_by, set_at) VALUES
   ('evt-fixture-london-protest', 'https://docs.google.com/document/d/fixture-protest-plan/edit', 'jo@pauseai.uk', now() - interval '10 days');
 
+-- ------------------------------------------------- campaigns staff made
+
+-- Jo's campaign, made on the staff site with no code, so its page is
+-- /campaigns/ban-superintelligence, and its letter published.
+INSERT INTO campaigns (slug, title, ask, created_by, created_at) VALUES
+  ('ban-superintelligence', 'Ban superintelligence', NULL, 'jo@pauseai.uk', now() - interval '5 days');
+INSERT INTO campaign_letters (campaign, subject, body, updated_by, updated_at, published_at, published_by) VALUES
+  ('ban-superintelligence', 'Please back a ban on superintelligence',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Dear "},{"type":"field","attrs":{"field":"salutation"}},{"type":"text","text":","}]},{"type":"paragraph","content":[{"type":"text","text":"As your constituent in "},{"type":"field","attrs":{"field":"constituency"}},{"type":"text","text":", I ask you to back a ban on building superintelligence."}]},{"type":"paragraph","content":[{"type":"field","attrs":{"field":"sender"}}]}]}',
+    'jo@pauseai.uk', now() - interval '5 days', now() - interval '4 days', 'jo@pauseai.uk');
+
 -- -------------------------------------------------------------- letters
 
 -- Letters to the test MPs in every state. Seven sent in the last week and

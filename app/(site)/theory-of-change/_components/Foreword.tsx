@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ForewordBand from "@/components/ui/Foreword";
 
 // Why a theory of change, above the steps.
@@ -15,9 +16,9 @@ export default function Foreword() {
       <ul>
         <li>
           You can{" "}
-          <a href="/campaigns/#email-your-mp" className="inline-link">
+          <Link href="/campaigns/#email-your-mp" className="inline-link">
             email your MP
-          </a>{" "}
+          </Link>{" "}
           in about 10 seconds and there&rsquo;s a decent chance they will agree to sign a statement supporting frontier
           AI legislation.
         </li>

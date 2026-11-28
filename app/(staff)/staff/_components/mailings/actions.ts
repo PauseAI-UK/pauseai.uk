@@ -38,7 +38,8 @@ import {
   publishCampaignDraft,
   saveCampaignDraft,
 } from "@/lib/mailings/campaign-letters.server";
-import { campaignBySlug } from "@/lib/email-your-mp";
+import { createCampaign, siteCampaign } from "@/lib/mailings/made-campaigns.server";
+import { checkMailingDoc } from "@/lib/mailings/doc";
 import { mailingAudience } from "@/lib/mailings/records.server";
 import { answerLetterReply, markNothingToDo } from "@/lib/mailings/replies.server";
 import { looksLikeEmail } from "@/lib/email-address";
@@ -394,11 +395,38 @@ export async function answerLetterReplyNow(
   return { ok: true };
 }
 
-/** A campaign in the code, by its slug, as its letter's page passes it: thrown when it isn't one (own). */
-function ownCampaign(slug: unknown): string {
-  if (typeof slug !== "string" || !campaignBySlug(slug))
+/** A campaign whose letter staff write, by its slug, as its letter's page passes it: thrown when it isn't one (own). */
+async function ownCampaign(slug: unknown): Promise<string> {
+  if (typeof slug !== "string" || !(await siteCampaign(slug)))
     throw new Error("A campaign letter's action came without its campaign");
   return slug;
+}
+
+/** A field of New campaign's form as it was typed or chosen, trimmed; blank for one it didn't send. */
+function typed(form: FormData, name: string): string {
+  const value = form.get(name);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * New campaign: makes the campaign and its letter's draft, and opens the
+ * draft, to carry on and publish. Refused without a title. Its letter, and
+ * the ask it puts, an option of the form's own, are thrown on when they
+ * aren't one.
+ */
+export async function newCampaign(form: FormData): Promise<FormResult<"no-title">> {
+  const { email } = await requireStaff("supporters");
+  const body = checkMailingDoc(JSON.parse(typed(form, "body") || "null"));
+  if (!body) throw new Error("New campaign's form came without its letter");
+  const title = typed(form, "title");
+  if (!title) return refused("no-title");
+  // An ask no row has is refused by the campaigns table's foreign key.
+  const slug = await createCampaign(
+    { title, ask: typed(form, "ask") || null, subject: typed(form, "subject"), body },
+    email,
+  );
+  revalidatePath("/staff/campaigns");
+  redirect(`/staff/campaigns/${slug}/letter`);
 }
 
 /** Saves the changes to a campaign's draft letter, if no one else has saved it since `version`. */
@@ -425,7 +453,7 @@ export async function publishCampaignLetter(
   version: number,
 ): Promise<FormResult<"conflict" | "not-draft" | "gone" | "no-subject" | "no-letter">> {
   const { email } = await requireStaff("supporters");
-  const campaign = ownCampaign(slug);
+  const campaign = await ownCampaign(slug);
   const result = await publishCampaignDraft(own(id, "ID"), own(version, "version"), email);
   if (!result.saved) return refused(result.reason);
   revalidatePath(`/staff/campaigns/${campaign}`);
@@ -435,7 +463,7 @@ export async function publishCampaignLetter(
 /** Throws away campaign `slug`'s draft letter, the form's `id`, then goes to the campaign's page. */
 export async function discardCampaignLetter(slug: string, form: FormData): Promise<FormResult<never>> {
   await requireStaff("supporters");
-  const campaign = ownCampaign(slug);
+  const campaign = await ownCampaign(slug);
   await discardCampaignDraft(ownId(form));
   revalidatePath(`/staff/campaigns/${campaign}`);
   redirect(`/staff/campaigns/${campaign}`);

@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
 import { EMPTY_MAILING_DOC, type MailingDoc } from "./doc";
+import { createCampaign } from "./made-campaigns.server";
 import {
   campaignDraft,
   unpublishedDraft,
@@ -88,6 +89,10 @@ describeWithDatabase("campaign letters", () => {
       updatedBy: "sam@pauseai.uk",
     });
     expect(await unpublishedDraft("pauseai-info-liability")).toBeUndefined();
+    // One staff made has its draft from the start, waiting to be published.
+    const body = EMPTY_MAILING_DOC;
+    const made = await createCampaign({ title: "Stop", ask: null, subject: "", body }, "jo@pauseai.uk");
+    expect(await unpublishedDraft(made)).toMatchObject({ updatedBy: "jo@pauseai.uk" });
   });
 
   it("opens a campaign with no letter yet on a greeting to the MP, with no subject", async () => {

@@ -17,6 +17,12 @@ const APP_DIR = join(__dirname, "..", "app");
 export const DYNAMIC_EXAMPLES: Record<string, string> = {
   "/blog/[slug]": `/blog/${posts[0].slug}`,
   "/campaigns/briefings/[slug]": `/campaigns/briefings/${briefings[0].slug}`,
+  // Jo's campaign, made on the staff site (tests/fixtures/staff-data.sql). The public pages section leaves
+  // them out, as its database has no campaign staff made.
+  "/campaigns/[slug]": "/campaigns/ban-superintelligence",
+  "/campaigns/[slug]/write": "/campaigns/ban-superintelligence/write",
+  "/campaigns/[slug]/preview": "/campaigns/ban-superintelligence/preview",
+  "/campaigns/[slug]/sent": "/campaigns/ban-superintelligence/sent",
   "/people/[slug]": `/people/${personSlug(people[0])}`,
   // Without a session this redirects to the login page, which is what the
   // smoke test sees.

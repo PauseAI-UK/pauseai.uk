@@ -1,7 +1,9 @@
+import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import { expect, it } from "vitest";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { campaignVersions, getCampaignSummary, listCampaignSummaries } from "./campaigns.server";
 import { query } from "@/lib/server/db.server";
+import { createCampaign } from "./made-campaigns.server";
 
 describeWithDatabase("campaigns", () => {
   useTestDatabase();
@@ -118,5 +120,18 @@ describeWithDatabase("campaigns", () => {
     ]);
     expect(changed).toBe(3);
     expect((await campaignVersions("no-such-campaign")).versions).toEqual([]);
+  });
+
+  it("gives a campaign staff made who made it, and the versions they published", async () => {
+    const body = EMPTY_MAILING_DOC;
+    const slug = await createCampaign({ title: "Stop", ask: null, subject: "Please", body }, "jo@pauseai.uk");
+    expect(await getCampaignSummary(slug)).toMatchObject({ title: "Stop", createdBy: "jo@pauseai.uk", letters: 0 });
+    expect((await getCampaignSummary("regulate-letter-pm"))!.createdBy).toBeNull();
+    expect(await campaignVersions(slug)).toEqual({ versions: [], changed: 0 });
+    await query(
+      "UPDATE campaign_letters SET published_at = now(), published_by = 'jo@pauseai.uk' WHERE campaign = $1",
+      [slug],
+    );
+    expect((await campaignVersions(slug)).versions).toMatchObject([{ subject: "Please", by: "jo@pauseai.uk" }]);
   });
 });

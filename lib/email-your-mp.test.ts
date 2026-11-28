@@ -5,6 +5,7 @@ import {
   addressLines,
   campaignBySlug,
   campaignForAsk,
+  codeCampaign,
   campaignToMoveTo,
   chooseCampaign,
   trackedAsks,
@@ -32,6 +33,8 @@ describe("campaigns", () => {
   it("finds a campaign by slug", () => {
     expect(campaignBySlug(bill.slug)).toBe(bill);
     expect(campaignBySlug("nope")).toBeUndefined();
+    expect(codeCampaign(bill.slug)).toBe(bill);
+    expect(() => codeCampaign("nope")).toThrow();
   });
 
   it("counts a campaign done only with the status it asks for", () => {

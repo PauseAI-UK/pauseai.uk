@@ -40,6 +40,9 @@ describe("CampaignView's public page", () => {
     const code = campaigns[0];
     const { rerender } = await render(view({ ...exampleCampaign, slug: code.slug }));
     await expect.element(see()).toHaveAttribute("href", `/campaigns/${code.slug}`);
+    // One staff made has its page on the site too.
+    await rerender(view({ ...exampleCampaign, slug: "stop-the-race", createdBy: "jo@pauseai.uk" }));
+    await expect.element(see()).toHaveAttribute("href", "/campaigns/stop-the-race");
     await rerender(view({ ...exampleCampaign, slug: "gone", url: "https://example.org/letter.pdf" }));
     await expect.element(see()).toHaveAttribute("href", "https://example.org/letter.pdf");
     await rerender(view({ ...exampleCampaign, slug: "gone", url: null }));

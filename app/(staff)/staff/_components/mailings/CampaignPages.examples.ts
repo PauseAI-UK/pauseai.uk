@@ -12,6 +12,7 @@ export const exampleCampaign: CampaignSummary = {
   askTitle: "Frontier AI letter to the Prime Minister",
   askKind: "letter",
   url: null,
+  createdBy: null,
   letters: 12,
   // Three answered of the politicians written to, two letters' replies, and a bounce.
   states: { look: 0, sent: 7, replied: 2, answered: 2, spam: 0, error: 0, unreached: 1, "not-sent": 0 },

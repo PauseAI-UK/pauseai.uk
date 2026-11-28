@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { BlogPost } from "../posts";
 
 const post: BlogPost = {
@@ -208,9 +209,9 @@ const post: BlogPost = {
         <a href="/pdfs/Frontier-AI-Open-Letter.pdf" target="_blank" rel="noreferrer">
           open letter to the Prime Minister here
         </a>
-        , and learn more about our campaigning <a href="/campaigns/">here</a>. You can help us keep the public safe by{" "}
-        <a href="/campaigns/#email-your-mp">emailing your MP</a>, or sharing our campaign with your friends and family.
-        Let&rsquo;s protect our future. Let&rsquo;s Pause AI.
+        , and learn more about our campaigning <Link href="/campaigns/">here</Link>. You can help us keep the public
+        safe by <Link href="/campaigns/#email-your-mp">emailing your MP</Link>, or sharing our campaign with your
+        friends and family. Let&rsquo;s protect our future. Let&rsquo;s Pause AI.
       </p>
     </>
   ),

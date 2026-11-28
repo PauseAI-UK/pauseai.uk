@@ -343,6 +343,29 @@ describeWithDatabase("linkSupporters", () => {
     );
     expect(activity.find((a) => a.kind === "luma-contact")?.eventAt ?? null).toBeNull();
   });
+
+  it("lists two registrations at the same time in the same order every time, by their events' links", async () => {
+    await lumaUser("usr-1", "jane@example.com", "Jane", "evt-m");
+    for (const event of ["evt-z", "evt-a", "evt-q"]) {
+      await query(
+        `INSERT INTO luma_events (id, name, url, start_at, access) VALUES ($1, $1, $1, '2026-10-01T18:00:00Z', 'manage')`,
+        [event],
+      );
+      await query(
+        `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at)
+         VALUES ($1, $2, 'usr-1', 'approved', '2026-09-20T10:00:00Z')`,
+        [`gst-${event}`, event],
+      );
+    }
+    await linkSupporters();
+    const { activity } = (await getSupporter(await supporterWith("jane@example.com")))!;
+    expect(activity.filter((a) => a.kind === "luma-registered").map((a) => a.title)).toEqual([
+      "evt-a",
+      "evt-m",
+      "evt-q",
+      "evt-z",
+    ]);
+  });
 });
 
 describeWithDatabase("listSupporters and getSupporter", () => {

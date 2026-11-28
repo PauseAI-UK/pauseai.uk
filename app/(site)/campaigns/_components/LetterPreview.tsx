@@ -7,9 +7,9 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Controls";
 import { FieldError } from "@/components/ui/Field";
 import { postJson } from "@/lib/ask-server";
-import { copy } from "@/lib/content/email-your-mp";
+import { copy, type Campaign } from "@/lib/content/email-your-mp";
 import { spamCheckCopy } from "@/lib/content/spam-check";
-import { campaignBySlug, type LetterSubmitted } from "@/lib/email-your-mp";
+import type { LetterSubmitted } from "@/lib/email-your-mp";
 import { campaignPath } from "@/lib/content/campaigns";
 import { toHtml } from "@/lib/letters/format";
 import AttachmentChips from "./AttachmentChips";
@@ -19,7 +19,7 @@ import { Column } from "./FormParts";
 import styles from "./LetterPreview.module.css";
 
 type Props = {
-  campaignSlug: string;
+  campaign: Campaign;
   turnstileSiteKey?: string;
 };
 
@@ -50,8 +50,8 @@ function countConversion() {
  * The letter from the form, exactly as the MP will get it, name, address and
  * all, with the anti-spam check and the button that sends it.
  */
-export default function LetterPreview({ campaignSlug, turnstileSiteKey }: Props) {
-  const campaign = campaignBySlug(campaignSlug)!;
+export default function LetterPreview({ campaign, turnstileSiteKey }: Props) {
+  const campaignSlug = campaign.slug;
   const router = useRouter();
   // undefined until it's been read from sessionStorage, null if there's none.
   const [draft, setDraft] = useState<Draft | null>();

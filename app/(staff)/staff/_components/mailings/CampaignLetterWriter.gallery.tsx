@@ -2,7 +2,7 @@
 // events group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import { CampaignLetterWriterExample } from "./CampaignLetterWriter.gallery.client";
+import { CampaignLetterCardsExample, CampaignLetterWriterExample } from "./CampaignLetterWriter.gallery.client";
 
 export const campaignLetterWriterGallery: Example[] = [
   {
@@ -14,6 +14,20 @@ export const campaignLetterWriterGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <CampaignLetterWriterExample />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "CampaignLetterCards",
+    file: "app/(staff)/staff/_components/mailings/CampaignLetterWriter.tsx",
+    variants: [
+      {
+        label: "The bill's letter, written beside its preview",
+        render: () => (
+          <StaffPage as="div">
+            <CampaignLetterCardsExample />
           </StaffPage>
         ),
       },

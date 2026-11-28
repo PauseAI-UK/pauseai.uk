@@ -79,6 +79,8 @@ export function useTestDatabase() {
     await query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
     // The mailings written here; the imported ones come with the migrations.
     await query("DELETE FROM mailings WHERE body IS NOT NULL");
+    // The campaigns made here, with their letters: the migrations' were made by no one.
+    await query("DELETE FROM campaigns WHERE created_by IS NOT NULL");
     // The campaigns' letters written here: the migrations' are published by no one.
     await query("DELETE FROM campaign_letters WHERE published_at IS NULL OR published_by IS NOT NULL");
     // A mailing left, as one a test took its words from, lets go of its template, which goes next.

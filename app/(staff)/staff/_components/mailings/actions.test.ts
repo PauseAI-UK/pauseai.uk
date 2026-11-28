@@ -35,6 +35,7 @@ import {
   saveCampaignLetter,
   publishCampaignLetter,
   discardCampaignLetter,
+  newCampaign,
 } from "./actions";
 import { campaignDraft, openDraft, publishedLetter } from "@/lib/mailings/campaign-letters.server";
 
@@ -510,6 +511,46 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
       );
       await expect(discardCampaignLetter(BILL, form({}))).rejects.toThrow();
       await expect(discardCampaignLetter(madeUp(5), form({ id: String(id) }))).rejects.toThrow();
+    });
+  });
+
+  describe("New campaign", () => {
+    const made = (fields: Record<string, string> = {}) =>
+      form({ title: "Stop the race", ask: "", subject: " Please act ", body: JSON.stringify(LETTER), ...fields });
+    beforeEach(() => query("UPDATE staff_accounts SET permissions = ARRAY['supporters'] WHERE email = $1", [JO]));
+
+    it("asks for the supporters permission", async () => {
+      await query("UPDATE staff_accounts SET permissions = '{}' WHERE email = $1", [JO]);
+      expect(await expectRedirect(() => newCampaign(made()))).toBe("/staff");
+      expect(await query("SELECT slug FROM campaigns WHERE created_by IS NOT NULL")).toEqual([]);
+    });
+
+    it("makes the campaign and its draft, by whom, and opens the draft, whose letter it then publishes", async () => {
+      expect(await expectRedirect(() => newCampaign(made({ ask: "frontier-ai-letter" })))).toBe(
+        "/staff/campaigns/stop-the-race/letter",
+      );
+      expect(revalidatePath).toHaveBeenCalledWith("/staff/campaigns");
+      expect(await query("SELECT title, ask, created_by FROM campaigns WHERE slug = 'stop-the-race'")).toEqual([
+        { title: "Stop the race", ask: "frontier-ai-letter", created_by: JO },
+      ]);
+      const draft = (await campaignDraft("stop-the-race"))!;
+      expect(draft).toMatchObject({ subject: "Please act", body: LETTER, updatedBy: JO });
+      expect(await expectRedirect(() => publishCampaignLetter("stop-the-race", draft.id, 1))).toBe(
+        "/staff/campaigns/stop-the-race",
+      );
+      // One whose form sends no ask, and the same title, which takes the next slug.
+      const noAsk = made();
+      noAsk.delete("ask");
+      await expectRedirect(() => newCampaign(noAsk));
+      expect(await query("SELECT ask FROM campaigns WHERE slug = 'stop-the-race-2'")).toEqual([{ ask: null }]);
+    });
+
+    it("refuses one with no title; throws on a letter that isn't one, and an ask that isn't", async () => {
+      expect(await newCampaign(made({ title: "  " }))).toEqual({ ok: false, reason: "no-title" });
+      await expect(newCampaign(made({ body: "" }))).rejects.toThrow();
+      await expect(newCampaign(made({ body: '{"type":"paragraph"}' }))).rejects.toThrow();
+      await expect(newCampaign(made({ ask: "no-such-ask" }))).rejects.toThrow();
+      expect(await query("SELECT slug FROM campaigns WHERE created_by IS NOT NULL")).toEqual([]);
     });
   });
 });

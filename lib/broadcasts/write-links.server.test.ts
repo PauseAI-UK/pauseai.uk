@@ -1,3 +1,4 @@
+import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import { beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -5,6 +6,7 @@ import { addFollower } from "@/tests/broadcast-fixtures";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { GET } from "@/app/write/[token]/[slug]/route";
 import { HAS_MP } from "./broadcasts";
+import { createCampaign } from "@/lib/mailings/made-campaigns.server";
 import { withWriteLinks, writeLinkPath } from "./write-links.server";
 
 beforeEach(() => vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk"));
@@ -85,6 +87,14 @@ describeWithDatabase("where a link to write to their MP goes", () => {
 
   it("goes to the campaigns' own page for a campaign with no page now", async () => {
     expect(await writeLinkPath("nobody's", "an-old-campaign")).toBe("/campaigns");
+    expect(await writeLinkPath("nobody's", "pauseai-info-liability")).toBe("/campaigns");
+  });
+
+  it("opens a campaign staff made, at its page", async () => {
+    const sam = await addFollower("usr-2", "sam@example.com", "Sam");
+    const body = EMPTY_MAILING_DOC;
+    const slug = await createCampaign({ title: "Stop the race", ask: null, subject: "", body }, "jo@pauseai.uk");
+    expect(await writeLinkPath(await copyTo(sam, "Sam"), slug)).toBe("/campaigns/stop-the-race#name=Sam");
   });
 
   it("is a redirect, by its route", async () => {

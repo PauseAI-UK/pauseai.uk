@@ -271,9 +271,20 @@ The list in code is in priority order: a person writing to their MP is
 shown the first campaign whose ask that MP hasn't met. So the last campaign
 is one nobody has done, and there's always one to move on to.
 
-A new campaign is an entry in that list, its row in a migration, its page
-in `app/(site)/campaigns/<slug>/`, and a link in the nav. Staff then write
-and publish its letter.
+A new campaign in the code is an entry in that list, its row in a
+migration, its page in `app/(site)/campaigns/<slug>/`, and a link in the
+nav. Staff then write and publish its letter.
+
+Staff can make a campaign themselves, with no code, from New campaign on
+`/staff/campaigns` (`lib/mailings/made-campaigns.server.ts`): its title,
+the ask it puts if any, and its letter, kept together as the campaign and
+its draft once it's made. Its row names who made it and when (`created_by`,
+`created_at`), which no other campaign's does. Its slug is made from its
+title, and is never one a campaign or a page in the code has. Its page,
+`/campaigns/<slug>` (`app/(site)/campaigns/[slug]/`), is its title over the
+form, with no words or attachments of its own, and its write step is open
+once its first letter is published. It isn't in the nav, and no other
+campaign's page moves anyone on to it, as that order is the code's list.
 
 Staff see a campaign as a mailing, from supporters rather than PauseAI.
 `/staff/campaigns` lists them under the month of each one's most recent
@@ -283,12 +294,12 @@ letter, with a mailing's counts. A campaign's page
 - its header;
 - how many answered its ask;
 - "The letter", with each version of its text and how much people changed it,
-  and for a campaign in the code, a way to edit it
+  and for a campaign in the code or made by staff, a way to edit it
   (`/staff/campaigns/[slug]/letter`): the draft beside a preview for an MP
   chosen as a mailing's preview chooses, then Publish;
 - "Letters", the list its counts choose among.
 
-A campaign in the code's list has its published versions, newest first,
+A campaign in the code's list, or made by staff, has its published versions, newest first,
 each with how many letters started from it, then the letters from before
 there were versions, each of which keeps its own draft. One of
 pauseai.info's old campaigns has a version for each commit of its form that

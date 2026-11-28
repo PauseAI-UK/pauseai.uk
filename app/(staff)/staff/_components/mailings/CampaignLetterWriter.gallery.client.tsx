@@ -1,7 +1,9 @@
 "use client";
 
 // CampaignLetterWriter's example, which logs what its buttons send (CampaignLetterWriter.gallery.tsx).
-import CampaignLetterWriter from "./CampaignLetterWriter";
+import { useState } from "react";
+import CampaignLetterWriter, { CampaignLetterCards, type CampaignLetterValues } from "./CampaignLetterWriter";
+import Grid from "../ui/Grid";
 import {
   exampleAsks,
   exampleCampaignConditions,
@@ -39,5 +41,25 @@ export function CampaignLetterWriterExample() {
         />
       )}
     </Logged>
+  );
+}
+
+/** The bill's letter in the two cards that write it and preview it, as a writer lays them out. */
+export function CampaignLetterCardsExample() {
+  const [values, setValues] = useState<CampaignLetterValues>({
+    subject: exampleCampaignDraft.subject,
+    body: exampleCampaignDraft.body,
+  });
+  return (
+    <Grid>
+      <CampaignLetterCards
+        values={values}
+        change={(changes) => setValues((was) => ({ ...was, ...changes }))}
+        restored={0}
+        mps={exampleMps}
+        asks={exampleAsks}
+        conditions={exampleCampaignConditions}
+      />
+    </Grid>
   );
 }

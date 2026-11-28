@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug, type CampaignLetter } from "@/lib/email-your-mp";
+import { copy, type Campaign } from "@/lib/content/email-your-mp";
+import type { CampaignLetter } from "@/lib/email-your-mp";
 import { campaignPath } from "@/lib/content/campaigns";
 import { CONTROLAI_LETTER_PAGE, signedControlAiLetter, SOBEL_BILL_CAMPAIGN } from "@/lib/controlai-letter";
 import { readDraft, readLookup, type Draft, type Lookup } from "./draft.client";
@@ -19,8 +19,8 @@ type Writing = { lookup: Lookup | Draft; draft?: Draft };
  * on with the draft when coming back from the preview. With no version
  * published yet, it says the campaign isn't open.
  */
-export default function LetterWrite({ campaignSlug, letter }: { campaignSlug: string; letter: CampaignLetter | null }) {
-  const campaign = campaignBySlug(campaignSlug)!;
+export default function LetterWrite({ campaign, letter }: { campaign: Campaign; letter: CampaignLetter | null }) {
+  const campaignSlug = campaign.slug;
   // undefined until it's been read from sessionStorage, null if there's no lookup.
   const [writing, setWriting] = useState<Writing | null>();
 

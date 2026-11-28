@@ -102,7 +102,7 @@ export type CampaignPageProps = {
   /** Who a part of a letter is for, by its condition (answerLabels()), for a letter with parts. */
   conditions?: Record<string, string>;
   /**
-   * For a campaign in the code, whose letter staff write: its draft with
+   * For a campaign whose letter staff write, in the code or made by them: its draft with
    * changes that aren't published, or null for none; and the Server Action
    * that deletes it.
    */
@@ -112,10 +112,13 @@ export type CampaignPageProps = {
   search: LettersSearch;
 };
 
-/** Where the public reads a campaign: its page on the site, or where its letter is kept; nothing if neither. */
+/**
+ * Where the public reads a campaign: its page on the site, for one in the
+ * code or made by staff, or where its letter is kept; nothing if neither.
+ */
 function PublicPage({ campaign }: { campaign: CampaignSummary }) {
-  const code = campaignNamed(campaign.slug);
-  if (code) return <StaffLink href={campaignPath(code)}>{copy.seePublicPage}</StaffLink>;
+  if (campaignNamed(campaign.slug) || campaign.createdBy)
+    return <StaffLink href={campaignPath(campaign)}>{copy.seePublicPage}</StaffLink>;
   if (!campaign.url) return <Muted>–</Muted>;
   return <ExternalLink href={campaign.url}>{copy.seePublicPage}</ExternalLink>;
 }

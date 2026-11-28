@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { BlogPost } from "../posts";
 
 const post: BlogPost = {
@@ -105,9 +106,9 @@ const post: BlogPost = {
         So, that feeling of powerlessness, has it gone away yet? I imagine not, and it might never fully dissipate, but
         the situation should be clearer now. The British government has the power to push the world in the right
         direction vis-&agrave;-vis AI safety, and that government is made up of MPs. Those MPs can be{" "}
-        <a href="/campaigns/#email-your-mp">pressured by their constituents</a>. You are one of those constituents. You
-        are not powerless, and the UK is not powerless. Britain must make the case for an international treaty to pause
-        frontier AI development, and ban the creation of superintelligent AI.
+        <Link href="/campaigns/#email-your-mp">pressured by their constituents</Link>. You are one of those
+        constituents. You are not powerless, and the UK is not powerless. Britain must make the case for an
+        international treaty to pause frontier AI development, and ban the creation of superintelligent AI.
       </p>
     </>
   ),

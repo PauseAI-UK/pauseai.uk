@@ -1,8 +1,9 @@
+import type { Campaign } from "@/lib/content/email-your-mp";
 import EmailYourMpTool from "./EmailYourMpTool";
 import styles from "./EmailYourMpSection.module.css";
 
 type Props = {
-  campaignSlug: string;
+  campaign: Campaign;
   /** Lists the test MPs' postcodes under the form: for sites other than production. */
   showTestMps?: boolean;
 };

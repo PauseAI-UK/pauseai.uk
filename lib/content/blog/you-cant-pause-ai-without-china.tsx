@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 import type { BlogPost } from "../posts";
 
@@ -136,7 +137,7 @@ const post: BlogPost = {
         In conclusion, the solution to avoiding a rogue agent explosion, or a catastrophic closed-weight incident, is
         having a <em>pause deal</em> with China. I think that pushing for a pause in the west will incentivise a deal
         between the west and China, and the best thing you can do to impact this is to{" "}
-        <a href="/campaigns/#email-your-mp">email your MP</a> on the PauseAI UK website.
+        <Link href="/campaigns/#email-your-mp">email your MP</Link> on the PauseAI UK website.
       </p>
       <p>Thanks for reading!</p>
       <p>

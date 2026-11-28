@@ -1095,6 +1095,7 @@ that drives it or why nothing does.
 - `staff-campaigns.spec.ts`: Campaigns, asks and sent emails:
   - campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting;
   - a campaign's letter edited: its draft opened from the campaign's page, the preview for an MP who signed an ask, the subject saved, published, and a supporter starting from it;
+  - a campaign made by staff: New campaign refused without a title, made with its letter, its page on the site not open till its letter is published, then a supporter starting from it;
   - asks: the list under its months, with each ask's answers, how it was asked and its counts;
   - an ask's page, for a letter and for an event: its answers in columns, each leading to those in it on the politicians list, out of office too when one of them has left, and its form at `/edit`;
   - a mailing's list and page naming its ask and who it's from;
