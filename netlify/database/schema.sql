@@ -1300,6 +1300,9 @@ CREATE TABLE public.campaigns (
     title text NOT NULL,
     ask text,
     url text,
+    created_by text,
+    created_at timestamp with time zone,
+    CONSTRAINT campaigns_check CHECK (((created_by IS NULL) = (created_at IS NULL))),
     CONSTRAINT campaigns_slug_check CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text)),
     CONSTRAINT campaigns_url_check CHECK ((url ~ '^https://'::text))
 );
