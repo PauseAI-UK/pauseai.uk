@@ -163,7 +163,13 @@ could be approved automatically, or shown to staff with that record
 beside their application. Showing it to staff is safer to begin with.
 
 When an application is approved, the site registers them on Luma for
-the panel, if they ticked it, and emails them. Its email links to form
+the panel, if they ticked it, as already approved (Luma's add-guests
+call takes an `approval_status`), and emails them.
+
+The panel's Luma event requires approval in Luma too, so someone who
+RSVPs there directly waits for staff, who approve them on Luma. The
+import already keeps each guest's Luma status, so the conference's page
+can show those waiting on Luma beside the applications. Its email links to form
 2 if they need accommodation.
 
 Staff can edit an application's columns on the conference's page, such
@@ -235,11 +241,6 @@ anything is built, this section will say what each does to
 how long it's kept after PauseCon.
 
 ## Open questions
-
-Q25. The panel's approval. Someone who ticks the panel is registered
-on Luma for it only once approved. Someone who finds the panel on
-Luma, though, could RSVP there directly. Should the panel's Luma event
-require approval in Luma too, so those go to staff as well?
 
 Q26. The emails the site sends (1, 2 and 4). Is it right that the site
 sends these itself the moment something happens, rather than staff
