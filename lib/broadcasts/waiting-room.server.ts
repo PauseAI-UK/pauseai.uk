@@ -13,7 +13,7 @@ import { problem } from "@/lib/server/problems.server";
 import { addFormEntry } from "@/lib/supporters/form-entries.server";
 import { checkReply, type Checked } from "./waiting-room-check.server";
 import { waitingRoomCopy, waitingRoomProblems } from "./waiting-room-copy";
-import { asksToJoin, inviteLink, type WaitingState } from "./waiting-room";
+import { asksToJoin, endsAsTheButtons, inviteLink, type WaitingState } from "./waiting-room";
 
 // The waiting room (docs/domain-concepts.md, "The waiting room"): a message
 // asking to join, from a number we don't have in it, starts a chat, and our
@@ -204,11 +204,21 @@ export type Incoming = {
   profileName?: string;
 };
 
+/** Whether we've sent `number` a broadcast. */
+async function textedBefore(number: string): Promise<boolean> {
+  const [sent] = await query("SELECT 1 FROM broadcast_messages WHERE address = $1 AND sent_at IS NOT NULL LIMIT 1", [
+    number,
+  ]);
+  return Boolean(sent);
+}
+
 /**
  * A message to our number, if it's the waiting room's: one from someone in
  * it, unless it quotes a message of ours that isn't the waiting room's (a
- * broadcast's), or one asking to join from a number not in it. Says whether
- * it was, so the webhook leaves it alone.
+ * broadcast's); or one asking to join from a number not in it: from someone
+ * we've sent a broadcast, only the button's own message, its code in
+ * brackets at its end, as theirs may be a reply to it; from anyone else,
+ * "join" anywhere too. Says whether it was, so the webhook leaves it alone.
  */
 export async function receiveWaitingRoomMessage(incoming: Incoming): Promise<boolean> {
   const { number, messageId, at, kept, quoted, profileName = "" } = incoming;
@@ -221,6 +231,8 @@ export async function receiveWaitingRoomMessage(incoming: Incoming): Promise<boo
   if (!person) {
     const asked = asksToJoin(words);
     if (!asked) return false;
+    // From someone we text, "join" may be a reply about something else, so only the button's message will do.
+    if (!endsAsTheButtons(words) && (await textedBefore(number))) return false;
     // Two first messages at once: the second fails here, and WhatsApp sends it again, to find them in it.
     [person] = await query<Row>(
       `INSERT INTO waiting_room (number, profile_name, came_from, asked_at) VALUES ($1, $2, $3, $4)

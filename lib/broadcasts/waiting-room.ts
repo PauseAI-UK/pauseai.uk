@@ -3,7 +3,7 @@ import type { SpamReason } from "@/lib/content/spam-check";
 
 // The waiting room (docs/domain-concepts.md, "The waiting room"), in what
 // both the site and the server need: where someone is in it, the message the
-// /whatsapp/beta page types for them, and how a message is known to be one
+// /whatsapp page types for them, and how a message is known to be one
 // asking to join.
 
 /** Where someone is: welcomed with no reply yet, held for staff, let in, or dismissed for good. */
@@ -62,6 +62,11 @@ export function asksToJoin(words: string): { cameFrom: string | null } | undefin
  * set or our number can't be reached.
  */
 export type ChatLinkResult = { ok: true; link: string } | Refused<SpamReason | "closed">;
+
+/** Whether a message ends as the button's does, with its code in brackets: "… I'd like to join (parents)". */
+export function endsAsTheButtons(words: string): boolean {
+  return CODE_AT_END.test(words);
+}
 
 /** A link that opens a WhatsApp chat with `number` (as +447…, or with spaces), `text` typed in its message box. */
 export function chatLink(number: string, text: string): string {

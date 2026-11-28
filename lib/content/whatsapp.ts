@@ -1,11 +1,5 @@
 // The WhatsApp page's words (app/(site)/whatsapp), which every button for
-// the community leads to, while its waiting room is down; and the waiting
-// room's own page's (app/(site)/whatsapp/beta), linked from nowhere yet.
-export const whatsappCopy = {
-  title: "Join us on WhatsApp",
-  body: "Our WhatsApp waiting room is down at the moment. Sign up to PauseAI UK instead, and we'll be in touch.",
-  button: "Sign up",
-};
+// the community leads to, for joining it by a chat with our number.
 
 export const waitingRoomJoinCopy = {
   title: "Join us on WhatsApp",

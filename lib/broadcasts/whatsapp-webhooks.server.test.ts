@@ -458,6 +458,23 @@ describeWithDatabase("WhatsApp's webhook", () => {
     expect(sent).toEqual([]);
   });
 
+  it('keeps "join" from someone we text as a reply to their text, and only the button\'s message starts the waiting room', async () => {
+    whatsAppTakes();
+    const copy = await sentCopy("wamid.out-1", "sent");
+    expect(await recordWhatsAppWebhook(message({ text: { body: "Can I join the march on Saturday?" } }))).toBe(1);
+    const replies = await query<{ body: string }>("SELECT body FROM broadcast_replies WHERE message_id = $1", [copy]);
+    expect(replies).toEqual([{ body: "Can I join the march on Saturday?" }]);
+    expect(
+      await recordWhatsAppWebhook(
+        message({ id: "wamid.in-2", text: { body: "Hi PauseAI UK, I'd like to join (parents)" } }),
+      ),
+    ).toBe(1);
+    const [person] = await query<{ from: string }>(
+      "SELECT came_from AS from FROM waiting_room WHERE number = '+447700900123'",
+    );
+    expect(person).toEqual({ from: "parents" });
+  });
+
   it("emails staff one that's more than words as what it was, then its words", async () => {
     const replies = broadcastsCopy.broadcastPages.replies;
     await recordWhatsAppWebhook(message({ type: "image", image: { caption: "Our banner" } }, "447700900999"));

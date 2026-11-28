@@ -1,4 +1,4 @@
-// The WhatsApp waiting room's page's endpoint (app/(site)/whatsapp/beta):
+// The WhatsApp waiting room's page's endpoint (app/(site)/whatsapp):
 // past the spam check, a link that opens a chat with our number, a message
 // asking to join typed in it, with the code of the button they came by. Our
 // number is in no page, so a bot reading the site doesn't find it. A route

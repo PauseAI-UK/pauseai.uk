@@ -1047,7 +1047,7 @@ that drives it or why nothing does.
   - near the device's location, and nothing near;
   - a local group's events, with its venue set or not;
   - the address bar saying which events are shown, and a link to a local group's events or the online ones.
-- `waiting-room.spec.ts`: The WhatsApp waiting room: asking to join at `/whatsapp/beta`, past the spam check; the chat with our number, let in by the check, held then let in by staff, and an advert dismissed; and setting the community's link.
+- `waiting-room.spec.ts`: The WhatsApp waiting room: asking to join at `/whatsapp`, past the spam check; the chat with our number, let in by the check, held then let in by staff, and an advert dismissed; and setting the community's link.
 - `march-signup.spec.ts`: The march sign-up:
   - the next march's page under the site's header, its marker-pen marks drawn;
   - the page of a march that's over, with how many registered and without the form, leading to the next march's;

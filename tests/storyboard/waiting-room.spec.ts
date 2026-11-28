@@ -14,7 +14,7 @@ import type { Section } from "./report/frames";
 export const section: Section = { name: "The WhatsApp waiting room", part: "Public site", order: 45 };
 
 // The WhatsApp waiting room (docs/domain-concepts.md, "The waiting room"):
-// asking to join at /whatsapp/beta, then the chat with our number, as
+// asking to join at /whatsapp, then the chat with our number, as
 // WhatsApp's webhook brings each message, which the fake Claude checks
 // (lib/server/fixtures/fakes/anthropic.ts: a reply of four words or more
 // passes, a shorter one or one with a link is held); and the staff page,
@@ -84,7 +84,7 @@ test("Asking to join on WhatsApp", { tag: "@phone" }, async ({ page: browser, fl
   linkSet(flowDatabase);
   story("Someone on the Parents page wants to join our WhatsApp community. The page asks them to pass the spam check.");
   await fakeTurnstile(browser);
-  await browser.goto(`${BASE}/whatsapp/beta?utm_source=parents`);
+  await browser.goto(`${BASE}/whatsapp?utm_source=parents`);
   await hydrated(browser);
   story(
     "Past it, the button opens WhatsApp with a message to our number typed for them, saying they came from Parents.",

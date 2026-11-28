@@ -1,6 +1,6 @@
 "use client";
 
-import WaitingRoomJoin from "@/app/(site)/whatsapp/beta/_components/WaitingRoomJoin";
+import WaitingRoomJoin from "@/app/(site)/whatsapp/_components/WaitingRoomJoin";
 import { Logged } from "../_components/wiring";
 
 /** The WhatsApp waiting room's page, with no Turnstile, its ask logged and answered with an example chat link. */

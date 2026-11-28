@@ -28,7 +28,7 @@ afterEach(() => {
 describe("WaitingRoomJoin", () => {
   it("asks for the link once the spam check passes, with the page's utm_source, and shows the button to message us", async () => {
     fakeTurnstile("token-1");
-    window.history.replaceState(null, "", "/whatsapp/beta?utm_source=parents");
+    window.history.replaceState(null, "", "/whatsapp?utm_source=parents");
     const ask = vi.fn(async (): Promise<ChatLinkResult> => ({ ok: true, link: LINK }));
     await render(<WaitingRoomJoin turnstileSiteKey="site" ask={ask} />);
     await expect.element(page.getByRole("link", { name: copy.button })).toHaveAttribute("href", LINK);
