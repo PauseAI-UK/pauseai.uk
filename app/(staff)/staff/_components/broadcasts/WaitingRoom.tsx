@@ -20,7 +20,7 @@ import styles from "./WaitingRoom.module.css";
 const copy = waitingRoomCopy.page;
 
 /** Where the page is, and which of its tabs. */
-export const WAITING_ROOM_PATH = "/staff/supporters/waiting-room";
+const WAITING_ROOM_PATH = "/staff/supporters/waiting-room";
 
 /** The Server Actions the page's buttons send. */
 export type WaitingRoomActions = {
@@ -33,7 +33,7 @@ export type WaitingRoomActions = {
 const whoOf = (person: WaitingPerson) => person.profileName || phoneWords(person.number);
 
 /** A chat, as WhatsApp shows it: theirs at the left, ours at the right in green. */
-export function WaitingChat({ person }: { person: WaitingPerson }) {
+function WaitingChat({ person }: { person: WaitingPerson }) {
   return (
     <ChatWall>
       {person.messages.map((message) => (

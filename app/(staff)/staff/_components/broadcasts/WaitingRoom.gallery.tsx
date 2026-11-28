@@ -2,7 +2,6 @@
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import { CommunityLinkButtonExample, WaitingRoomExample } from "./WaitingRoom.gallery.client";
-import { WaitingChat } from "./WaitingRoom";
 import { exampleDismissed, exampleHeld, exampleLetIn, exampleLetInByStaff, exampleLink } from "./WaitingRoom.examples";
 
 export const waitingRoomGallery: Example[] = [
@@ -61,20 +60,6 @@ export const waitingRoomGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <CommunityLinkButtonExample />
-          </StaffPage>
-        ),
-      },
-    ],
-  },
-  {
-    name: "WaitingChat",
-    file: "app/(staff)/staff/_components/broadcasts/WaitingRoom.tsx",
-    variants: [
-      {
-        label: "A chat with the waiting room: theirs at the left, ours at the right, and a voice note",
-        render: () => (
-          <StaffPage as="div">
-            <WaitingChat person={exampleHeld} />
           </StaffPage>
         ),
       },

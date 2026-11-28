@@ -159,18 +159,23 @@ test("Dismissing an advert", async ({ page: browser, request, flowDatabase }) =>
 });
 
 test("Changing the community's link", async ({ page: browser, flowDatabase }) => {
+  linkSet(flowDatabase);
   story(
     "The community's link has been seen in public, so a staff member resets it in WhatsApp and pastes the new one.",
   );
   await logIn(browser, flowDatabase, ["supporters"]);
   await openWaitingRoom(browser);
+  await browser.getByRole("button", { name: page.link.title }).click();
   const field = browser.getByRole("textbox", { name: page.link.label });
   await field.fill("https://example.com/not-a-link");
   await browser.getByRole("button", { name: page.link.save }).click();
   await expect(browser.getByText(page.refused["not-a-link"])).toBeVisible();
   await frame(browser, "A link that isn't one");
+  story("With the new link, the bubble closes. Opened again, it shows the link, and who set it.");
   await field.fill("https://chat.whatsapp.com/NewFixtureInvite?s=cl");
   await browser.getByRole("button", { name: page.link.save }).click();
-  await expect(browser.getByText("https://chat.whatsapp.com/NewFixtureInvite", { exact: true })).toBeVisible();
+  await expect(field).toBeHidden();
+  await browser.getByRole("button", { name: page.link.title }).click();
+  await expect(browser.getByText("chat.whatsapp.com/NewFixtureInvite", { exact: true })).toBeVisible();
   await frame(browser, "The new link, and who set it");
 });
